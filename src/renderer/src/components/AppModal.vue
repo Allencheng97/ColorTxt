@@ -29,6 +29,11 @@ const props = withDefaults(
      * 找书阅读器等「整窗即阅读器」的全屏 AppModal 应设为 false，否则移入正文无法收起顶栏。
      */
     fullscreenHeaderFloat?: boolean;
+    /**
+     * 关闭前钩子（× / Esc / 蒙层）。返回 false 则取消关闭。
+     * 父级直接改 v-model 为 false 时不会调用（如保存成功后关闭）。
+     */
+    beforeClose?: () => boolean | Promise<boolean>;
   }>(),
   {
     title: "",
@@ -77,9 +82,20 @@ const zIndex = ref(6000);
 
 let unregister: (() => void) | null = null;
 let bringToFrontFn: (() => void) | null = null;
+let closeInFlight = false;
 
-function close() {
-  modelValue.value = false;
+async function close() {
+  if (closeInFlight) return;
+  closeInFlight = true;
+  try {
+    if (props.beforeClose) {
+      const ok = await props.beforeClose();
+      if (!ok) return;
+    }
+    modelValue.value = false;
+  } finally {
+    closeInFlight = false;
+  }
 }
 
 function bringToFront() {
@@ -87,7 +103,7 @@ function bringToFront() {
 }
 
 function onMaskClick() {
-  if (props.maskClosable) close();
+  if (props.maskClosable) void close();
 }
 
 watch(
@@ -188,7 +204,7 @@ defineExpose({
                 class="appModalClose"
                 aria-label="关闭"
                 title="关闭"
-                @click="close"
+                @click="void close()"
               >
                 <span
                   class="appModalCloseIcon"
