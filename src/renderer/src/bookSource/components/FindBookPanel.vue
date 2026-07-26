@@ -418,6 +418,7 @@ function onSearchScroll(ev: Event) {
 
 async function tryAutoLoadMoreSearch() {
   await nextTick();
+  if (mainTab.value !== "search") return;
   const el = findBookBodyRef.value;
   if (!el || pageLoading.value || !searchHasMore.value || !hasResults.value) {
     return;
@@ -832,6 +833,7 @@ watch(mainTab, (tab) => {
   }
   if (tab === "search") {
     void refreshHasEnabledSearchSources();
+    void tryAutoLoadMoreSearch();
   }
 });
 
@@ -1184,132 +1186,132 @@ function onGoMain() {
         @managing-change="bookshelfManaging = $event"
       />
 
-      <template v-if="mainTab === 'search'">
-      <div v-if="showSearchStatus" class="findBookStatus">
-        <div
-          v-if="pageLoading"
-          class="findBookProgressBar"
-          role="progressbar"
-          :aria-valuenow="progress.completed"
-          aria-valuemin="0"
-          :aria-valuemax="progress.total"
-          :aria-label="`搜索进度 ${progress.completed} / ${progress.total}`"
-        >
+      <div v-show="mainTab === 'search'" class="findBookSearchPane">
+        <div v-if="showSearchStatus" class="findBookStatus">
           <div
-            class="findBookProgressBarFill"
-            :style="{ width: `${searchProgressPercent}%` }"
+            v-if="pageLoading"
+            class="findBookProgressBar"
+            role="progressbar"
+            :aria-valuenow="progress.completed"
+            aria-valuemin="0"
+            :aria-valuemax="progress.total"
+            :aria-label="`搜索进度 ${progress.completed} / ${progress.total}`"
+          >
+            <div
+              class="findBookProgressBarFill"
+              :style="{ width: `${searchProgressPercent}%` }"
+            />
+          </div>
+          <span class="findBookStatusText">
+            第
+            <span class="findBookStatusEm findBookStatusEm--warning">{{ searchPage }}</span>
+            页，
+            <template v-if="searchPhase === 'stopped'">已停止：</template>
+            <template v-else>{{ pageLoading ? "加载中" : "已完成" }}：</template>
+            <span class="findBookStatusEm" :class="searchStatusProgressClass">
+              {{ progress.completed }}/{{ progress.total }}
+            </span>，共
+            <span class="findBookStatusEm findBookStatusEm--warning">{{ results.length }}</span>
+            个结果
+          </span>
+          <IconButton
+            v-if="showSearchLogsBtn"
+            class="findBookStatusLogBtn"
+            :class="{ 'findBookStatusLogBtn--warning': searchLogsHasErrors }"
+            :icon-html="icons.info"
+            title="查看搜索日志"
+            aria-label="查看搜索日志"
+            @click="onShowSearchLogs"
           />
         </div>
-        <span class="findBookStatusText">
-          第
-          <span class="findBookStatusEm findBookStatusEm--warning">{{ searchPage }}</span>
-          页，
-          <template v-if="searchPhase === 'stopped'">已停止：</template>
-          <template v-else>{{ pageLoading ? "加载中" : "已完成" }}：</template>
-          <span class="findBookStatusEm" :class="searchStatusProgressClass">
-            {{ progress.completed }}/{{ progress.total }}
-          </span>，共
-          <span class="findBookStatusEm findBookStatusEm--warning">{{ results.length }}</span>
-          个结果
-        </span>
-        <IconButton
-          v-if="showSearchLogsBtn"
-          class="findBookStatusLogBtn"
-          :class="{ 'findBookStatusLogBtn--warning': searchLogsHasErrors }"
-          :icon-html="icons.info"
-          title="查看搜索日志"
-          aria-label="查看搜索日志"
-          @click="onShowSearchLogs"
-        />
-      </div>
 
-      <div ref="findBookBodyRef" class="findBookBody" @scroll="onSearchScroll">
-        <div v-if="showHistory" class="findBookHistory">
-          <div class="findBookHistoryHead">
-            <span class="findBookHistoryTitle">搜索历史</span>
-            <button
-              v-if="searchHistory.length"
-              type="button"
-              class="link danger hoverMode findBookHistoryClear"
-              @mousedown.prevent
-              @click="onClearHistory"
-            >
-              清空
-            </button>
-          </div>
-          <div v-if="filteredSearchHistory.length" class="findBookHistoryTags">
-            <div
-              v-for="item in filteredSearchHistory"
-              :key="item"
-              class="findBookHistoryTagWrap"
-            >
+        <div ref="findBookBodyRef" class="findBookBody" @scroll="onSearchScroll">
+          <div v-if="showHistory" class="findBookHistory">
+            <div class="findBookHistoryHead">
+              <span class="findBookHistoryTitle">搜索历史</span>
               <button
+                v-if="searchHistory.length"
                 type="button"
-                class="findBookHistoryTag"
+                class="link danger hoverMode findBookHistoryClear"
                 @mousedown.prevent
-                @click="onHistoryPick(item)"
+                @click="onClearHistory"
               >
-                {{ item }}
-              </button>
-              <button
-                type="button"
-                class="findBookHistoryTagRemove"
-                :aria-label="`移除 ${item}`"
-                title="移除"
-                @mousedown.prevent
-                @click.stop="onRemoveHistoryItem(item)"
-              >
-                <span class="findBookHistoryTagRemoveIcon" v-html="icons.close" />
+                清空
               </button>
             </div>
+            <div v-if="filteredSearchHistory.length" class="findBookHistoryTags">
+              <div
+                v-for="item in filteredSearchHistory"
+                :key="item"
+                class="findBookHistoryTagWrap"
+              >
+                <button
+                  type="button"
+                  class="findBookHistoryTag"
+                  @mousedown.prevent
+                  @click="onHistoryPick(item)"
+                >
+                  {{ item }}
+                </button>
+                <button
+                  type="button"
+                  class="findBookHistoryTagRemove"
+                  :aria-label="`移除 ${item}`"
+                  title="移除"
+                  @mousedown.prevent
+                  @click.stop="onRemoveHistoryItem(item)"
+                >
+                  <span class="findBookHistoryTagRemoveIcon" v-html="icons.close" />
+                </button>
+              </div>
+            </div>
+            <p v-else-if="searchHistory.length" class="findBookHistoryEmpty">无匹配的搜索历史</p>
+            <p v-else class="findBookHistoryEmpty">暂无搜索历史</p>
           </div>
-          <p v-else-if="searchHistory.length" class="findBookHistoryEmpty">无匹配的搜索历史</p>
-          <p v-else class="findBookHistoryEmpty">暂无搜索历史</p>
-        </div>
-        <div v-else-if="showSearchLoading" class="findBookEmpty">
-          <p class="findBookEmptyText findBookEmptyText--loading">
-            加载中<LoadingDotsBounce />
-          </p>
-        </div>
-        <div v-else-if="showEmpty" class="findBookEmpty">
-          <p class="findBookEmptyIcon">{{ emptyIdleIcon }}</p>
-          <p class="findBookEmptyText">{{ emptyIdleText }}</p>
-        </div>
-        <div v-else-if="showNoResults" class="findBookEmpty">
-          <p class="findBookEmptyIcon">(; '⌒' )</p>
-          <p class="findBookEmptyText">{{ noResultsText }}</p>
-        </div>
-        <div v-else-if="showResults" class="findBookResults">
-          <VirtualList
-            class="findBookResultsVirtual"
-            role="list"
-            :item-count="results.length"
-            :row-stride="FIND_BOOK_LIST_ROW_STRIDE"
-            :overscan="6"
-            :external-scroll-el="findBookBodyRef"
-            :item-key="(i) => results[i]?.id ?? i"
-            @visible-indices="onSearchVisibleIndices"
-          >
-            <template #default="{ index }">
-              <FindBookListItem
-                v-if="results[index]"
-                :item="results[index]"
-                :cover-url="getCoverUrl(results[index]!) ?? ''"
-                :cover-pending="isCoverPending(results[index]!)"
-                @click="onOpenBook"
-              />
-            </template>
-          </VirtualList>
-          <div
-            v-if="pageLoading && hasResults"
-            class="findBookResultsLoading"
-            aria-live="polite"
-          >
-            加载中<LoadingDotsBounce />
+          <div v-else-if="showSearchLoading" class="findBookEmpty">
+            <p class="findBookEmptyText findBookEmptyText--loading">
+              加载中<LoadingDotsBounce />
+            </p>
+          </div>
+          <div v-else-if="showEmpty" class="findBookEmpty">
+            <p class="findBookEmptyIcon">{{ emptyIdleIcon }}</p>
+            <p class="findBookEmptyText">{{ emptyIdleText }}</p>
+          </div>
+          <div v-else-if="showNoResults" class="findBookEmpty">
+            <p class="findBookEmptyIcon">(; '⌒' )</p>
+            <p class="findBookEmptyText">{{ noResultsText }}</p>
+          </div>
+          <div v-else-if="showResults" class="findBookResults">
+            <VirtualList
+              class="findBookResultsVirtual"
+              role="list"
+              :item-count="results.length"
+              :row-stride="FIND_BOOK_LIST_ROW_STRIDE"
+              :overscan="6"
+              :external-scroll-el="findBookBodyRef"
+              :item-key="(i) => results[i]?.id ?? i"
+              @visible-indices="onSearchVisibleIndices"
+            >
+              <template #default="{ index }">
+                <FindBookListItem
+                  v-if="results[index]"
+                  :item="results[index]"
+                  :cover-url="getCoverUrl(results[index]!) ?? ''"
+                  :cover-pending="isCoverPending(results[index]!)"
+                  @click="onOpenBook"
+                />
+              </template>
+            </VirtualList>
+            <div
+              v-if="pageLoading && hasResults"
+              class="findBookResultsLoading"
+              aria-live="polite"
+            >
+              加载中<LoadingDotsBounce />
+            </div>
           </div>
         </div>
       </div>
-      </template>
 
       <FindDiscoverPanel
         ref="discoverPanelRef"
