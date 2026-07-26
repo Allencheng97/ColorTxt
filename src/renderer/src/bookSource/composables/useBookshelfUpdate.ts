@@ -112,6 +112,9 @@ function buildInfoPatch(
   if (nextBookUrl && nextBookUrl !== book.bookUrl) {
     patch.bookUrl = nextBookUrl;
   }
+  if (detail.variable && Object.keys(detail.variable).length) {
+    patch.variable = detail.variable;
+  }
   return patch;
 }
 

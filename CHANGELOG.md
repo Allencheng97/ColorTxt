@@ -20,6 +20,7 @@
 修复：
 
 - MiniMax 文生图 API 实际生成时多拼接了一层 `/v1` [#32](https://github.com/ssnangua/ColorTxt/issues/32)
+- 修复书架直开阅读器时，加载章节正文失败的问题
 
 ## 3.0
 

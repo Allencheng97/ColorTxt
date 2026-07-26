@@ -1675,6 +1675,10 @@ async function onStartOfflineCache() {
 }
 
 function buildShelfItem(): SearchBookItem {
+  const variable = {
+    ...(props.item.variable ?? {}),
+    ...(props.detail.variable ?? {}),
+  };
   return {
     ...props.item,
     name: props.detail.name,
@@ -1686,6 +1690,7 @@ function buildShelfItem(): SearchBookItem {
     kind: props.detail.kind ?? props.item.kind,
     wordCount: props.detail.wordCount ?? props.item.wordCount,
     bookUrl: props.detail.bookUrl,
+    ...(Object.keys(variable).length ? { variable } : {}),
   };
 }
 
@@ -1709,6 +1714,7 @@ function onToggleBookshelf() {
       updateFindBookBookshelfBookInfo(props.detail.bookUrl, props.item.origin, {
         tocUrl: props.detail.tocUrl,
         chapters: props.chapters,
+        variable: props.detail.variable,
       });
     }
   }

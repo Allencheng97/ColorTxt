@@ -944,7 +944,10 @@ function normalizeStoredBidValue(raw: string): string {
   return s;
 }
 
-/** 从详情/目录 URL 推断 bid；已有 java.put 则不覆盖（仅规范化错误前缀）。 */
+/**
+ * 从详情/目录 URL 推断 bid；已有本书/规则链上的 bid 则不覆盖（仅规范化错误前缀）。
+ * 勿把书源 cache 里其它书的 @put bid 当成「已有」（书架直开正文会串书 id）。
+ */
 function ensureBidVariable(
   ar: AnalyzeRule,
   variables: Record<string, string>,
@@ -965,8 +968,25 @@ function ensureBidVariable(
     }
   };
 
+  const bidFromVariable = (raw: unknown): string => {
+    if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+      return String((raw as Record<string, string>).bid ?? "").trim();
+    }
+    if (typeof raw === "string" && raw.trim().startsWith("{")) {
+      try {
+        const parsed = JSON.parse(raw) as Record<string, unknown>;
+        return String(parsed.bid ?? "").trim();
+      } catch {
+        return "";
+      }
+    }
+    return "";
+  };
+
   const existingRaw =
-    ar.lookupStored("bid")?.trim() || String(variables.bid ?? "").trim();
+    bidFromVariable(book?.variable) ||
+    String(variables.bid ?? "").trim() ||
+    String(ar.getStoredVariables().bid ?? "").trim();
   if (existingRaw) {
     const normalized = normalizeStoredBidValue(existingRaw);
     if (normalized) syncBid(normalized);

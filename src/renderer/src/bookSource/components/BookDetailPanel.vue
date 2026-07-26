@@ -309,6 +309,10 @@ function buildShelfItem(): SearchBookItem | null {
   if (!item) return null;
   // 有目录时用最新章标题入库（对齐 Legado）
   const tocLatest = resolveLatestChapterTitleFromToc(chapters.value);
+  const variable = {
+    ...(item.variable ?? {}),
+    ...(detail.value?.variable ?? {}),
+  };
   return {
     ...item,
     name: displayName.value,
@@ -319,6 +323,7 @@ function buildShelfItem(): SearchBookItem | null {
     lastChapter: tocLatest || displayLastChapter.value || item.lastChapter,
     kind: detail.value?.kind ?? item.kind,
     wordCount: detail.value?.wordCount ?? item.wordCount,
+    ...(Object.keys(variable).length ? { variable } : {}),
   };
 }
 
@@ -334,6 +339,7 @@ function onToggleBookshelf() {
       tocUrl: detail.value?.tocUrl,
       chapters: chapters.value,
       lastChapter: item.lastChapter,
+      variable: detail.value?.variable,
     });
     if (next) applyBooks(next);
   }

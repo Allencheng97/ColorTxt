@@ -1078,6 +1078,9 @@ export class AnalyzeRule {
   }
 
   private lookupStoredValue(key: string): string {
+    // 对齐 Legado AnalyzeRule.get：chapter → book → ruleData → source
+    const fromChapter = this.readChapterVariable(key);
+    if (fromChapter) return fromChapter;
     const fromBook = this.readBookVariable(key);
     if (fromBook) return fromBook;
     const vars = this.ruleData.variable ?? {};
@@ -1147,10 +1150,26 @@ export class AnalyzeRule {
     return applyRuleRegexImpl(value, this.expandRuleRegexTemplates(regex));
   }
 
+  /**
+   * 对齐 Legado AnalyzeRule.put：chapter → book → ruleData → source（有实体时不写书源 cache）。
+   * 规则链仍镜像到 ruleData，供 getStoredVariables 随搜索项带走（避免只进 book 丢快照）。
+   */
   putStored(key: string, value: unknown): string {
     const s = String(value ?? "");
     if (!this.ruleData.variable) this.ruleData.variable = {};
     this.ruleData.variable[key] = s;
+    if (this.chapter) {
+      this.writeEntityVariable(this.chapter, key, s);
+      return s;
+    }
+    if (this.book) {
+      if (key === "custom") {
+        this.book.variable = s;
+      } else {
+        this.writeEntityVariable(this.book, key, s);
+      }
+      return s;
+    }
     (this.host.javaBindings.put as ((k: string, v: unknown) => string) | undefined)?.(
       key,
       s,
@@ -1160,7 +1179,16 @@ export class AnalyzeRule {
 
   /** 当前规则链 @put / java.put 写入的变量快照（供搜索项带入 Book.variable） */
   getStoredVariables(): Record<string, string> {
-    return { ...(this.ruleData.variable ?? {}) };
+    const out: Record<string, string> = { ...(this.ruleData.variable ?? {}) };
+    const mergeObj = (raw: unknown) => {
+      if (!raw || typeof raw !== "object" || Array.isArray(raw)) return;
+      for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+        if (typeof v === "string" && v) out[k] = v;
+      }
+    };
+    mergeObj(this.book?.variable);
+    mergeObj(this.chapter?.variable);
+    return out;
   }
 
   private writeEntityVariable(
@@ -1178,7 +1206,8 @@ export class AnalyzeRule {
   }
 
   private putBookVariable(key: string, value: string): void {
-    this.putStored(key, value);
+    if (!this.ruleData.variable) this.ruleData.variable = {};
+    this.ruleData.variable[key] = value;
     if (!this.book) return;
     // 部分书源等：整段正文存在 variable 字符串里
     if (key === "custom") {
@@ -1189,7 +1218,8 @@ export class AnalyzeRule {
   }
 
   private putChapterVariable(key: string, value: string): void {
-    this.putStored(key, value);
+    if (!this.ruleData.variable) this.ruleData.variable = {};
+    this.ruleData.variable[key] = value;
     this.writeEntityVariable(this.chapter, key, value);
   }
 

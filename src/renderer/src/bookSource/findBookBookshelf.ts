@@ -59,6 +59,8 @@ export type BookshelfBookInfoPatch = {
   bookUrl?: string;
   tocUrl?: string;
   chapters?: BookChapter[];
+  /** 详情 @put / headers 等（对齐 Legado Book.variable，正文规则 java.get 依赖） */
+  variable?: Record<string, string>;
 };
 
 export type BookshelfAddOptions = {
@@ -198,6 +200,19 @@ export function updateFindBookBookshelfBookInfo(
       merged.bookUrl = patch.bookUrl.trim();
     }
     if (patch.tocUrl?.trim()) merged.tocUrl = patch.tocUrl.trim();
+    if (patch.variable && typeof patch.variable === "object") {
+      const prev =
+        merged.variable &&
+        typeof merged.variable === "object" &&
+        !Array.isArray(merged.variable)
+          ? merged.variable
+          : {};
+      const next: Record<string, string> = { ...prev };
+      for (const [k, v] of Object.entries(patch.variable)) {
+        if (v != null && String(v).trim()) next[k] = String(v).trim();
+      }
+      if (Object.keys(next).length) merged.variable = next;
+    }
     if (patch.chapters?.length) {
       merged.chapters = patch.chapters;
       // 对齐 Legado BookChapterList：有目录后用最新章标题覆盖 lastChapter
