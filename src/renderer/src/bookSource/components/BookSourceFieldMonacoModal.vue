@@ -369,6 +369,9 @@ onBeforeUnmount(() => {
   background: var(--input-bg, var(--panel, #fff));
 }
 .monacoHost {
+  /* 须为定位含块：查找栏 tip 经 ContextView 以 absolute 挂在此节点上，
+     若冒泡到 AppModal 面板（含顶栏），会按视口坐标减去 host 顶边而整体偏上。 */
+  position: relative;
   flex: 1;
   min-height: 0;
   width: 100%;
