@@ -20,6 +20,7 @@ import {
 } from "../formatBookSourceFieldText";
 import { ensureMonacoWorkerFallback } from "../../monaco/ensureMonacoWorkerFallback";
 import { READER_UNICODE_HIGHLIGHT_DISABLED } from "../../monaco/readerEditorOptions";
+import { ensureBookSourceMonacoLibs } from "../monaco/ensureBookSourceMonacoLibs";
 
 const props = withDefaults(
   defineProps<{
@@ -235,6 +236,11 @@ async function mountEditor() {
     tsLang.javascriptDefaults.setDiagnosticsOptions(diagOff);
     tsLang.typescriptDefaults.setDiagnosticsOptions(diagOff);
 
+    const isJs = props.language === "javascript";
+    if (isJs) {
+      ensureBookSourceMonacoLibs(monaco);
+    }
+
     const m = monaco.editor.createModel(props.initialText ?? "", props.language);
     model.value = m;
     baselineText = m.getValue();
@@ -253,7 +259,11 @@ async function mountEditor() {
       renderLineHighlight: "line",
       folding: true,
       unicodeHighlight: { ...READER_UNICODE_HIGHLIGHT_DISABLED },
-      hover: { enabled: false },
+      // JS：开启 hover 以展示运行时 API 文档；诊断仍关
+      hover: { enabled: isJs },
+      suggest: { showWords: true },
+      quickSuggestions: isJs,
+      parameterHints: { enabled: isJs },
       find: {
         addExtraSpaceOnTop: false,
         autoFindInSelection: "never",
