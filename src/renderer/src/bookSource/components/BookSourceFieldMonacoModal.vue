@@ -311,7 +311,7 @@ onBeforeUnmount(() => {
     fullscreen
     panel-class="bookSourceFieldMonacoModal"
     :mask-closable="false"
-    :esc-closable="true"
+    :esc-closable="false"
     :show-close-button="false"
     :body-scroll="false"
     :before-close="confirmDiscardIfDirty"
