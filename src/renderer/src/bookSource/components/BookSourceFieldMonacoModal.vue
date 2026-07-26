@@ -21,6 +21,10 @@ import {
 import { ensureMonacoWorkerFallback } from "../../monaco/ensureMonacoWorkerFallback";
 import { READER_UNICODE_HIGHLIGHT_DISABLED } from "../../monaco/readerEditorOptions";
 import { ensureBookSourceMonacoLibs } from "../monaco/ensureBookSourceMonacoLibs";
+import {
+  applyBookSourceCodeTheme,
+  restoreReaderMonacoTheme,
+} from "../monaco/bookSourceMonacoTheme";
 
 const props = withDefaults(
   defineProps<{
@@ -198,6 +202,12 @@ function disposeEditor() {
   model.value = null;
 }
 
+function restoreThemeAfterClose() {
+  const monaco = monacoApi;
+  if (!monaco) return;
+  restoreReaderMonacoTheme(monaco, isDarkTheme());
+}
+
 async function mountEditor() {
   if (creating || !open.value) return;
   creating = true;
@@ -212,7 +222,8 @@ async function mountEditor() {
     const monaco = await import("monaco-editor");
     monacoApi = monaco;
 
-    monaco.editor.setTheme(isDarkTheme() ? "vs-dark" : "vs");
+    // 独立主题，勿 setTheme(vs) 以免冲掉阅读器 txtr-reader（背景/上色全局失效）
+    applyBookSourceCodeTheme(monaco, isDarkTheme());
 
     // 书源 JS 含 java./result 等非标准写法；规则 DSL 更非 JS。关闭校验避免红波浪线误报。
     // monaco 0.55：API 在顶层 `typescript` 命名空间（languages.typescript 已弃用）
@@ -294,12 +305,14 @@ watch(open, (isOpen) => {
     void mountEditor();
   } else {
     disposeEditor();
+    restoreThemeAfterClose();
     monacoApi = null;
   }
 });
 
 onBeforeUnmount(() => {
   disposeEditor();
+  restoreThemeAfterClose();
   monacoApi = null;
 });
 </script>
