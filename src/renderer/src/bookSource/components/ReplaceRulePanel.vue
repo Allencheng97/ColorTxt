@@ -816,7 +816,7 @@ const showScopeColumn = computed(() => props.bucket === "findBook");
 }
 
 .rulePreview code {
-  min-width: 80px;
+  /* min-width: 80px; */
   margin: 0;
   padding: 2px 4px;
   border-radius: 4px;
