@@ -362,10 +362,6 @@ function isSelected(book: BookshelfBook): boolean {
   return selected.value.has(bookKey(book));
 }
 
-function isLastSelected(book: BookshelfBook): boolean {
-  return lastSelectedKey.value === bookKey(book);
-}
-
 function selectAllVisible() {
   const keys = displayBooks.value.map(bookKey);
   selected.value = new Set(keys);
@@ -649,7 +645,6 @@ defineExpose({ refresh, updateAll, enterManage, exitManage });
           :updating="isUpdating(item)"
           :managing="managing"
           :selected="isSelected(item)"
-          :last-selected="managing && isLastSelected(item)"
           @click="(book, ev) => onItemClick(book, index, ev)"
           @cover-error="onCoverError"
           @more="onRowMoreClick"

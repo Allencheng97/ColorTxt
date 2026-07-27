@@ -38,8 +38,6 @@ const props = withDefaults(
     managing?: boolean;
     /** 编辑模式下是否选中 */
     selected?: boolean;
-    /** 编辑模式下是否为 Shift 连选锚点 */
-    lastSelected?: boolean;
   }>(),
   {
     coverPending: false,
@@ -48,7 +46,6 @@ const props = withDefaults(
     updating: false,
     managing: false,
     selected: false,
-    lastSelected: false,
   },
 );
 
@@ -180,7 +177,7 @@ function onSelectCategoryClick(e: MouseEvent) {
   <li
     class="findBookListItem"
     :class="{
-      'findBookListItem--last-selected': managing && lastSelected,
+      'findBookListItem--selected': managing && selected,
       'findBookListItem--managing': managing,
     }"
     @click="onClick"
@@ -397,24 +394,14 @@ function onSelectCategoryClick(e: MouseEvent) {
 .findBookListItem:hover {
   box-shadow: 0 2px 8px color-mix(in srgb, var(--fg) 12%, transparent);
 }
-.findBookListItem--last-selected {
+.findBookListItem--selected {
   border-color: var(--accent);
 }
-.findBookListItem--last-selected:hover {
+.findBookListItem--selected:hover {
   box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 12%, transparent);
 }
-.findBookListItem--managing .findBookshelfTitleLink,
-.findBookListItem--managing .findBookshelfAuthorLink,
-.findBookListItem--managing .findBookshelfOriginLink,
-.findBookListItem--managing .findBookshelfCategoryLink {
-  cursor: inherit;
-  text-decoration: none !important;
-}
-.findBookListItem--managing .findBookshelfTitleLink:hover,
-.findBookListItem--managing .findBookshelfAuthorLink:hover,
-.findBookListItem--managing .findBookshelfOriginLink:not(:disabled):hover,
-.findBookListItem--managing .findBookshelfCategoryLink:not(:disabled):hover {
-  color: inherit;
+.findBookListItem--managing {
+  cursor: default;
 }
 .findBookshelfSelectCheckbox {
   flex-shrink: 0;

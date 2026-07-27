@@ -791,7 +791,6 @@ function onEditDone() {
             v-for="(item, index) in filtered"
             :key="item.bookSourceUrl"
             class="bsRow"
-            :class="{ 'bsRow--last-selected': lastSelectedUrl === item.bookSourceUrl }"
             @click="onRowClick(item, index, $event)"
           >
             <button
@@ -1146,9 +1145,6 @@ function onEditDone() {
   padding: 6px 0;
   border-bottom: 1px solid var(--border);
   user-select: none;
-}
-.bsRow--last-selected {
-  color: var(--accent);
 }
 .bsRow.sortableRowGhost {
   opacity: 0.45;

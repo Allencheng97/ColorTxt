@@ -293,7 +293,6 @@ function onCancel() {
             v-for="(entry, listIndex) in filteredEntries"
             :key="entry.item.source.bookSourceUrl"
             class="bsRow"
-            :class="{ 'bsRow--last-selected': lastSelectedIndex === entry.index }"
             @click="onRowClick(entry.index, listIndex, $event)"
           >
             <AppCheckbox
@@ -434,9 +433,6 @@ function onCancel() {
   padding: 6px 0;
   border-bottom: 1px solid var(--border);
   user-select: none;
-}
-.bsRow--last-selected {
-  color: var(--accent);
 }
 .bsRowCheckbox {
   flex-shrink: 0;
