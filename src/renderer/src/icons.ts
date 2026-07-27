@@ -101,7 +101,7 @@ import deleteLineationIcon from "./assets/delete_lineation.svg?raw";
 import speakIcon from "./assets/speak.svg?raw";
 import speak0Icon from "./assets/speak_0.svg?raw";
 import speak1Icon from "./assets/speak_1.svg?raw";
-import loginIcon from "./assets/login.svg?raw";
+import userIcon from "./assets/user.svg?raw";
 import buyIcon from "./assets/buy.svg?raw";
 import okIcon from "./assets/ok.svg?raw";
 import lockIcon from "./assets/lock.svg?raw";
@@ -127,7 +127,7 @@ export const icons = {
   palette: paletteIcon,
   more: moreIcon,
   /** 书源列表行「登录」 */
-  login: loginIcon,
+  user: userIcon,
   /** VIP 章节购买 */
   buy: buyIcon,
   ok: okIcon,

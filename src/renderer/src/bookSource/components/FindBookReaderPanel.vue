@@ -1718,7 +1718,7 @@ function onToggleBookshelf() {
       });
     }
   }
-  appToast(added ? "已放入书架" : "已从书架移除", { kind: "info" });
+  appToast(added ? "已放入书架" : "已从书架移除", { kind: added ? "success" : "info" });
 }
 
 function persistSharedTheme(theme: AppShellTheme) {
@@ -2011,7 +2011,14 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
               class="findBookReaderBreadcrumbSep"
               aria-hidden="true"
             >/</span>
-            <span class="findBookReaderBreadcrumbCurrent">{{ detail.name }}</span>
+            <button
+              type="button"
+              class="findBookReaderBreadcrumbCurrent"
+              title="书籍信息"
+              @click="onOpenBookDetail"
+            >
+              {{ detail.name }}
+            </button>
           </nav>
           <div class="findBookReaderTopBarActions">
             <IconButton
@@ -2048,7 +2055,7 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
             />
             <IconButton
               v-if="sourceNeedsLogin"
-              :icon-html="icons.login"
+              :icon-html="icons.user"
               title="登录"
               aria-label="登录"
               @click="onLogin"
@@ -2073,14 +2080,6 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
           :top="topMoreTop"
           :on-panel-mount="bindTopMorePanel"
         >
-          <button
-            type="button"
-            class="appShellMenuItem"
-            role="menuitem"
-            @click="onOpenBookDetail"
-          >
-            <span class="appShellMenuLabel">书籍信息</span>
-          </button>
           <button
             type="button"
             class="appShellMenuItem"
@@ -2681,12 +2680,22 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
   user-select: none;
 }
 .findBookReaderBreadcrumbCurrent {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
   color: var(--fg);
+  font: inherit;
   font-weight: 600;
+  text-align: left;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  cursor: pointer;
+}
+.findBookReaderBreadcrumbCurrent:hover {
+  color: var(--accent);
 }
 .findBookReaderLogBtn {
   flex-shrink: 0;

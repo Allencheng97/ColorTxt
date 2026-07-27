@@ -65,6 +65,7 @@ const showHeader = computed(
       hasTitle.value ||
         showCloseChrome.value ||
         slots.headerPrefix ||
+        slots.headerSuffix ||
         slots.headerActions,
     ),
 );
@@ -183,13 +184,19 @@ defineExpose({
           >
             <div class="appModalTitleCluster">
               <slot name="headerPrefix" />
-              <h2 v-if="hasTitle" :id="titleId" class="appModalTitle">
+              <h2
+                v-if="hasTitle"
+                :id="titleId"
+                class="appModalTitle"
+                :class="{ 'appModalTitle--withSuffix': !!slots.headerSuffix }"
+              >
                 <span
                   v-if="dangerouslyUseHTMLString"
                   v-html="title"
                 />
                 <template v-else>{{ title }}</template>
               </h2>
+              <slot name="headerSuffix" />
             </div>
             <div
               v-if="slots.headerActions || showCloseChrome"
@@ -362,6 +369,10 @@ defineExpose({
   font-size: 18px;
   font-weight: 600;
   color: var(--fg);
+}
+
+.appModalTitle--withSuffix {
+  flex: 0 1 auto;
 }
 
 .appModalHeaderEnd {

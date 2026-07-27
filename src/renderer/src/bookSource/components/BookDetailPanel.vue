@@ -2,6 +2,7 @@
 import { computed, ref, watch } from "vue";
 import AppModal from "../../components/AppModal.vue";
 import AppShellMenuTeleport from "../../components/AppShellMenuTeleport.vue";
+import CategoryPickerMenu from "../../components/CategoryPickerMenu.vue";
 import IconButton from "../../components/IconButton.vue";
 import RefreshIcon from "../../components/RefreshIcon.vue";
 import VirtualList from "../../components/VirtualList.vue";
@@ -43,17 +44,26 @@ import {
 import { resolveFirstChapterContentIndex } from "../chapterReadingOrder";
 import { resolveLatestChapterTitleFromToc } from "../findBookshelfDisplay";
 import type { BookSourceEditTab } from "../editBookSourceFields";
+import type { FileCategoryDefinition } from "../../constants/fileCategories";
+import { loadBookshelfCategoryCatalog } from "../findBookshelfCategory";
 
 /** 与 .bookDetailChapterItem 固定行高一致（外层滚动虚拟列表） */
 const CHAPTER_ROW_STRIDE = 40;
 /** 章名下有 tag（updateTime）时两行展示的行距 */
 const CHAPTER_ROW_STRIDE_WITH_TAG = 56;
 
-const props = defineProps<{
-  item: SearchBookItem | null;
-  downloadDir: string;
-  cacheDir: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    item: SearchBookItem | null;
+    downloadDir: string;
+    cacheDir: string;
+    /** 与书架分类目录共用；不传则从书架分类存储读取 */
+    categoryCatalog?: FileCategoryDefinition[];
+  }>(),
+  {
+    categoryCatalog: undefined,
+  },
+);
 
 const emit = defineEmits<{
   fileDownloaded: [filePath: string, size: number];
@@ -243,6 +253,7 @@ const {
   toggle: toggleBookshelf,
   updateReadProgress,
   applyBooks,
+  setCategory,
 } = useFindBookBookshelf();
 
 const inBookshelf = computed(() => {
@@ -263,6 +274,58 @@ const bookshelfEntry = computed(() => {
     null
   );
 });
+
+const resolvedCategoryCatalog = computed(() =>
+  props.categoryCatalog ?? loadBookshelfCategoryCatalog(),
+);
+
+const categoryMenuCounts = computed(() => {
+  const files = books.value;
+  let uncategorized = 0;
+  const byName: Record<string, number> = {};
+  for (const c of resolvedCategoryCatalog.value) {
+    byName[c.name] = 0;
+  }
+  for (const f of files) {
+    const n = (f.category ?? "").trim();
+    if (!n) {
+      uncategorized++;
+      continue;
+    }
+    if (Object.prototype.hasOwnProperty.call(byName, n)) {
+      byName[n] = (byName[n] ?? 0) + 1;
+    }
+  }
+  return { uncategorized, byName };
+});
+
+const categoryBtnRef = ref<HTMLElement | null>(null);
+const categoryPickerOpen = ref(false);
+const categoryPickX = ref(0);
+const categoryPickY = ref(0);
+
+const bookshelfCategoryLabel = computed(() => {
+  const name = (bookshelfEntry.value?.category ?? "").trim();
+  return name || "未分类";
+});
+
+function onCategoryBtnClick(ev: MouseEvent) {
+  ev.preventDefault();
+  if (!inBookshelf.value) return;
+  const btn = categoryBtnRef.value;
+  if (!btn) return;
+  const r = btn.getBoundingClientRect();
+  categoryPickX.value = r.left;
+  categoryPickY.value = r.top;
+  categoryPickerOpen.value = true;
+}
+
+function onCategoryPicked(name: string) {
+  const item = props.item;
+  if (!item) return;
+  setCategory(item.bookUrl, item.origin, name);
+  categoryPickerOpen.value = false;
+}
 
 
 const hasBookshelfReadProgress = computed(() => {
@@ -343,7 +406,7 @@ function onToggleBookshelf() {
     });
     if (next) applyBooks(next);
   }
-  appToast(added ? "已放入书架" : "已从书架移除", { kind: "info" });
+  appToast(added ? "已放入书架" : "已从书架移除", { kind: added ? "success" : "info" });
 }
 
 const displayBookUrl = computed(
@@ -756,7 +819,7 @@ async function onDownloadOrStop() {
         </IconButton>
         <IconButton
           v-if="sourceNeedsLogin"
-          :icon-html="icons.login"
+          :icon-html="icons.user"
           title="登录"
           aria-label="登录"
           @click="onLogin"
@@ -1027,17 +1090,34 @@ async function onDownloadOrStop() {
       </div>
       <footer v-if="displayItem && !loading" class="bookDetailFooter">
         <div class="bookDetailFooterActions">
-          <button
-            type="button"
-            class="btn bookDetailBookshelfBtn"
-            :class="{ 'bookDetailBookshelfBtn--remove': inBookshelf }"
-            size="large"
-            :disabled="!inBookshelf && !canStartReading"
-            @click="onToggleBookshelf"
-          >
-            <span class="bookDetailFooterBtnIcon" aria-hidden="true" v-html="icons.bookshelf" />
-            {{ inBookshelf ? "从书架移除" : "放入书架" }}
-          </button>
+          <div class="bookDetailFooterLeft">
+            <button
+              type="button"
+              class="btn bookDetailBookshelfBtn"
+              :class="{ 'bookDetailBookshelfBtn--remove': inBookshelf }"
+              size="large"
+              :disabled="!inBookshelf && !canStartReading"
+              @click="onToggleBookshelf"
+            >
+              <span class="bookDetailFooterBtnIcon" aria-hidden="true" v-html="icons.bookshelf" />
+              {{ inBookshelf ? "从书架移除" : "放入书架" }}
+            </button>
+            <button
+              v-if="inBookshelf"
+              ref="categoryBtnRef"
+              type="button"
+              class="btn bookDetailCategoryBtn"
+              size="large"
+              @click="onCategoryBtnClick"
+            >
+              <span
+                class="bookDetailFooterBtnIcon"
+                aria-hidden="true"
+                v-html="icons.folderOpen"
+              />
+              {{ bookshelfCategoryLabel }}
+            </button>
+          </div>
           <div class="bookDetailFooterRight">
             <button
               type="button"
@@ -1069,6 +1149,18 @@ async function onDownloadOrStop() {
       </footer>
     </div>
   </AppModal>
+
+  <CategoryPickerMenu
+    :open="categoryPickerOpen"
+    :x="categoryPickX"
+    :y="categoryPickY"
+    align-above
+    :catalog="resolvedCategoryCatalog"
+    :menu-counts="categoryMenuCounts"
+    :min-width="140"
+    @close="categoryPickerOpen = false"
+    @pick="onCategoryPicked"
+  />
 </template>
 
 <style>
@@ -1439,6 +1531,13 @@ img.bookDetailCover--zoomable {
   justify-content: space-between;
   align-items: center;
   gap: 10px;
+}
+.bookDetailFooterLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 .bookDetailFooterRight {
   display: flex;

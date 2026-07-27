@@ -6,6 +6,8 @@ import IconButton from "../../components/IconButton.vue";
 import SwitchToggle from "../../components/SwitchToggle.vue";
 import AppShellMenuTeleport from "../../components/AppShellMenuTeleport.vue";
 import AppCustomSelect from "../../components/AppCustomSelect.vue";
+import FileCategoryManageModal from "../../components/FileCategoryManageModal.vue";
+import type { CustomSelectItem } from "../../components/AppCustomSelect.vue";
 import { icons } from "../../icons";
 import { useAnchoredAppShellMenu } from "../../composables/useAnchoredAppShellMenu";
 import BookSourcePanel from "./BookSourcePanel.vue";
@@ -55,7 +57,21 @@ import {
   saveBookshelfSortMode,
   type BookshelfSortMode,
 } from "../findBookshelfSort";
-import { bookshelfUpdateBusy, getBookshelfUpdateLogText } from "../composables/useBookshelfUpdate";
+import {
+  BOOKSHELF_CATEGORY_CATALOG_KEY,
+  loadBookshelfCategoryCatalog,
+  loadBookshelfCategoryFilter,
+  saveBookshelfCategoryCatalog,
+  saveBookshelfCategoryFilter,
+} from "../findBookshelfCategory";
+import {
+  FILE_CATEGORY_ACTION_MANAGE,
+  FILE_CATEGORY_FILTER_ALL,
+  FILE_CATEGORY_FILTER_UNCATEGORIZED,
+  UNCATEGORIZED_LIST_BORDER_COLOR,
+  type CategoryEditorRow,
+  type FileCategoryDefinition,
+} from "../../constants/fileCategories";
 import {
   persistKey,
   persistedSettingsChangedEvent,
@@ -64,6 +80,7 @@ import {
   loadPersistedSettingsData,
   persistSettingsData,
 } from "../../stores/cacheStore";
+import { bookshelfUpdateBusy, bookshelfUpdateHasLog, getBookshelfUpdateLogText } from "../composables/useBookshelfUpdate";
 import {
   applyAppShellTheme,
   listenPersistedSettingsSync,
@@ -89,6 +106,11 @@ const discoverExploreActive = ref(false);
 const bookshelfFilter = ref("");
 const bookshelfSortMode = ref<BookshelfSortMode>(loadBookshelfSortMode());
 const bookshelfSortItems = createBookshelfSortItems();
+const bookshelfCategoryFilter = ref(loadBookshelfCategoryFilter());
+const bookshelfCategoryCatalog = ref<FileCategoryDefinition[]>(
+  loadBookshelfCategoryCatalog(),
+);
+const bookshelfCategoryManageOpen = ref(false);
 
 const bookshelfSortDisplayLabel = computed(() =>
   bookshelfSortLabel(bookshelfSortMode.value),
@@ -101,6 +123,141 @@ function onBookshelfSortChange(mode: string) {
   const next = mode as BookshelfSortMode;
   bookshelfSortMode.value = next;
   saveBookshelfSortMode(next);
+}
+
+const { applyBooks, books: bookshelfBooks, applyCategoryCatalogEdit } =
+  useFindBookBookshelf();
+
+const bookshelfCategoryMenuCounts = computed(() => {
+  const files = bookshelfBooks.value;
+  const all = files.length;
+  let uncategorized = 0;
+  const byName: Record<string, number> = {};
+  for (const c of bookshelfCategoryCatalog.value) {
+    byName[c.name] = 0;
+  }
+  for (const f of files) {
+    const n = (f.category ?? "").trim();
+    if (!n) {
+      uncategorized++;
+      continue;
+    }
+    if (Object.prototype.hasOwnProperty.call(byName, n)) {
+      byName[n] = (byName[n] ?? 0) + 1;
+    }
+  }
+  return { all, uncategorized, byName };
+});
+
+const bookshelfCategoryFixedTop = computed((): CustomSelectItem[] => {
+  const m = bookshelfCategoryMenuCounts.value;
+  return [
+    {
+      kind: "item",
+      id: FILE_CATEGORY_FILTER_ALL,
+      label: "全部",
+      skipCategoryMark: true,
+      labelSuffix: `(${m.all})`,
+    },
+    {
+      kind: "item",
+      id: FILE_CATEGORY_FILTER_UNCATEGORIZED,
+      label: "未分类",
+      skipCategoryMark: true,
+      labelSuffix: `(${m.uncategorized})`,
+    },
+    { kind: "divider" },
+  ];
+});
+
+const bookshelfCategoryScrollItems = computed((): CustomSelectItem[] => {
+  const m = bookshelfCategoryMenuCounts.value;
+  return bookshelfCategoryCatalog.value.map((c) => ({
+    kind: "item" as const,
+    id: c.name,
+    label: c.name,
+    borderColor: c.color,
+    labelSuffix: `(${m.byName[c.name] ?? 0})`,
+  }));
+});
+
+const bookshelfCategoryFixedBottom = computed((): CustomSelectItem[] => [
+  { kind: "divider" },
+  {
+    kind: "item",
+    id: FILE_CATEGORY_ACTION_MANAGE,
+    label: "分类管理",
+    actionOnly: true,
+  },
+]);
+
+const bookshelfCategoryTriggerLabel = computed(() => {
+  const v = bookshelfCategoryFilter.value;
+  if (v === FILE_CATEGORY_FILTER_ALL) return "全部";
+  if (v === FILE_CATEGORY_FILTER_UNCATEGORIZED) return "未分类";
+  return v;
+});
+
+const bookshelfCategoryTriggerMarkColor = computed(() => {
+  const v = bookshelfCategoryFilter.value;
+  if (
+    v === FILE_CATEGORY_FILTER_ALL ||
+    v === FILE_CATEGORY_FILTER_UNCATEGORIZED
+  ) {
+    return undefined;
+  }
+  const hit = bookshelfCategoryCatalog.value.find((x) => x.name === v);
+  if (hit) return hit.color;
+  return UNCATEGORIZED_LIST_BORDER_COLOR;
+});
+
+function onBookshelfCategorySelect(id: string) {
+  bookshelfCategoryFilter.value = id;
+  saveBookshelfCategoryFilter(id);
+}
+
+function onBookshelfCategoryAction(id: string) {
+  if (id === FILE_CATEGORY_ACTION_MANAGE) {
+    bookshelfCategoryManageOpen.value = true;
+  }
+}
+
+function onApplyBookshelfCategoryCatalog(payload: {
+  initial: CategoryEditorRow[];
+  draft: CategoryEditorRow[];
+  catalog: FileCategoryDefinition[];
+}) {
+  applyCategoryCatalogEdit(payload.initial, payload.draft);
+  bookshelfCategoryCatalog.value = payload.catalog.map((c) => ({ ...c }));
+  saveBookshelfCategoryCatalog(bookshelfCategoryCatalog.value);
+  const fc = bookshelfCategoryFilter.value;
+  if (
+    fc !== FILE_CATEGORY_FILTER_ALL &&
+    fc !== FILE_CATEGORY_FILTER_UNCATEGORIZED &&
+    !payload.catalog.some((c) => c.name === fc)
+  ) {
+    bookshelfCategoryFilter.value = FILE_CATEGORY_FILTER_ALL;
+    saveBookshelfCategoryFilter(FILE_CATEGORY_FILTER_ALL);
+  }
+}
+
+function syncBookshelfCategoryCatalogFromStorage() {
+  bookshelfCategoryCatalog.value = loadBookshelfCategoryCatalog();
+  const fc = bookshelfCategoryFilter.value;
+  if (
+    fc !== FILE_CATEGORY_FILTER_ALL &&
+    fc !== FILE_CATEGORY_FILTER_UNCATEGORIZED &&
+    !bookshelfCategoryCatalog.value.some((c) => c.name === fc)
+  ) {
+    bookshelfCategoryFilter.value = FILE_CATEGORY_FILTER_ALL;
+    saveBookshelfCategoryFilter(FILE_CATEGORY_FILTER_ALL);
+  }
+}
+
+function onBookshelfCategoryCatalogStorage(ev: StorageEvent) {
+  if (ev.key === BOOKSHELF_CATEGORY_CATALOG_KEY) {
+    syncBookshelfCategoryCatalogFromStorage();
+  }
 }
 
 const bookshelfPanelRef = ref<InstanceType<typeof FindBookshelfPanel> | null>(null);
@@ -153,7 +310,6 @@ const props = withDefaults(
 );
 
 const findBookSettings = useFindBookSettings();
-const { applyBooks } = useFindBookBookshelf();
 const effectiveCacheDir = findBookSettings.effectiveCacheDir;
 const effectiveDownloadDir = findBookSettings.effectiveDownloadDir;
 
@@ -743,6 +899,26 @@ async function onSearchFromSource(item: {
   searchInputRef.value?.focus();
 }
 
+async function onSearchAuthor(author: string) {
+  const k = author.trim();
+  if (!k) return;
+  showBookDetail.value = false;
+  showBookReader.value = false;
+  showBookSourcePanel.value = false;
+  showSettingsPanel.value = false;
+  showReplaceRulePanel.value = false;
+  showDisclaimerPanel.value = false;
+  searchScope.value = null;
+  precisionSearch.value = true;
+  mainTab.value = "search";
+  query.value = k;
+  if (searching.value) await cancel();
+  await nextTick();
+  searchHistory.value = addFindBookSearchHistory(k);
+  void search(k, buildSearchOptions());
+  searchInputRef.value?.blur();
+}
+
 function clearSearchScope() {
   searchScope.value = null;
   rerunSearchIfNeeded();
@@ -785,6 +961,7 @@ onMounted(() => {
   void refreshHasEnabledSearchSources();
   offThemeSync = listenPersistedSettingsSync(syncThemeFromStorage);
   window.addEventListener(persistedSettingsChangedEvent, syncThemeFromStorage);
+  window.addEventListener("storage", onBookshelfCategoryCatalogStorage);
   offActivateTab = window.colorTxt.onFindBookActivateTab((tab) => {
     if (tab === "bookshelf" || tab === "search" || tab === "discover") {
       mainTab.value = tab;
@@ -801,6 +978,7 @@ onBeforeUnmount(() => {
     persistedSettingsChangedEvent,
     syncThemeFromStorage,
   );
+  window.removeEventListener("storage", onBookshelfCategoryCatalogStorage);
 });
 
 watch(modelValue, (open) => {
@@ -998,6 +1176,20 @@ function onGoMain() {
           />
         </div>
         <AppCustomSelect
+          class="findBookBookshelfCategorySelect"
+          :model-value="bookshelfCategoryFilter"
+          :display-label="bookshelfCategoryTriggerLabel"
+          :trigger-mark-color="bookshelfCategoryTriggerMarkColor"
+          :fixed-top-items="bookshelfCategoryFixedTop"
+          :scroll-items="bookshelfCategoryScrollItems"
+          :fixed-bottom-items="bookshelfCategoryFixedBottom"
+          :scroll-max-height="300"
+          ariaLabel="书架分类"
+          category-color-marks
+          @update:model-value="onBookshelfCategorySelect"
+          @action="onBookshelfCategoryAction"
+        />
+        <AppCustomSelect
           v-model="bookshelfSortMode"
           class="findBookBookshelfSortSelect"
           :display-label="bookshelfSortDisplayLabel"
@@ -1045,7 +1237,7 @@ function onGoMain() {
           type="button"
           class="appShellMenuItem"
           role="menuitem"
-          :disabled="bookshelfUpdateBusy"
+          :disabled="bookshelfUpdateBusy || bookshelfBooks.length === 0"
           @click="onBookshelfUpdateAll"
         >
           <span class="appShellMenuLabel">更新书籍目录</span>
@@ -1055,6 +1247,7 @@ function onGoMain() {
           class="appShellMenuItem"
           :class="{ 'appShellMenuItem--warning': bookshelfManaging }"
           role="menuitem"
+          :disabled="bookshelfBooks.length === 0 && !bookshelfManaging"
           @click="onBookshelfManage"
         >
           <span class="appShellMenuLabel">{{
@@ -1065,6 +1258,7 @@ function onGoMain() {
           type="button"
           class="appShellMenuItem"
           role="menuitem"
+          :disabled="!bookshelfUpdateHasLog"
           @click="onBookshelfUpdateLogs"
         >
           <span class="appShellMenuLabel">日志</span>
@@ -1179,10 +1373,14 @@ function onGoMain() {
         v-show="mainTab === 'bookshelf'"
         :active="mainTab === 'bookshelf'"
         :filter="bookshelfFilter"
+        :category-filter="bookshelfCategoryFilter"
+        :category-catalog="bookshelfCategoryCatalog"
         :sort-mode="bookshelfSortMode"
         @read-book="onReadBookshelfBook"
         @open-book-info="onOpenBook"
         @search-source="onSearchFromSource"
+        @select-category="onBookshelfCategorySelect"
+        @search-author="onSearchAuthor"
         @managing-change="bookshelfManaging = $event"
       />
 
@@ -1331,10 +1529,17 @@ function onGoMain() {
       :item="selectedBook"
       :download-dir="effectiveDownloadDir"
       :cache-dir="effectiveCacheDir"
+      :category-catalog="bookshelfCategoryCatalog"
       @file-downloaded="onBookDownloaded"
       @read-chapter="onReadChapter"
       @chapter-cache-cleared="onChapterCacheCleared"
       @search-source="onSearchFromSource"
+    />
+
+    <FileCategoryManageModal
+      v-model="bookshelfCategoryManageOpen"
+      :catalog="bookshelfCategoryCatalog"
+      @apply="onApplyBookshelfCategoryCatalog"
     />
 
     <FindBookReaderPanel
@@ -1648,6 +1853,11 @@ function onGoMain() {
 }
 .findBookBookshelfToolbar {
   gap: 8px;
+}
+.findBookBookshelfCategorySelect {
+  flex-shrink: 0;
+  width: 112px;
+  min-width: 112px;
 }
 .findBookBookshelfSortSelect {
   flex-shrink: 0;
