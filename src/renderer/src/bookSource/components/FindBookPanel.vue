@@ -1381,6 +1381,7 @@ function onGoMain() {
         @search-source="onSearchFromSource"
         @select-category="onBookshelfCategorySelect"
         @search-author="onSearchAuthor"
+        @search-book-name="onSearchAuthor"
         @managing-change="bookshelfManaging = $event"
       />
 

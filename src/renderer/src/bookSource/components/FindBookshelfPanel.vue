@@ -50,6 +50,8 @@ const emit = defineEmits<{
   selectCategory: [category: string];
   /** 切换到找书并搜索作者 */
   searchAuthor: [author: string];
+  /** 切换到找书并精准搜索书名 */
+  searchBookName: [name: string];
   managingChange: [managing: boolean];
 }>();
 
@@ -493,6 +495,17 @@ function onSearchAuthorFromItem(author: string) {
   emit("searchAuthor", author);
 }
 
+function onRowMenuSearchBookName() {
+  const item = rowMenuItem.value;
+  closeRowMenu();
+  const name = item?.name?.trim();
+  if (!name) {
+    appToast("书名为空", { kind: "warning" });
+    return;
+  }
+  emit("searchBookName", name);
+}
+
 function searchSourceForBook(item: BookshelfBook) {
   const url = item.origin?.trim();
   if (!url) {
@@ -794,6 +807,14 @@ defineExpose({ refresh, updateAll, enterManage, exitManage });
           />
         </div>
       </div>
+      <button
+        type="button"
+        class="appShellMenuItem"
+        role="menuitem"
+        @click="onRowMenuSearchBookName"
+      >
+        搜索书名
+      </button>
       <button
         type="button"
         class="appShellMenuItem"
