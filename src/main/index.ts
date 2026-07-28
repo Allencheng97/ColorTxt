@@ -69,6 +69,8 @@ registerMainIpcHandlers({
 
 const launchTxtHandlers = setupLaunchTxtHandlers({
   createWindow,
+  findBookWindowByWindowId,
+  mainWindowFocusState,
   onSecondInstance: (argv) => {
     if (!argvHasFindBookFlag(argv)) return false;
     openFindBookLaunchWindow(createWindow, "bookshelf");

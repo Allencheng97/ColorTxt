@@ -141,6 +141,13 @@
         "description": "纯文本文件",
         "mimeType": "text/plain",
         "role": "Editor"
+      },
+      {
+        "ext": "md",
+        "name": "Markdown Document",
+        "description": "Markdown 文件",
+        "mimeType": "text/markdown",
+        "role": "Editor"
       }
     ],
     "mac": {
