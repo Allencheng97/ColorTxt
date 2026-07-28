@@ -487,6 +487,9 @@ const aiAssistantPanelRef = ref<{
   requestClearAiBookCache: () => Promise<void>;
   prefillQuotedText: (text: string) => void;
 } | null>(null);
+const fileListPanelRef = ref<InstanceType<typeof FileListPanel> | null>(null);
+const filesHeaderMoreBtnRef = ref<HTMLButtonElement | null>(null);
+
 const annotationPanelRef = ref<InstanceType<typeof AnnotationListPanel> | null>(
   null,
 );
@@ -787,13 +790,19 @@ defineExpose({
             <span class="svg" v-html="icons.refresh" />
           </button>
         </div>
-        <button
-          v-if="activeTab === 'files'"
-          class="btn"
-          @click="emit('pickDirectory')"
-        >
-          选择目录
-        </button>
+        <div v-if="activeTab === 'files'" class="sidebarHeaderEnd">
+          <button class="btn" @click="emit('pickDirectory')">选择目录</button>
+          <button
+            ref="filesHeaderMoreBtnRef"
+            type="button"
+            class="aiReaderSidebarHeaderIconBtn"
+            title="更多"
+            aria-label="更多"
+            @click="fileListPanelRef?.openMoreMenu()"
+          >
+            <span class="svg" v-html="icons.more" />
+          </button>
+        </div>
         <div v-else-if="activeTab === 'chapters'" class="sidebarCountToggle">
           <span class="sidebarCountToggleLabel">字数</span>
           <SwitchToggle
@@ -883,6 +892,7 @@ defineExpose({
         @bind-list-ref="bindChapterListRef"
       />
       <FileListPanel
+        ref="fileListPanelRef"
         v-show="activeTab === 'files'"
         :show-fullscreen-sidebar="showFullscreenSidebar"
         :files="fileRowsEnriched"
@@ -894,6 +904,7 @@ defineExpose({
         :file-category="fileCategory"
         :file-sort="fileSort"
         :file-category-catalog="fileCategoryCatalog"
+        :menu-anchor-el="filesHeaderMoreBtnRef"
         @update-file-filter-query="fileFilterQuery = $event"
         @update:file-category="emit('update:fileCategory', $event)"
         @update:file-sort="emit('update:fileSort', $event)"
@@ -1361,6 +1372,7 @@ defineExpose({
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
+  gap: 6px;
 }
 
 /**

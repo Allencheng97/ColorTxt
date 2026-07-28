@@ -39,6 +39,12 @@ import {
 } from "../utils/fileListPanelDisplay";
 import { icons } from "../icons";
 import { fileListEmptyHint, fileListDropHint, fileListNoMatchHint } from "../constants/appUi";
+import { useAnchoredAppShellMenu } from "../composables/useAnchoredAppShellMenu";
+import AppShellMenuTeleport from "./AppShellMenuTeleport.vue";
+import { appToast } from "../services/appToast";
+
+const FILES_HEADER_MORE_MENU_W = 140;
+
 const props = withDefaults(
   defineProps<{
     files: SidebarFileItem[];
@@ -52,10 +58,13 @@ const props = withDefaults(
     fileCategoryCatalog: FileCategoryDefinition[];
     /** 全屏浮动侧栏是否展开；从展开变为收起时关闭 Teleport 到 body 的浮层 */
     showFullscreenSidebar?: boolean;
+    /** 侧栏标题行「更多」按钮（锚定菜单） */
+    menuAnchorEl?: HTMLButtonElement | null;
   }>(),
   {
     metaProgressMap: () => new Map<string, number>(),
     liveReadingProgressPercent: undefined,
+    menuAnchorEl: null,
   },
 );
 
@@ -113,6 +122,70 @@ function borderColorForFileRow(f: SidebarFileItem): string {
 function fileItemShowCategoryMarkRow(f: SidebarFileItem): boolean {
   return fileItemShowCategoryMark(f, props.fileCategory);
 }
+
+const moreBtnRef = ref<HTMLButtonElement | null>(null);
+const moreAnchorRef = ref<HTMLButtonElement | null>(null);
+watch(
+  () => props.menuAnchorEl ?? moreBtnRef.value,
+  (el) => {
+    moreAnchorRef.value = el;
+  },
+  { immediate: true },
+);
+const moreMenu = useAnchoredAppShellMenu({
+  anchor: moreAnchorRef,
+  placement: "below-end",
+  widthPx: FILES_HEADER_MORE_MENU_W,
+});
+const {
+  open: moreOpen,
+  left: moreLeft,
+  top: moreTop,
+  panelRef: morePanelRef,
+  toggleMenu: toggleMoreMenu,
+  closeMenu: closeMoreMenu,
+} = moreMenu;
+
+function bindMorePanel(el: HTMLElement | null) {
+  morePanelRef.value = el;
+}
+
+const removingMissingFiles = ref(false);
+
+async function onRemoveMissingFiles() {
+  closeMoreMenu();
+  if (!window.colorTxt || removingMissingFiles.value) return;
+  const paths = props.files.map((f) => f.path);
+  if (paths.length === 0) {
+    appToast("没有可移除的文件", { kind: "info" });
+    return;
+  }
+  removingMissingFiles.value = true;
+  try {
+    const missing: string[] = [];
+    for (const p of paths) {
+      try {
+        // file:stat 对 ENOENT 返回 isFile/isDirectory 均为 false，不抛错
+        const st = await window.colorTxt.stat(p);
+        if (!st.isFile) missing.push(p);
+      } catch {
+        missing.push(p);
+      }
+    }
+    if (missing.length === 0) {
+      appToast("没有失效文件", { kind: "info" });
+      return;
+    }
+    emit("removeFileList", missing);
+    appToast(`已移除 ${missing.length} 个失效文件`, { kind: "success" });
+  } finally {
+    removingMissingFiles.value = false;
+  }
+}
+
+defineExpose({
+  openMoreMenu: toggleMoreMenu,
+});
 
 function onBindListRef(value: Element | ComponentPublicInstance | null) {
   if (value && typeof value === "object" && "$el" in value) {
@@ -514,7 +587,8 @@ const sortSelectPanelOpen = ref(false);
 const fullscreenFileListPopoversOpenComputed = computed(
   () =>
     Boolean(
-      menus.fileContextMenuOpen ||
+      moreOpen.value ||
+        menus.fileContextMenuOpen ||
         menus.editContextMenuOpen ||
         menus.categoryPickerOpen ||
         manageModalOpen.value ||
@@ -530,6 +604,7 @@ watch(
 );
 
 function dismissAllFullscreenTeleportUi() {
+  closeMoreMenu();
   menus.dismissAllTeleportMenus();
   filterVisible.value = false;
   manageModalOpen.value = false;
@@ -1117,6 +1192,25 @@ onBeforeUnmount(() => {
         @pointerdown="menus.closeEditContextMenu"
       />
     </Teleport>
+    <AppShellMenuTeleport
+      v-model:open="moreOpen"
+      :left="moreLeft"
+      :top="moreTop"
+      :width="FILES_HEADER_MORE_MENU_W"
+      :on-panel-mount="bindMorePanel"
+      aria-label="文件更多"
+    >
+      <button
+        type="button"
+        class="appShellMenuItem"
+        role="menuitem"
+        :disabled="files.length === 0 || removingMissingFiles"
+        @click="onRemoveMissingFiles"
+      >
+        <span class="appShellMenuIconSlot" v-html="icons.clear" />
+        <span class="appShellMenuLabel">移除失效文件</span>
+      </button>
+    </AppShellMenuTeleport>
     <CategoryPickerMenu
       :open="menus.categoryPickerOpen"
       :x="menus.categoryPickX"
