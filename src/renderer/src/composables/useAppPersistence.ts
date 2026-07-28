@@ -476,7 +476,8 @@ export function useAppPersistence(deps: {
       return;
     }
     if (ev.key === persistKey) {
-      loadPersistedSettings();
+      // 侧栏宽度按窗口独立；仍同步其它设置，并保留写盘供新窗/重启使用
+      loadPersistedSettings({ applySidebarWidth: false });
     }
   }
 
@@ -779,10 +780,14 @@ export function useAppPersistence(deps: {
     });
   }
 
-  function loadPersistedSettings(): {
+  function loadPersistedSettings(options?: {
+    /** 为 false 时不覆盖本窗口侧栏宽度（多窗口 storage 同步） */
+    applySidebarWidth?: boolean;
+  }): {
     ebookConvertOutputDirKeyPresent: boolean;
     characterPortraitCacheDirKeyPresent: boolean;
   } {
+    const applySidebarWidth = options?.applySidebarWidth !== false;
     const loaded = loadPersistedSettingsData(
       typeof window !== "undefined" ? window.localStorage : undefined,
       persistKey,
@@ -802,6 +807,7 @@ export function useAppPersistence(deps: {
     if (data.theme) deps.currentTheme.value = data.theme;
 
     if (
+      applySidebarWidth &&
       typeof data.sidebarWidth === "number" &&
       Number.isFinite(data.sidebarWidth)
     ) {
