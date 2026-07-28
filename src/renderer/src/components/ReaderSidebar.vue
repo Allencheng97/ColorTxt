@@ -489,6 +489,10 @@ const aiAssistantPanelRef = ref<{
 } | null>(null);
 const fileListPanelRef = ref<InstanceType<typeof FileListPanel> | null>(null);
 const filesHeaderMoreBtnRef = ref<HTMLButtonElement | null>(null);
+const chapterListPanelRef = ref<InstanceType<typeof ChapterListPanel> | null>(
+  null,
+);
+const chaptersHeaderMoreBtnRef = ref<HTMLButtonElement | null>(null);
 
 const annotationPanelRef = ref<InstanceType<typeof AnnotationListPanel> | null>(
   null,
@@ -803,14 +807,26 @@ defineExpose({
             <span class="svg" v-html="icons.more" />
           </button>
         </div>
-        <div v-else-if="activeTab === 'chapters'" class="sidebarCountToggle">
-          <span class="sidebarCountToggleLabel">字数</span>
-          <SwitchToggle
-            size="sm"
-            :model-value="showChapterCounts"
-            aria-label="章节列表显示字数"
-            @update:model-value="emit('update:showChapterCounts', $event)"
-          />
+        <div v-else-if="activeTab === 'chapters'" class="sidebarHeaderEnd">
+          <div class="sidebarCountToggle">
+            <span class="sidebarCountToggleLabel">字数</span>
+            <SwitchToggle
+              size="sm"
+              :model-value="showChapterCounts"
+              aria-label="章节列表显示字数"
+              @update:model-value="emit('update:showChapterCounts', $event)"
+            />
+          </div>
+          <button
+            ref="chaptersHeaderMoreBtnRef"
+            type="button"
+            class="aiReaderSidebarHeaderIconBtn"
+            title="更多"
+            aria-label="更多"
+            @click="chapterListPanelRef?.openMoreMenu()"
+          >
+            <span class="svg" v-html="icons.more" />
+          </button>
         </div>
         <div v-else-if="activeTab === 'bookmarks'" class="sidebarHeaderEnd">
           <button
@@ -881,12 +897,14 @@ defineExpose({
         <div v-else></div>
       </div>
       <ChapterListPanel
+        ref="chapterListPanelRef"
         v-show="activeTab === 'chapters'"
         :current-file-path="currentFilePath"
         :chapters-visible="chaptersVisible"
         :is-chapter-active="isChapterActive"
         :show-chapter-counts="showChapterCounts"
         :format-char-count="formatCharCount"
+        :menu-anchor-el="chaptersHeaderMoreBtnRef"
         @jump-to-chapter="onChapterItemClick"
         @close-current-file="emit('closeCurrentFile')"
         @bind-list-ref="bindChapterListRef"
