@@ -86,6 +86,7 @@ const props = withDefaults(
       displayLine: number;
       text: string;
       range: { start: number; end: number };
+      physicalStartColumn: number;
     }>;
     searchInProgress?: boolean;
     searchMatchCase?: boolean;
@@ -493,6 +494,8 @@ const chapterListPanelRef = ref<InstanceType<typeof ChapterListPanel> | null>(
   null,
 );
 const chaptersHeaderMoreBtnRef = ref<HTMLButtonElement | null>(null);
+const searchPanelRef = ref<InstanceType<typeof SearchPanel> | null>(null);
+const searchHeaderMoreBtnRef = ref<HTMLButtonElement | null>(null);
 
 const annotationPanelRef = ref<InstanceType<typeof AnnotationListPanel> | null>(
   null,
@@ -894,6 +897,18 @@ defineExpose({
             <span class="svg" v-html="icons.more" />
           </button>
         </div>
+        <div v-else-if="activeTab === 'search'" class="sidebarHeaderEnd">
+          <button
+            ref="searchHeaderMoreBtnRef"
+            type="button"
+            class="aiReaderSidebarHeaderIconBtn"
+            title="更多"
+            aria-label="更多"
+            @click="searchPanelRef?.openMoreMenu()"
+          >
+            <span class="svg" v-html="icons.more" />
+          </button>
+        </div>
         <div v-else></div>
       </div>
       <ChapterListPanel
@@ -1046,6 +1061,7 @@ defineExpose({
         />
       </div>
       <SearchPanel
+        ref="searchPanelRef"
         v-show="activeTab === 'search'"
         :active="activeTab === 'search'"
         :current-file-path="currentFilePath"
@@ -1056,6 +1072,7 @@ defineExpose({
         :whole-word="searchWholeWord ?? false"
         :use-regex="searchUseRegex ?? false"
         :active-search-result="activeSearchResult ?? null"
+        :menu-anchor-el="searchHeaderMoreBtnRef"
         @update:query="emit('update:searchQuery', $event)"
         @update:match-case="emit('update:searchMatchCase', $event)"
         @update:whole-word="emit('update:searchWholeWord', $event)"
