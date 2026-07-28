@@ -177,6 +177,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   apply: [payload: SettingsApplyPayload];
+  openReadingData: [];
 }>();
 
 const activeTab = ref<SettingsTabId>("general");
@@ -620,8 +621,12 @@ async function onClearCache() {
     defaultId: 1,
     cancelId: 0,
     message: "是否清除应用缓存？",
-    detail:
-      "将删除会话、最近打开、文件列表、书签与阅读进度等本地数据；界面设置（字号、主题、配色等）将保留。清除后窗口会重新加载。",
+    detail: [
+      "将清除会话、最近打开、文件列表、收藏高亮词、阅读数据（含立绘）等本地缓存；",
+      "不会删除电子书转换的 .md 文件、书包解压的文件、找书下载的文件；",
+      "不影响界面相关的设置（字号、主题、配色等）；",
+      "清除后窗口会重新加载。",
+    ].join("\n"),
     noLink: true,
   });
   if (r.response !== 1) return;
@@ -630,7 +635,31 @@ async function onClearCache() {
   } catch {
     // ignore
   }
-  const saved = localStorage.getItem(persistKey);
+
+  // 删除角色立绘缓存根目录（含各书立绘与草稿）
+  try {
+    const root =
+      props.characterPortraitCacheDir.trim() ||
+      resolveDefaultCharacterPortraitCacheDirSync();
+    if (root) {
+      await window.colorTxt.removePath(root);
+    }
+  } catch {
+    /* 目录不存在或删除失败不阻断清除 */
+  }
+
+  let saved = localStorage.getItem(persistKey);
+  if (saved !== null) {
+    try {
+      const obj = JSON.parse(saved) as Record<string, unknown>;
+      if (obj && typeof obj === "object" && !Array.isArray(obj)) {
+        delete obj.highlightWordsByIndexGlobal;
+        saved = JSON.stringify(obj);
+      }
+    } catch {
+      // 保留原 settings 字符串
+    }
+  }
   try {
     localStorage.clear();
     if (saved !== null) localStorage.setItem(persistKey, saved);
@@ -673,6 +702,7 @@ async function onClearCache() {
                 draftEbookConvertOutputDir
               "
               v-model:draft-book-pack-unpack-dir="draftBookPackUnpackDir"
+              @open-reading-data="emit('openReadingData')"
               @clear-cache="onClearCache"
             />
 

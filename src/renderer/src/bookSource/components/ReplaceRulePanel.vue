@@ -521,9 +521,10 @@ const showScopeColumn = computed(() => props.bucket === "findBook");
                     @click="openEdit(item)"
                   />
                   <IconButton
+                    danger
                     :icon-html="icons.remove"
-                    aria-label="删除"
-                    title="删除"
+                    aria-label="移除"
+                    title="移除"
                     @click="onDeleteOne(item)"
                   />
                 </div>

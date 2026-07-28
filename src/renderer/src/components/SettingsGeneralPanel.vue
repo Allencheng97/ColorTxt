@@ -9,6 +9,7 @@ import {
   minChapterMinCharCount,
 } from "../constants/appUi";
 import { resolveDefaultUnpackedBooksDirSync } from "../utils/defaultCacheDirs";
+import { icons } from "../icons";
 
 defineProps<{
   draftRestore: boolean;
@@ -28,6 +29,7 @@ defineEmits<{
   "update:draftChapterCharCountExact": [v: boolean];
   "update:draftEbookConvertOutputDir": [v: string];
   "update:draftBookPackUnpackDir": [v: string];
+  openReadingData: [];
   clearCache: [];
 }>();
 
@@ -162,15 +164,35 @@ const bookPackUnpackDirPlaceholder = computed(() => {
 
     <div class="settingsRow settingsRow--cache">
       <div class="settingsRowMain">
-        <span class="settingsLabel">清除缓存</span>
-        <button
-          class="btn warning"
-          type="button"
-          size="large"
-          @click="$emit('clearCache')"
-        >
-          清除缓存
-        </button>
+        <span class="settingsLabel">数据管理</span>
+        <div class="settingsDataManageActions">
+          <button
+            class="btn"
+            type="button"
+            size="large"
+            @click="$emit('openReadingData')"
+          >
+            <span
+              class="settingsDataManageBtnIcon"
+              aria-hidden="true"
+              v-html="icons.read"
+            />
+            阅读数据
+          </button>
+          <button
+            class="btn warning"
+            type="button"
+            size="large"
+            @click="$emit('clearCache')"
+          >
+            <span
+              class="settingsDataManageBtnIcon"
+              aria-hidden="true"
+              v-html="icons.clear"
+            />
+            清除缓存
+          </button>
+        </div>
       </div>
       <p class="settingsHint">清除本地缓存数据（不影响界面相关的设置）。</p>
     </div>
@@ -215,6 +237,31 @@ const bookPackUnpackDirPlaceholder = computed(() => {
   gap: 8px;
   flex: 1 1 65%;
   min-width: 0;
+}
+
+.settingsDataManageActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.settingsDataManageBtnIcon {
+  display: inline-flex;
+  line-height: 0;
+  flex-shrink: 0;
+}
+
+.settingsDataManageBtnIcon :deep(svg) {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.settingsDataManageBtnIcon :deep(svg path) {
+  fill: currentColor;
 }
 
 .settingsEbookPathPicker {

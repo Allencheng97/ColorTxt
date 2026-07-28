@@ -21,6 +21,7 @@ import AppModal from "./AppModal.vue";
 import ColorSchemePanel from "./ColorSchemePanel.vue";
 import AppUpdateFlow from "./AppUpdateFlow.vue";
 import ChapterRulePanel from "./ChapterRulePanel.vue";
+import ReadingDataPanel from "./ReadingDataPanel.vue";
 import ReplaceRulePanel from "../bookSource/components/ReplaceRulePanel.vue";
 import type { ReplaceRule } from "@shared/bookSource/replaceRule";
 import SettingsPanel, { type SettingsApplyPayload } from "./SettingsPanel.vue";
@@ -94,6 +95,13 @@ const props = defineProps<{
   voiceReadProfiles: VoiceReadProfile[];
   activeVoiceReadProfileId: string;
   characterRoster: CharacterRosterEntry[];
+  /** 有可清除阅读数据的文件列表（阅读数据面板） */
+  readingDataItems: {
+    path: string;
+    fileName: string;
+    progress?: number;
+    lastOpenedAt?: number;
+  }[];
 }>();
 
 const emit = defineEmits<{
@@ -114,6 +122,10 @@ const emit = defineEmits<{
   applyHighlightColors: [payload: { light: string[]; dark: string[] }];
   applyLineationColors: [payload: { light: string[]; dark: string[] }];
   applyReplaceRuleFormat: [rules: ReplaceRule[]];
+  openReadingData: [];
+  clearReadingDataPaths: [paths: string[]];
+  clearAllReadingData: [];
+  removeMissingReadingDataFiles: [];
 }>();
 
 const showAboutPanel = defineModel<boolean>("showAboutPanel", {
@@ -126,6 +138,9 @@ const showSettingsPanel = defineModel<boolean>("showSettingsPanel", {
   default: false,
 });
 const showChapterRulePanel = defineModel<boolean>("showChapterRulePanel", {
+  default: false,
+});
+const showReadingDataPanel = defineModel<boolean>("showReadingDataPanel", {
   default: false,
 });
 const showReplaceRulePanel = defineModel<boolean>("showReplaceRulePanel", {
@@ -262,6 +277,14 @@ onBeforeUnmount(() => {
     :active-voice-read-profile-id="activeVoiceReadProfileId"
     :character-roster="characterRoster"
     @apply="emit('applySettings', $event)"
+    @open-reading-data="emit('openReadingData')"
+  />
+  <ReadingDataPanel
+    v-model="showReadingDataPanel"
+    :items="readingDataItems"
+    @clear-paths="emit('clearReadingDataPaths', $event)"
+    @clear-all-reading-data="emit('clearAllReadingData')"
+    @remove-missing-files="emit('removeMissingReadingDataFiles')"
   />
   <ChapterRulePanel
     v-model="showChapterRulePanel"

@@ -791,9 +791,6 @@ onBeforeUnmount(() => {
                 class="sidebarItem fileItem"
                 :class="{
                   active: filesFiltered[index].path === currentFilePath,
-                  'fileItem--last-selected':
-                    isEditingFileList &&
-                    lastSelectedFilePath === filesFiltered[index].path,
                 }"
                 :title="filesFiltered[index].path"
                 @click="
@@ -1287,9 +1284,6 @@ onBeforeUnmount(() => {
   display: flex;
   gap: 8px;
   align-items: center;
-}
-.fileItem--last-selected {
-  box-shadow: inset 0 0 0 1px var(--accent);
 }
 .fileItemCheckboxWrap {
   flex-shrink: 0;

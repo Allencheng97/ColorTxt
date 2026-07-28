@@ -342,7 +342,7 @@ cardShellWrap（悬停抬高 z-index）
 | 文件 | 主要功能 |
 | ---- | -------- |
 | `ReaderSidebar.vue` | 侧栏容器：活动栏含 **笔记**、**AI 助手**、**角色** 等（`constants/readerSidebarTab.ts`）。<br>挂载 **`AnnotationListPanel`**、**`AiAssistantPanel`**、**`CharacterSidebarPanel`** 等；**`askAiWithQuote`** 切 tab 并 **`prefillQuotedText`**；**角色 → 更多 → 卡片效果** 子菜单（`CHARACTER_CARD_TEXTURE_EFFECTS`、分隔线、`AppShellMenuTeleport`）；`v-model:character-card-texture-effect` 与 `App.vue` 同步 |
-| `SettingsPanel.vue` | 设置壳层：确定时校验向量维度、**数据/模型缓存目录迁移**、`configSet`（AI 密钥）与 `emit('apply')`（含 **`persistVoiceReadSecretsToVault`**）；「清除缓存」见数据存储章 |
+| `SettingsPanel.vue` | 设置壳层：确定时校验向量维度、**数据/模型缓存目录迁移**、`configSet`（AI 密钥）与 `emit('apply')`（含 **`persistVoiceReadSecretsToVault`**）；「数据管理 / 清除缓存」见 [基础功能.md](./基础功能.md) →「数据管理」 |
 | `SettingsTabBar.vue` | 页签含 **`voiceRead`** / `ai` / `vectorModel` / `txt2img` / `skills` / `edit` / `general` / `reading`。<br>`showAiExtensionTabs` 为 false 时隐藏向量模型 / 角色卡 / 技能扩展页签 |
 | `SettingsAIPanel.vue` | 「AI 阅读助手」：总开关；服务商含 **MiniMax**；**配置方案**；对话模型 + **测试连接**；Token 与 **`aiDataCacheDir`**；快速提问等 |
 | `AiMindmapView.vue` | 阅读助手思维导图：侧栏预览 + 全屏交互（markmap）；全部收起/展开、章节标题替换、**全展开** SVG 导出 |

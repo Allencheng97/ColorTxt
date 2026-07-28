@@ -342,7 +342,7 @@ function chapterHeaderPadding(
         :disabled="staleCount <= 0"
         @click="onMoreSelect('clearStale')"
       >
-        <span class="appShellMenuIconSlot" v-html="icons.unknow" />
+        <span class="appShellMenuIconSlot" v-html="icons.clear" />
         <span class="appShellMenuLabel">清除失效笔记</span>
       </button>
     </AppShellMenuTeleport>

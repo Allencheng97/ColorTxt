@@ -1296,29 +1296,40 @@ function metaHasClearableReadingData(rec: FileMetaRecord | undefined): boolean {
   return false;
 }
 
-async function clearCurrentFileReadingData() {
-  const path = currentFile.value?.trim();
-  if (!path) {
-    await appAlert("请先打开文件");
-    return;
-  }
-  const ok = await appConfirm(
-    "将清除当前文件的阅读进度、书签、高亮词、笔记、角色卡及立绘等数据，不会删除书籍文件本身。",
-    "清除阅读数据",
-  );
-  if (!ok) return;
+const showReadingDataPanel = ref(false);
 
-  const key = fileHistoryKey(path);
-  const pathKey = normalizeFileMetaPathKey(path);
-  // UI 可能经同文件名回退读到其它路径的 meta，以「当前展示的」为准判断是否有数据
-  const shown = findFileMetaRecord(fileMetaRecords.value, path);
-  const hadProgress = metaProgressByPathKey.value.has(key);
-  if (!metaHasClearableReadingData(shown) && !hadProgress) {
-    appToast("没有可清除的阅读数据", { kind: "info" });
-    return;
-  }
+const readingDataItems = computed(() => {
+  const live = liveReadingProgressForUi.value;
+  const cur = currentFile.value;
+  const curKey = cur ? fileHistoryKey(cur) : "";
+  const progressMap = metaProgressByPathKey.value;
+  const rows = fileMetaRecords.value
+    .filter((m) => metaHasClearableReadingData(m))
+    .map((m) => {
+      const k = fileHistoryKey(m.path);
+      let progress: number | undefined;
+      if (curKey && k === curKey && typeof live === "number") {
+        progress = live;
+      } else if (typeof m.progress === "number" && Number.isFinite(m.progress)) {
+        progress = m.progress;
+      } else {
+        progress = progressMap.get(k);
+      }
+      const normalized = m.path.replace(/\\/g, "/");
+      const slash = normalized.lastIndexOf("/");
+      const fileName =
+        slash >= 0 ? normalized.slice(slash + 1) : normalized || m.path;
+      return {
+        path: m.path,
+        fileName,
+        progress,
+        lastOpenedAt: m.lastOpenedAt,
+      };
+    });
+  return rows;
+});
 
-  // 删除本书角色立绘缓存目录（含立绘与草稿）
+async function removePortraitCacheForBook(bookPath: string) {
   try {
     const rootRaw = characterPortraitCacheDir.value.trim();
     const root =
@@ -1327,47 +1338,156 @@ async function clearCurrentFileReadingData() {
     if (root?.trim()) {
       const bookDir = characterPortraitBookDirAbs(
         root.trim(),
-        sanitizeBookFolderSegment(path),
+        sanitizeBookFolderSegment(bookPath),
       );
       await window.colorTxt.removePath(bookDir);
     }
   } catch {
     /* 目录不存在或删除失败不阻断清除 meta */
   }
+}
 
-  // 只替换当前路径的精确记录；写入空壳挡住同名回退，避免误删其它同名路径的 meta
-  const prevExact =
-    fileMetaRecords.value.find(
-      (m) => normalizeFileMetaPathKey(m.path) === pathKey,
-    ) ?? null;
-  const withoutExact = fileMetaRecords.value.filter(
-    (m) => normalizeFileMetaPathKey(m.path) !== pathKey,
-  );
-  const cleared: FileMetaRecord = {
-    path,
-    fileName: fileNameKey(path),
-    bookmarks: [],
-    updatedAt: Date.now(),
-  };
-  if (prevExact?.convertedMdPath)
-    cleared.convertedMdPath = prevExact.convertedMdPath;
-  if (prevExact?.sourceMtimeMsAtConvert != null) {
-    cleared.sourceMtimeMsAtConvert = prevExact.sourceMtimeMsAtConvert;
+/**
+ * 清除若干路径的阅读数据（进度/书签/高亮/笔记/角色卡及立绘）。
+ * 保留电子书转换路径等空壳 meta；不关闭当前打开的文件。
+ */
+async function clearReadingDataForPaths(
+  paths: string[],
+  options?: { toast?: boolean },
+): Promise<boolean> {
+  const unique: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of paths) {
+    const p = raw?.trim();
+    if (!p) continue;
+    const k = normalizeFileMetaPathKey(p);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    unique.push(p);
   }
-  if (prevExact?.lastOpenedAt != null) {
-    cleared.lastOpenedAt = prevExact.lastOpenedAt;
-  }
-  fileMetaRecords.value = [cleared, ...withoutExact];
+  if (unique.length === 0) return false;
 
-  if (metaProgressByPathKey.value.has(key)) {
-    const m = new Map(metaProgressByPathKey.value);
-    m.delete(key);
-    metaProgressByPathKey.value = m;
+  let anyCleared = false;
+  let touchedCurrent = false;
+  const cur = currentFile.value?.trim() ?? "";
+  const curKey = cur ? normalizeFileMetaPathKey(cur) : "";
+
+  for (const path of unique) {
+    const key = fileHistoryKey(path);
+    const pathKey = normalizeFileMetaPathKey(path);
+    const shown = findFileMetaRecord(fileMetaRecords.value, path);
+    const hadProgress = metaProgressByPathKey.value.has(key);
+    if (!metaHasClearableReadingData(shown) && !hadProgress) continue;
+
+    await removePortraitCacheForBook(path);
+
+    const prevExact =
+      fileMetaRecords.value.find(
+        (m) => normalizeFileMetaPathKey(m.path) === pathKey,
+      ) ?? null;
+    const withoutExact = fileMetaRecords.value.filter(
+      (m) => normalizeFileMetaPathKey(m.path) !== pathKey,
+    );
+    const cleared: FileMetaRecord = {
+      path: prevExact?.path ?? path,
+      fileName: fileNameKey(prevExact?.path ?? path),
+      bookmarks: [],
+      updatedAt: Date.now(),
+    };
+    if (prevExact?.convertedMdPath)
+      cleared.convertedMdPath = prevExact.convertedMdPath;
+    if (prevExact?.sourceMtimeMsAtConvert != null) {
+      cleared.sourceMtimeMsAtConvert = prevExact.sourceMtimeMsAtConvert;
+    }
+    if (prevExact?.lastOpenedAt != null) {
+      cleared.lastOpenedAt = prevExact.lastOpenedAt;
+    }
+    fileMetaRecords.value = [cleared, ...withoutExact];
+
+    if (metaProgressByPathKey.value.has(key)) {
+      const m = new Map(metaProgressByPathKey.value);
+      m.delete(key);
+      metaProgressByPathKey.value = m;
+    }
+    anyCleared = true;
+    if (curKey && pathKey === curKey) touchedCurrent = true;
   }
+
+  if (!anyCleared) {
+    if (options?.toast !== false) {
+      appToast("没有可清除的阅读数据", { kind: "info" });
+    }
+    return false;
+  }
+
   persistFileMeta();
-  void refreshReaderHighlightDisplayLayer();
-  bumpAnnotationDisplayEpoch();
-  appToast("已清除阅读数据", { kind: "success" });
+  if (touchedCurrent) {
+    void refreshReaderHighlightDisplayLayer();
+    bumpAnnotationDisplayEpoch();
+  }
+  if (options?.toast !== false) {
+    appToast("已清除阅读数据", { kind: "success" });
+  }
+  return true;
+}
+
+async function clearCurrentFileReadingData() {
+  const path = currentFile.value?.trim();
+  if (!path) {
+    await appAlert("请先打开文件");
+    return;
+  }
+  const ok = await appConfirm(
+    "将清除当前文件的阅读进度、书签、高亮词、笔记、角色卡（含立绘）等数据；不会删除文件本身。",
+    "清除阅读数据",
+  );
+  if (!ok) return;
+  await clearReadingDataForPaths([path]);
+}
+
+async function onClearReadingDataPaths(paths: string[]) {
+  await clearReadingDataForPaths(paths);
+}
+
+async function onClearAllReadingData() {
+  const paths = readingDataItems.value.map((i) => i.path);
+  if (paths.length === 0) {
+    appToast("没有可清除的阅读数据", { kind: "info" });
+    return;
+  }
+  const ok = await appConfirm(
+    "将清除全部文件的阅读进度、书签、高亮词、笔记、角色卡（含立绘）等数据；不会删除文件本身。",
+    "清空阅读数据",
+  );
+  if (!ok) return;
+  await clearReadingDataForPaths(paths);
+}
+
+async function onRemoveMissingReadingDataFiles() {
+  const paths = readingDataItems.value.map((i) => i.path);
+  if (paths.length === 0) {
+    appToast("没有可清除的阅读数据", { kind: "info" });
+    return;
+  }
+  const missing: string[] = [];
+  for (const p of paths) {
+    try {
+      // file:stat 对 ENOENT 返回 isFile/isDirectory 均为 false，不抛错
+      const st = await window.colorTxt.stat(p);
+      if (!st.isFile) missing.push(p);
+    } catch {
+      missing.push(p);
+    }
+  }
+  if (missing.length === 0) {
+    appToast("没有失效文件", { kind: "info" });
+    return;
+  }
+  await clearReadingDataForPaths(missing);
+}
+
+function openReadingDataPanel() {
+  showReadingDataPanel.value = true;
 }
 
 /** 顶栏「更多」里最近文件：仅路径来自 recent，进度来自 meta（当前书用 live） */
@@ -3128,6 +3248,7 @@ useAppShellThemeWatch({
       v-model:show-settings-panel="showSettingsPanel"
       v-model:show-color-scheme-panel="showColorSchemePanel"
       v-model:show-chapter-rule-panel="showChapterRulePanel"
+      v-model:show-reading-data-panel="showReadingDataPanel"
       v-model:show-replace-rule-panel="showReplaceRulePanel"
       v-model:add-bookmark-open="addBookmarkOpen"
       v-model:remove-bookmark-open="removeBookmarkOpen"
@@ -3186,6 +3307,7 @@ useAppShellThemeWatch({
       :ai-skills-enabled="aiSkillsEnabled"
       :ai-skill-overrides="aiSkillOverrides"
       :ai-custom-skills="aiCustomSkills"
+      :reading-data-items="readingDataItems"
       @apply-settings="applySettings"
       @apply-shortcut-bindings="applyShortcutBindings"
       @apply-chapter-rules="applyChapterMatchRules"
@@ -3197,6 +3319,10 @@ useAppShellThemeWatch({
       @apply-reader-palettes="onApplyReaderPalettes"
       @apply-highlight-colors="onApplyHighlightColors"
       @apply-lineation-colors="onApplyLineationColors"
+      @open-reading-data="openReadingDataPanel"
+      @clear-reading-data-paths="onClearReadingDataPaths"
+      @clear-all-reading-data="onClearAllReadingData"
+      @remove-missing-reading-data-files="onRemoveMissingReadingDataFiles"
       @apply-replace-rule-format="onApplyReplaceRuleFormat"
     />
   </div>

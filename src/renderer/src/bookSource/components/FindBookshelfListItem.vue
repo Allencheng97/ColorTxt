@@ -2,6 +2,7 @@
 import { computed, ref, watch } from "vue";
 import DefaultBookCover from "./DefaultBookCover.vue";
 import AppCheckbox from "../../components/AppCheckbox.vue";
+import IconButton from "../../components/IconButton.vue";
 import type { BookshelfBook } from "../findBookBookshelf";
 import { formatCoverAuthor } from "../bookSourceDisplay";
 import {
@@ -353,16 +354,15 @@ function onSelectCategoryClick(e: MouseEvent) {
         <span class="findBookshelfStatusTag">已禁止更新</span>
       </div>
     </div>
-    <button
+    <IconButton
       v-if="managing"
-      type="button"
       class="findBookshelfRemoveBtn"
+      danger
+      :icon-html="icons.remove"
       aria-label="移除"
       title="移除"
       @click="onRemoveClick"
-    >
-      <span class="findBookshelfRemoveBtnIcon" aria-hidden="true" v-html="icons.remove" />
-    </button>
+    />
     <div
       v-else-if="updating || updateDisabled"
       class="findBookshelfStatus"
@@ -641,36 +641,6 @@ img.findBookListItemCover {
 .findBookshelfRemoveBtn {
   flex-shrink: 0;
   align-self: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  margin: 0;
-  padding: 0;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease;
-}
-.findBookshelfRemoveBtn:hover {
-  background: color-mix(in srgb, var(--danger) 12%, transparent);
-  color: var(--danger);
-}
-.findBookshelfRemoveBtnIcon {
-  display: flex;
-  width: 16px;
-  height: 16px;
-}
-.findBookshelfRemoveBtnIcon :deep(svg) {
-  width: 16px;
-  height: 16px;
-  display: block;
-}
-.findBookshelfRemoveBtnIcon :deep(svg path) {
-  fill: currentColor;
 }
 .findBookshelfStatus {
   position: absolute;
