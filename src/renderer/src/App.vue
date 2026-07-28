@@ -1549,6 +1549,7 @@ const {
   activeBookmarkLine,
   bookmarkActive,
   bookmarkListItems,
+  currentFileBookmarks,
   addBookmarkDialogPreview,
   onPinClick,
   ensurePinBeforeRevealFindWidget,
@@ -2481,13 +2482,16 @@ async function onExportFavoriteHighlightsJson() {
   const map = highlightWordsByIndexGlobal.value;
   if (!map) return;
   const {
-    buildFavoriteHighlightExportDefaultName,
+    buildHighlightExportDefaultName,
     buildReaderHighlightsExportJson,
     countHighlightWordsInMap,
     saveHighlightExportFile,
   } = await import("./utils/readerHighlightExport");
   if (countHighlightWordsInMap(map) <= 0) return;
-  const name = buildFavoriteHighlightExportDefaultName();
+  const path = currentFile.value;
+  const name = buildHighlightExportDefaultName(
+    path ? fileNameKey(path) : "高亮词",
+  );
   const data = buildReaderHighlightsExportJson(map);
   const r = await saveHighlightExportFile(name, data);
   if (!r.ok && "error" in r) await appAlert(r.error);
@@ -2710,6 +2714,63 @@ async function onImportAnnotationsJson() {
     `导入 ${imported.length} 条${staleN > 0 ? `，${staleN} 条已失效` : ""}`,
     { kind: "success" },
   );
+}
+
+async function onExportBookmarksJson() {
+  const path = currentFile.value;
+  const list = currentFileBookmarks.value;
+  if (!path || list.length === 0) return;
+  const {
+    buildBookmarkExportDefaultName,
+    buildReaderBookmarksExportJson,
+    saveBookmarkExportFile,
+  } = await import("./utils/readerBookmarkExport");
+  const name = buildBookmarkExportDefaultName(fileNameKey(path));
+  const data = buildReaderBookmarksExportJson(
+    path,
+    fileNameKey(path),
+    list,
+  );
+  const r = await saveBookmarkExportFile(name, data);
+  if (!r.ok && "error" in r) await appAlert(r.error);
+}
+
+async function onImportBookmarksJson() {
+  const path = currentFile.value;
+  if (!path) return;
+  const {
+    mergeImportedBookmarks,
+    parseReaderBookmarksExportJson,
+    pickAndReadBookmarkJsonFile,
+  } = await import("./utils/readerBookmarkExport");
+  const picked = await pickAndReadBookmarkJsonFile();
+  if (!picked.ok) {
+    if ("error" in picked) await appAlert(picked.error);
+    return;
+  }
+  const envelope = parseReaderBookmarksExportJson(picked.text);
+  if (!envelope) {
+    await appAlert("无效的书签 JSON 文件");
+    return;
+  }
+  if (
+    envelope.bookPath.replace(/\\/g, "/").toLowerCase() !==
+    path.replace(/\\/g, "/").toLowerCase()
+  ) {
+    const ok = await appConfirm("该文件来自其他书籍，仍导入到当前书？");
+    if (!ok) return;
+  }
+  const merged = mergeImportedBookmarks(
+    currentFileBookmarks.value,
+    envelope.bookmarks,
+  );
+  fileMetaRecords.value = upsertFileMetaRecord(
+    fileMetaRecords.value,
+    path,
+    () => ({ bookmarks: merged }),
+  );
+  persistFileMeta();
+  appToast(`已导入 ${envelope.bookmarks.length} 条书签`, { kind: "success" });
 }
 
 function onAskAiWithQuote(text: string) {
@@ -3468,6 +3529,8 @@ useAppShellThemeWatch({
           @remove-bookmarks="removeCurrentFileBookmarks"
           @edit-bookmark="onEditBookmark"
           @remove-bookmark="onRemoveBookmark"
+          @export-bookmarks-json="onExportBookmarksJson"
+          @import-bookmarks-json="onImportBookmarksJson"
           @find-highlight-term="onFindHighlightTermFromSidebar"
           @clear-inline-search-highlight="clearReaderInlineSearchHighlight"
           @update:search-query="searchQuery = $event"

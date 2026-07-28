@@ -75,7 +75,7 @@ import { appToast } from "../services/appToast";
 import { APP_DISPLAY_NAME } from "../constants/appUi";
 
 /** 导出对话下拉菜单固定宽度（与内容版式一致，不作视口/触发器推算） */
-const AI_EXPORT_MENU_WIDTH_PX = 210;
+const AI_EXPORT_MENU_WIDTH_PX = 240;
 
 const selectListsEmpty: CustomSelectItem[] = [];
 
@@ -1947,7 +1947,8 @@ defineExpose({
             role="menuitem"
             @click="exportMd"
           >
-            导出 Markdown
+            <span class="appShellMenuIconSlot" v-html="icons.export" />
+            <span class="appShellMenuLabel">导出 Markdown</span>
           </button>
           <button
             type="button"
@@ -1955,7 +1956,8 @@ defineExpose({
             role="menuitem"
             @click="exportMdWithReasoning"
           >
-            导出 Markdown（带思考过程）
+            <span class="appShellMenuIconSlot" v-html="icons.export" />
+            <span class="appShellMenuLabel">导出 Markdown（带思考过程）</span>
           </button>
           <div class="appShellMenuDivider" role="presentation" />
           <button
@@ -1964,7 +1966,8 @@ defineExpose({
             role="menuitem"
             @click="exportJson"
           >
-            导出 JSON
+            <span class="appShellMenuIconSlot" v-html="icons.export" />
+            <span class="appShellMenuLabel">导出 JSON</span>
           </button>
           <button
             type="button"
@@ -1972,7 +1975,8 @@ defineExpose({
             role="menuitem"
             @click="exportJsonWithReasoning"
           >
-            导出 JSON（带思考过程）
+            <span class="appShellMenuIconSlot" v-html="icons.export" />
+            <span class="appShellMenuLabel">导出 JSON（带思考过程）</span>
           </button>
           <div class="appShellMenuDivider" role="presentation" />
           <button
@@ -1981,7 +1985,8 @@ defineExpose({
             role="menuitem"
             @click="copyAllMarkdown"
           >
-            复制全部
+            <span class="appShellMenuIconSlot" v-html="icons.copy" />
+            <span class="appShellMenuLabel">复制全部</span>
           </button>
           <button
             type="button"
@@ -1989,7 +1994,8 @@ defineExpose({
             role="menuitem"
             @click="copyAllMarkdownWithReasoning"
           >
-            复制全部（带思考过程）
+            <span class="appShellMenuIconSlot" v-html="icons.copy" />
+            <span class="appShellMenuLabel">复制全部（带思考过程）</span>
           </button>
         </div>
       </Teleport>

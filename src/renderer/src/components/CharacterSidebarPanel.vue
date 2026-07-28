@@ -35,11 +35,13 @@ import {
   mergeCharacterAliases,
 } from "@shared/characterAliases";
 import {
+  characterPortraitBookDirAbs,
   characterPortraitImageAbs,
   characterPortraitSessionDraftImageAbs,
   characterPortraitTmpImageAbs,
   isPortraitUploadImagePath,
   PORTRAIT_UPLOAD_OPEN_DIALOG_FILTERS,
+  portraitPngFileNameForCharacterName,
   sanitizeBookFolderSegment,
 } from "@shared/characterPortraitPaths";
 import { runAiBookVectorIndexBuild } from "../ai/buildBookVectorIndex";
@@ -79,7 +81,19 @@ import IconButton from "./IconButton.vue";
 import ReaderImageLightbox from "./ReaderImageLightbox.vue";
 import type ReaderMain from "./ReaderMain.vue";
 import { useCharacterRosterReorder } from "../composables/useCharacterRosterReorder";
-import { appConfirm } from "../services/appDialog";
+import { appAlert, appConfirm } from "../services/appDialog";
+import { appToast } from "../services/appToast";
+import { fileNameKey } from "../stores/fileMetaStore";
+import {
+  arrayBufferToBase64,
+  buildCharacterRosterPackDefaultName,
+  buildCharacterRosterPackZip,
+  joinBookDirPortraitPath,
+  mergeCharacterRosterById,
+  parseCharacterRosterPackZip,
+  pickAndReadCharacterRosterPackFile,
+  saveCharacterRosterPackFile,
+} from "../utils/characterRosterPack";
 
 const props = withDefaults(
   defineProps<{
@@ -1901,6 +1915,104 @@ async function onDrawerPortraitDrop(ev: DragEvent) {
   await applyPortraitFromFilePath(picked);
 }
 
+async function exportCharacterRosterPack() {
+  if (!hasOpenFile.value) {
+    await appAlert("请先打开文件");
+    return;
+  }
+  const root = await resolveCacheRootAbs();
+  const bookSeg = bookFolderSegment.value;
+  const portraits = new Map<string, ArrayBuffer>();
+  for (const entry of props.characterRoster) {
+    const name = entry.displayName.trim();
+    if (!name) continue;
+    const abs = characterPortraitImageAbs(root, bookSeg, name);
+    const basename = portraitPngFileNameForCharacterName(name);
+    try {
+      const st = await window.colorTxt.stat(abs);
+      if (!st.isFile) continue;
+      const buf = await window.colorTxt.readFileAsArrayBuffer(abs);
+      portraits.set(basename, buf);
+    } catch {
+      /* 无立绘则跳过 */
+    }
+  }
+  const zipBuffer = await buildCharacterRosterPackZip({
+    characterRoster: props.characterRoster,
+    characterBookStyle: props.characterBookStyle,
+    portraits,
+  });
+  const bookLabel =
+    props.sessionFilePath?.trim() ||
+    props.physicalReaderPath?.trim() ||
+    "角色卡";
+  const defaultName = buildCharacterRosterPackDefaultName(
+    fileNameKey(bookLabel),
+  );
+  const r = await saveCharacterRosterPackFile(defaultName, zipBuffer);
+  if (!r.ok) {
+    if ("error" in r) await appAlert(r.error);
+    return;
+  }
+  appToast(
+    `已导出 ${props.characterRoster.length} 张角色卡` +
+      (portraits.size > 0 ? `（含 ${portraits.size} 张立绘）` : ""),
+    { kind: "success" },
+  );
+}
+
+async function importCharacterRosterPack() {
+  if (!hasOpenFile.value) {
+    await appAlert("请先打开文件");
+    return;
+  }
+  const picked = await pickAndReadCharacterRosterPackFile();
+  if (!picked.ok) {
+    if ("error" in picked) await appAlert(picked.error);
+    return;
+  }
+  const parsed = await parseCharacterRosterPackZip(picked.buffer);
+  if (!parsed.ok) {
+    await appAlert(parsed.error);
+    return;
+  }
+  const { manifest, portraits } = parsed.pack;
+  const merged = mergeCharacterRosterById(
+    props.characterRoster,
+    manifest.characterRoster,
+  );
+  const root = await resolveCacheRootAbs();
+  const bookDir = characterPortraitBookDirAbs(root, bookFolderSegment.value);
+  await window.colorTxt.mkdir(bookDir);
+  let portraitWritten = 0;
+  for (const [basename, buf] of portraits) {
+    const dest = joinBookDirPortraitPath(bookDir, basename);
+    try {
+      await window.colorTxt.writeBinaryFile(dest, arrayBufferToBase64(buf));
+      portraitWritten += 1;
+    } catch {
+      /* 单张失败不中断 */
+    }
+  }
+  const patch: {
+    characterRoster: CharacterRosterEntry[];
+    characterBookStyle?: CharacterBookStylePersisted;
+  } = { characterRoster: merged };
+  if (manifest.characterBookStyle) {
+    patch.characterBookStyle = manifest.characterBookStyle;
+  }
+  emit("characterFileMetaPatch", patch);
+  await nextTick();
+  for (const e of merged) {
+    await refreshPortraitUrlForEntry(e, { force: true });
+  }
+  appToast(
+    `已导入 ${manifest.characterRoster.length} 张角色卡` +
+      (portraitWritten > 0 ? `（写入 ${portraitWritten} 张立绘）` : ""),
+    { kind: "success" },
+  );
+}
+
 async function onClearAllCharacters() {
   if (props.characterRoster.length === 0) return;
   if (!window.colorTxt) return;
@@ -1938,6 +2050,11 @@ onBeforeUnmount(() => {
   teardownCardGridResizeObserver();
   resetDrawerVoicePreview();
   resetRosterCardVoicePreview();
+});
+
+defineExpose({
+  exportCharacterRosterPack,
+  importCharacterRosterPack,
 });
 </script>
 
