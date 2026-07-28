@@ -97,10 +97,7 @@ export async function saveHighlightExportFile(
   return window.colorTxt.ai.exportSave({
     defaultName,
     data,
-    filters: [
-      { name: "彩读高亮词", extensions: ["colortxt-highlights.json"] },
-      { name: "JSON", extensions: ["json"] },
-    ],
+    filters: [{ name: "彩读高亮词", extensions: ["json"] }],
   });
 }
 
@@ -111,5 +108,5 @@ export async function pickAndReadHighlightJsonFile(
   | { ok: false; cancelled: true }
   | { ok: false; error: string }
 > {
-  return pickAndReadJsonFile(title);
+  return pickAndReadJsonFile(title, "彩读高亮词");
 }

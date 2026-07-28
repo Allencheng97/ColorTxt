@@ -74,6 +74,7 @@ import {
   resolveDefaultBuiltinModelCacheDirSync,
   resolveDefaultCharacterPortraitCacheDirSync,
   resolveDefaultEbookConvertOutputDirSync,
+  resolveDefaultUnpackedBooksDirSync,
   resolveEffectiveAiDataCacheDir,
   resolveEffectiveBuiltinModelCacheDir,
 } from "../utils/defaultCacheDirs";
@@ -128,6 +129,7 @@ export type SettingsApplyPayload = {
   timedScroll: TimedScrollSettings;
   pomodoro: PomodoroSettings;
   ebookConvertOutputDir: string;
+  bookPackUnpackDir: string;
   characterPortraitCacheDir: string;
   aiSkillsEnabled: Record<string, boolean>;
   aiSkillOverrides: Record<string, AiSkillUserOverride>;
@@ -162,6 +164,7 @@ const props = defineProps<{
   timedScrollSettings: TimedScrollSettings;
   pomodoroSettings: PomodoroSettings;
   ebookConvertOutputDir: string;
+  bookPackUnpackDir: string;
   characterPortraitCacheDir: string;
   aiSkillsEnabled: Record<string, boolean>;
   aiSkillOverrides: Record<string, AiSkillUserOverride>;
@@ -223,6 +226,7 @@ const draftPomodoroFocusMinutes = ref(defaultPomodoroFocusMinutes);
 const draftPomodoroShortBreakMinutes = ref(defaultPomodoroShortBreakMinutes);
 const draftPomodoroLongBreakMinutes = ref(defaultPomodoroLongBreakMinutes);
 const draftEbookConvertOutputDir = ref("");
+const draftBookPackUnpackDir = ref("");
 const draftCharacterPortraitCacheDir = ref("");
 
 const draftAi = ref<AIConfig>(structuredClone(defaultAIConfig));
@@ -279,6 +283,7 @@ function syncDraftFromProps() {
   draftPomodoroShortBreakMinutes.value = pomodoroMerged.shortBreakMinutes;
   draftPomodoroLongBreakMinutes.value = pomodoroMerged.longBreakMinutes;
   draftEbookConvertOutputDir.value = props.ebookConvertOutputDir;
+  draftBookPackUnpackDir.value = props.bookPackUnpackDir;
   draftCharacterPortraitCacheDir.value = props.characterPortraitCacheDir;
   draftAiSkillOverrides.value = mergeAiSkillOverrides(props.aiSkillOverrides);
   draftAiCustomSkills.value = mergeAiCustomSkills(props.aiCustomSkills ?? []);
@@ -370,6 +375,7 @@ function resetGeneralDraft() {
   draftChapterMinCharCount.value = defaultChapterMinCharCount;
   draftChapterCharCountExact.value = defaultChapterCharCountExact;
   draftEbookConvertOutputDir.value = resolveDefaultEbookConvertOutputDirSync();
+  draftBookPackUnpackDir.value = resolveDefaultUnpackedBooksDirSync();
 }
 
 function resetReadingDraft() {
@@ -592,6 +598,7 @@ async function onConfirm() {
       longBreakMinutes: draftPomodoroLongBreakMinutes.value,
     }),
     ebookConvertOutputDir: draftEbookConvertOutputDir.value.trim(),
+    bookPackUnpackDir: draftBookPackUnpackDir.value.trim(),
     characterPortraitCacheDir: draftCharacterPortraitCacheDir.value.trim(),
     aiSkillsEnabled: mergeAiSkillsEnabled(
       draftAiSkillsEnabled.value,
@@ -665,6 +672,7 @@ async function onClearCache() {
               v-model:draft-ebook-convert-output-dir="
                 draftEbookConvertOutputDir
               "
+              v-model:draft-book-pack-unpack-dir="draftBookPackUnpackDir"
               @clear-cache="onClearCache"
             />
 

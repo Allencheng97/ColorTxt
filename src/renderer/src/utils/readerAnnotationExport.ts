@@ -149,19 +149,14 @@ export async function saveAnnotationExportFile(
     data,
     filters:
       ext === "md"
-        ? [
-            { name: "彩读笔记", extensions: ["colortxt-notes.md"] },
-            { name: "Markdown", extensions: ["md"] },
-          ]
-        : [
-            { name: "彩读笔记", extensions: ["colortxt-notes.json"] },
-            { name: "JSON", extensions: ["json"] },
-          ],
+        ? [{ name: "彩读笔记", extensions: ["md"] }]
+        : [{ name: "彩读笔记", extensions: ["json"] }],
   });
 }
 
 export async function pickAndReadJsonFile(
   title = "导入笔记（JSON）",
+  filterName = "彩读笔记",
 ): Promise<
   | { ok: true; text: string; path: string }
   | { ok: false; cancelled: true }
@@ -169,7 +164,7 @@ export async function pickAndReadJsonFile(
 > {
   const r = await window.colorTxt.showOpenDialog({
     title,
-    filters: [{ name: "JSON", extensions: ["json"] }],
+    filters: [{ name: filterName, extensions: ["json"] }],
     properties: ["openFile"],
   });
   if (r.canceled || !r.filePaths?.[0]) {

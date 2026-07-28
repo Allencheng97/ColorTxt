@@ -31,7 +31,10 @@ import {
   persistTxtFileListSnapshot,
   type TxtFileItem,
 } from "../stores/cacheStore";
-import { resolveDefaultCharacterPortraitCacheDirSync } from "../utils/defaultCacheDirs";
+import {
+  resolveDefaultCharacterPortraitCacheDirSync,
+  resolveDefaultUnpackedBooksDirSync,
+} from "../utils/defaultCacheDirs";
 import type {
   FileCategoryDefinition,
   FileSortMode,
@@ -239,6 +242,8 @@ export function useAppPersistence(deps: {
   lineationLastColors: Ref<LineationLastColorPrefs>;
   /** 电子书转换输出目录；空字符串表示与源文件同目录；无持久化键时默认 userData/ConvertedTxt */
   ebookConvertOutputDir: Ref<string>;
+  /** 彩读书包解压目录；空串运行时回退 userData/UnpackedBooks；无键时首次写入默认路径 */
+  bookPackUnpackDir: Ref<string>;
   /** 角色立绘缓存根目录（绝对路径）；无键时默认 userData/CharacterPortrait */
   characterPortraitCacheDir: Ref<string>;
   /** 角色卡纹理/全息效果（全局） */
@@ -525,10 +530,17 @@ export function useAppPersistence(deps: {
     ) as RecentFileItem[];
 
     const progress = opts?.progress;
+    /**
+     * 流结束并完成视口恢复前 `readingProgressSynced === false`：编辑器常仍在顶部，
+     * 此时勿用 live viewState / 视口覆盖 meta（否则会冲掉书包导入的 viewportTopPhysicalLine）。
+     * 显式传入 `editorViewState` 时仍照常写入。
+     */
+    const canCaptureLiveViewport =
+      deps.readingProgressSynced.value && deps.currentFile.value === path;
     const viewStateRaw =
       opts?.editorViewState !== undefined
         ? opts.editorViewState
-        : deps.currentFile.value === path
+        : canCaptureLiveViewport
           ? (deps.readerRef.value?.getSerializedEditorViewState?.() ??
             undefined)
           : undefined;
@@ -541,7 +553,7 @@ export function useAppPersistence(deps: {
 
     const viewportTopPhysicalLine =
       viewState !== undefined &&
-      deps.currentFile.value === path &&
+      canCaptureLiveViewport &&
       deps.readerRef.value?.getViewportTopLine
         ? deps.stream.viewportDisplayLineToPhysicalLine(
             deps.readerRef.value.getViewportTopLine(),
@@ -647,7 +659,11 @@ export function useAppPersistence(deps: {
     (synced, wasSynced) => {
       if (synced && wasSynced === false) {
         const p = deps.currentFile.value?.trim();
-        if (p) touchFileLastOpened(p);
+        if (p) {
+          touchFileLastOpened(p);
+          // 恢复视口后补一次位置快照（书包仅有锚点、用户未再滚动时也能落盘 viewState）
+          touchRecentFile(p, false, { updateMeta: false });
+        }
         scheduleFileMetaDiskWrite("gated");
       }
     },
@@ -785,6 +801,7 @@ export function useAppPersistence(deps: {
     applySidebarWidth?: boolean;
   }): {
     ebookConvertOutputDirKeyPresent: boolean;
+    bookPackUnpackDirKeyPresent: boolean;
     characterPortraitCacheDirKeyPresent: boolean;
   } {
     const applySidebarWidth = options?.applySidebarWidth !== false;
@@ -795,12 +812,14 @@ export function useAppPersistence(deps: {
     if (!loaded) {
       return {
         ebookConvertOutputDirKeyPresent: false,
+        bookPackUnpackDirKeyPresent: false,
         characterPortraitCacheDirKeyPresent: false,
       };
     }
     const {
       data,
       ebookConvertOutputDirKeyPresent,
+      bookPackUnpackDirKeyPresent,
       characterPortraitCacheDirKeyPresent,
     } = loaded;
 
@@ -1025,6 +1044,10 @@ export function useAppPersistence(deps: {
       deps.ebookConvertOutputDir.value = data.ebookConvertOutputDir;
     }
 
+    if (typeof data.bookPackUnpackDir === "string") {
+      deps.bookPackUnpackDir.value = data.bookPackUnpackDir.trim();
+    }
+
     if (typeof data.characterPortraitCacheDir === "string") {
       deps.characterPortraitCacheDir.value =
         data.characterPortraitCacheDir.trim();
@@ -1093,6 +1116,7 @@ export function useAppPersistence(deps: {
 
     return {
       ebookConvertOutputDirKeyPresent,
+      bookPackUnpackDirKeyPresent,
       characterPortraitCacheDirKeyPresent,
     };
   }
@@ -1200,6 +1224,7 @@ export function useAppPersistence(deps: {
           ? undefined
           : { ...deps.lineationLastColors.value },
       ebookConvertOutputDir: deps.ebookConvertOutputDir.value,
+      bookPackUnpackDir: deps.bookPackUnpackDir.value.trim(),
       characterPortraitCacheDir: deps.characterPortraitCacheDir.value.trim(),
       characterCardTextureEffect: deps.characterCardTextureEffect.value,
       fileCategory: deps.fileCategory.value,
@@ -1279,6 +1304,7 @@ export function useAppPersistence(deps: {
     }
     const {
       ebookConvertOutputDirKeyPresent,
+      bookPackUnpackDirKeyPresent,
       characterPortraitCacheDirKeyPresent,
     } = loadPersistedSettings();
     await hydrateVoiceReadSecretsFromVault();
@@ -1290,6 +1316,13 @@ export function useAppPersistence(deps: {
         if (ud) deps.ebookConvertOutputDir.value = ud;
       } catch {
         // ignore
+      }
+      needDefaultSettingsPersist = true;
+    }
+    if (!bookPackUnpackDirKeyPresent) {
+      const unpackDir = resolveDefaultUnpackedBooksDirSync();
+      if (unpackDir) {
+        deps.bookPackUnpackDir.value = unpackDir;
       }
       needDefaultSettingsPersist = true;
     }

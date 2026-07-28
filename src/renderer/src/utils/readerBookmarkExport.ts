@@ -126,10 +126,7 @@ export async function saveBookmarkExportFile(
   return window.colorTxt.ai.exportSave({
     defaultName,
     data,
-    filters: [
-      { name: "彩读书签", extensions: ["colortxt-bookmarks.json"] },
-      { name: "JSON", extensions: ["json"] },
-    ],
+    filters: [{ name: "彩读书签", extensions: ["json"] }],
   });
 }
 
@@ -140,5 +137,5 @@ export async function pickAndReadBookmarkJsonFile(
   | { ok: false; cancelled: true }
   | { ok: false; error: string }
 > {
-  return pickAndReadJsonFile(title);
+  return pickAndReadJsonFile(title, "彩读书签");
 }
