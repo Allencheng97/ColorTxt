@@ -487,7 +487,7 @@ function onRemoveMissing() {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 3px;
 }
 
 .readingDataName {
