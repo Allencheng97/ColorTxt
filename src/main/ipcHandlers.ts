@@ -75,6 +75,7 @@ function isTxtOrEbookFileName(fileName: string): boolean {
   const lower = fileName.toLowerCase();
   if (lower.endsWith(".txt")) return true;
   if (lower.endsWith(".md")) return true;
+  if (lower.endsWith(".ctz") || lower.endsWith(".ctzx")) return true;
   return EBOOK_DOT_EXTENSIONS.some((ext) => lower.endsWith(ext));
 }
 

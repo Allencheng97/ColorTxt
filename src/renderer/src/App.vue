@@ -1630,6 +1630,7 @@ const {
   openFileViaDialog,
   openFileFromSidebar,
   pickTxtDirectory,
+  pickTxtFilesIntoFileList,
   importPathsIntoFileList,
   openFilePath,
   openRecentFileFromHistory,
@@ -2961,6 +2962,7 @@ useAppShellThemeWatch({
           :format-char-count="formatChapterCharCount"
           :show-edit-chapter-refresh-button="showEditChapterRefreshButton"
           @pick-directory="pickTxtDirectory"
+          @pick-files="pickTxtFilesIntoFileList"
           @import-dropped-paths="onImportDroppedPathsFromList"
           @open-file="openFileFromSidebar"
           @jump-to-chapter="onJumpToChapterFromSidebar"

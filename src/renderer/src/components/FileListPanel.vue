@@ -88,6 +88,8 @@ const emit = defineEmits<{
   "clear-file-meta": [path: string];
   openFile: [item: SidebarFileItem];
   importDroppedPaths: [paths: string[]];
+  /** 侧栏「更多」→ 选择文件（加入列表，不打开） */
+  pickFiles: [];
   clearFileList: [];
   clearFileListCategory: [categoryFilter: string];
   removeFileList: [filePaths: string[]];
@@ -182,6 +184,11 @@ async function onRemoveMissingFiles() {
   } finally {
     removingMissingFiles.value = false;
   }
+}
+
+function onPickFiles() {
+  closeMoreMenu();
+  emit("pickFiles");
 }
 
 defineExpose({
@@ -1203,6 +1210,16 @@ onBeforeUnmount(() => {
       :on-panel-mount="bindMorePanel"
       aria-label="文件更多"
     >
+      <button
+        type="button"
+        class="appShellMenuItem"
+        role="menuitem"
+        @click="onPickFiles"
+      >
+        <span class="appShellMenuIconSlot" v-html="icons.add" />
+        <span class="appShellMenuLabel">选择文件</span>
+      </button>
+      <div class="appShellMenuDivider" role="separator" />
       <button
         type="button"
         class="appShellMenuItem"

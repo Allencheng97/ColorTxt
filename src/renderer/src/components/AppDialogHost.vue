@@ -10,6 +10,7 @@ import {
   appDialogPrimary,
   appDialogSecondary,
   appDialogSetPromptRevealPassword,
+  appDialogSetPromptSkipOnFail,
   appDialogUserDismiss,
 } from "../services/appDialog";
 
@@ -37,13 +38,21 @@ const promptInputEffectiveType = computed(() => {
 const footerHasLeading = computed(
   () =>
     Boolean(appDialogModel.promptNeutralLabel) ||
-    appDialogModel.promptShowPasswordToggle,
+    appDialogModel.promptShowPasswordToggle ||
+    appDialogModel.promptShowSkipOnFailToggle,
 );
 
 const promptRevealPassword = computed({
   get: () => appDialogModel.promptRevealPassword,
   set(v: boolean) {
     appDialogSetPromptRevealPassword(v);
+  },
+});
+
+const promptSkipOnFail = computed({
+  get: () => appDialogModel.promptSkipOnFail,
+  set(v: boolean) {
+    appDialogSetPromptSkipOnFail(v);
   },
 });
 
@@ -206,12 +215,26 @@ function onLogPointerDown(e: MouseEvent) {
           </button>
         </template>
         <template v-else>
-          <AppCheckbox
-            v-if="appDialogModel.promptShowPasswordToggle"
-            v-model="promptRevealPassword"
-            class="appDialogShowPassword"
-            label="显示密码"
-          />
+          <div
+            v-if="
+              appDialogModel.promptShowPasswordToggle ||
+              appDialogModel.promptShowSkipOnFailToggle
+            "
+            class="appDialogFooterLeading"
+          >
+            <AppCheckbox
+              v-if="appDialogModel.promptShowPasswordToggle"
+              v-model="promptRevealPassword"
+              class="appDialogShowPassword"
+              label="显示密码"
+            />
+            <AppCheckbox
+              v-if="appDialogModel.promptShowSkipOnFailToggle"
+              v-model="promptSkipOnFail"
+              class="appDialogSkipOnFail"
+              label="解密失败时跳过"
+            />
+          </div>
           <button
             v-else-if="appDialogModel.promptNeutralLabel"
             type="button"
@@ -354,6 +377,20 @@ function onLogPointerDown(e: MouseEvent) {
 }
 
 .appDialogShowPassword {
+  flex-shrink: 0;
+  font-size: 13px;
+}
+
+.appDialogFooterLeading {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.appDialogSkipOnFail {
   flex-shrink: 0;
   font-size: 13px;
 }

@@ -19,6 +19,10 @@ export const appDialogModel = reactive({
   promptShowPasswordToggle: false,
   /** 密码框：当前是否明文显示（与持久化勾选同步） */
   promptRevealPassword: false,
+  /** 密码框：底栏显示「解密失败时跳过」（不持久化） */
+  promptShowSkipOnFailToggle: false,
+  /** 「解密失败时跳过」当前勾选 */
+  promptSkipOnFail: false,
 });
 
 export type AppDialogHtmlOptions = {
@@ -60,6 +64,10 @@ type QPrompt = DialogQueueBase & {
   showPasswordToggle?: boolean;
   revealPassword?: boolean;
   onRevealPasswordChange?: (reveal: boolean) => void;
+  /** 密码框底栏「解密失败时跳过」（不持久化） */
+  showSkipOnFailToggle?: boolean;
+  skipOnFail?: boolean;
+  onSkipOnFailChange?: (skip: boolean) => void;
   resolve: (value: string | null) => void;
 };
 
@@ -82,11 +90,17 @@ function applyQueuedToModel(item: Queued) {
       item.showPasswordToggle === true && item.inputType === "password";
     appDialogModel.promptRevealPassword =
       appDialogModel.promptShowPasswordToggle && item.revealPassword === true;
+    appDialogModel.promptShowSkipOnFailToggle =
+      item.showSkipOnFailToggle === true && item.inputType === "password";
+    appDialogModel.promptSkipOnFail =
+      appDialogModel.promptShowSkipOnFailToggle && item.skipOnFail === true;
   } else {
     appDialogModel.promptInputType = "text";
     appDialogModel.promptNeutralLabel = "";
     appDialogModel.promptShowPasswordToggle = false;
     appDialogModel.promptRevealPassword = false;
+    appDialogModel.promptShowSkipOnFailToggle = false;
+    appDialogModel.promptSkipOnFail = false;
   }
 }
 
@@ -125,6 +139,15 @@ export function appDialogSetPromptRevealPassword(reveal: boolean) {
   const cur = queue[0];
   if (cur?.kind === "prompt" && cur.onRevealPasswordChange) {
     cur.onRevealPasswordChange(reveal);
+  }
+}
+
+/** 密码框「解密失败时跳过」勾选变化（不关闭对话框） */
+export function appDialogSetPromptSkipOnFail(skip: boolean) {
+  appDialogModel.promptSkipOnFail = skip;
+  const cur = queue[0];
+  if (cur?.kind === "prompt" && cur.onSkipOnFailChange) {
+    cur.onSkipOnFailChange(skip);
   }
 }
 
@@ -243,6 +266,10 @@ export type AppPromptOptions = AppDialogHtmlOptions & {
   revealPassword?: boolean;
   /** 「显示密码」勾选变化（用于持久化） */
   onRevealPasswordChange?: (reveal: boolean) => void;
+  /** 密码框底栏「解密失败时跳过」（不持久化） */
+  showSkipOnFailToggle?: boolean;
+  skipOnFail?: boolean;
+  onSkipOnFailChange?: (skip: boolean) => void;
 };
 
 /** 确定返回输入文本（可为空串），取消 / 蒙层 / Esc 返回 `null` */
@@ -268,6 +295,10 @@ export function appPrompt(
   const revealPassword =
     showPasswordToggle && options?.revealPassword === true;
   const onRevealPasswordChange = options?.onRevealPasswordChange;
+  const showSkipOnFailToggle =
+    inputType === "password" && options?.showSkipOnFailToggle === true;
+  const skipOnFail = showSkipOnFailToggle && options?.skipOnFail === true;
+  const onSkipOnFailChange = options?.onSkipOnFailChange;
   return new Promise((resolve) => {
     enqueue({
       kind: "prompt",
@@ -283,6 +314,9 @@ export function appPrompt(
       showPasswordToggle,
       revealPassword,
       onRevealPasswordChange,
+      showSkipOnFailToggle,
+      skipOnFail,
+      onSkipOnFailChange,
       resolve,
     });
   });

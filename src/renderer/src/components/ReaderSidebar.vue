@@ -218,6 +218,7 @@ const emit = defineEmits<{
   "update:fileSort": [value: FileSortMode];
   pickDirectory: [];
   importDroppedPaths: [paths: string[]];
+  pickFiles: [];
   openFile: [item: SidebarFileItem];
   jumpToChapter: [chapter: Chapter];
   /** AI 阅读助手内章节按钮：父级可在跳转前自动点亮书钉 */
@@ -977,6 +978,7 @@ defineExpose({
         @rename-file-path="emit('renameFilePath', $event)"
         @open-file-in-new-window="emit('openFileInNewWindow', $event)"
         @import-dropped-paths="emit('importDroppedPaths', $event)"
+        @pick-files="emit('pickFiles')"
         @bind-list-ref="bindFileListRef"
         @update:fullscreen-file-list-popovers-open="
           emit('update:fullscreenFileListPopoversOpen', $event)
