@@ -208,6 +208,8 @@ const {
   textConvertDigit,
   monacoAdvancedWrapping,
   monacoSmoothScrolling,
+  mouseWheelScrollSensitivity,
+  fastScrollSensitivity,
   stickyChapterTitleEnabled,
   chapterNavToolbarEnabled,
   readerEditShowLineNumbers,
@@ -710,7 +712,7 @@ function onWindowMouseMove(ev: MouseEvent) {
 function onWindowMouseUp() {
   const wasResizing = resizingSidebar.value;
   endSidebarResize();
-  if (wasResizing) persistReaderUiPrefs();
+  if (wasResizing) findBookSettings.persistAll();
 }
 
 const readerUi = useAppReaderUiPrefs({
@@ -1518,7 +1520,7 @@ function applySidebarOpenPolicy() {
 function onToggleSidebar() {
   showSidebar.value = !showSidebar.value;
   findBookSettings.showSidebar.value = showSidebar.value;
-  findBookSettings.persistReaderUiPrefs();
+  findBookSettings.persistAll();
   sidebarUserToggledThisOpen = true;
   sidebarOpenPolicyApplied = true;
 }
@@ -1971,6 +1973,8 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
             :chapter-min-char-count="chapterMinCharCount"
             :monaco-advanced-wrapping="monacoAdvancedWrapping"
             :monaco-smooth-scrolling="monacoSmoothScrolling"
+            :mouse-wheel-scroll-sensitivity="mouseWheelScrollSensitivity"
+            :fast-scroll-sensitivity="fastScrollSensitivity"
             :sticky-chapter-title-enabled="stickyChapterTitleEnabled"
             :reader-surface-light="effectiveReaderSurfaceLight"
             :reader-surface-dark="effectiveReaderSurfaceDark"

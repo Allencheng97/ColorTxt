@@ -283,6 +283,7 @@ const emit = defineEmits<{
       displayLine: number;
       text: string;
       range: { start: number; end: number };
+      physicalStartColumn: number;
     },
   ];
   characterFileMetaPatch: [

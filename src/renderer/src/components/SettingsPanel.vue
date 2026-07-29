@@ -36,6 +36,10 @@ import {
   defaultFullscreenReaderWidthPercent,
   defaultFullscreenShowSystemTime,
   defaultMonacoSmoothScrolling,
+  defaultMouseWheelScrollSensitivity,
+  defaultFastScrollSensitivity,
+  clampMouseWheelScrollSensitivity,
+  clampFastScrollSensitivity,
   defaultStickyChapterTitleEnabled,
   defaultChapterNavToolbarEnabled,
   defaultChapterCharCountExact,
@@ -115,6 +119,8 @@ export type SettingsApplyPayload = {
   fullscreenReaderWidthPercent: number;
   fullscreenShowSystemTime: boolean;
   monacoSmoothScrolling: boolean;
+  mouseWheelScrollSensitivity: number;
+  fastScrollSensitivity: number;
   stickyChapterTitleEnabled: boolean;
   chapterNavToolbarEnabled: boolean;
   chapterCharCountExact: boolean;
@@ -151,6 +157,8 @@ const props = defineProps<{
   readerFontSize: number;
   readerLineHeightMultiple: number;
   monacoSmoothScrolling: boolean;
+  mouseWheelScrollSensitivity: number;
+  fastScrollSensitivity: number;
   stickyChapterTitleEnabled: boolean;
   chapterNavToolbarEnabled: boolean;
   chapterCharCountExact: boolean;
@@ -207,6 +215,10 @@ const draftFullscreenShowSystemTime = ref(defaultFullscreenShowSystemTime);
 const draftFontSize = ref(14);
 const draftLineHeightMultiple = ref(1.5);
 const draftMonacoSmoothScrolling = ref(true);
+const draftMouseWheelScrollSensitivity = ref(
+  defaultMouseWheelScrollSensitivity,
+);
+const draftFastScrollSensitivity = ref(defaultFastScrollSensitivity);
 const draftStickyChapterTitleEnabled = ref(defaultStickyChapterTitleEnabled);
 const draftChapterNavToolbarEnabled = ref(defaultChapterNavToolbarEnabled);
 const draftChapterCharCountExact = ref(defaultChapterCharCountExact);
@@ -266,6 +278,12 @@ function syncDraftFromProps() {
     props.readerLineHeightMultiple,
   );
   draftMonacoSmoothScrolling.value = props.monacoSmoothScrolling;
+  draftMouseWheelScrollSensitivity.value = clampMouseWheelScrollSensitivity(
+    props.mouseWheelScrollSensitivity,
+  );
+  draftFastScrollSensitivity.value = clampFastScrollSensitivity(
+    props.fastScrollSensitivity,
+  );
   draftStickyChapterTitleEnabled.value = props.stickyChapterTitleEnabled;
   draftChapterNavToolbarEnabled.value = props.chapterNavToolbarEnabled;
   draftChapterCharCountExact.value = props.chapterCharCountExact;
@@ -386,6 +404,8 @@ function resetReadingDraft() {
     defaultReaderLineHeightMultiple,
   );
   draftMonacoSmoothScrolling.value = defaultMonacoSmoothScrolling;
+  draftMouseWheelScrollSensitivity.value = defaultMouseWheelScrollSensitivity;
+  draftFastScrollSensitivity.value = defaultFastScrollSensitivity;
   draftStickyChapterTitleEnabled.value = defaultStickyChapterTitleEnabled;
   draftChapterNavToolbarEnabled.value = defaultChapterNavToolbarEnabled;
   draftCompressBlankKeepOneBlank.value = defaultCompressBlankKeepOneBlank;
@@ -577,6 +597,12 @@ async function onConfirm() {
     fullscreenReaderWidthPercent: draftFullscreenReaderWidthPercent.value,
     fullscreenShowSystemTime: draftFullscreenShowSystemTime.value,
     monacoSmoothScrolling: draftMonacoSmoothScrolling.value,
+    mouseWheelScrollSensitivity: clampMouseWheelScrollSensitivity(
+      draftMouseWheelScrollSensitivity.value,
+    ),
+    fastScrollSensitivity: clampFastScrollSensitivity(
+      draftFastScrollSensitivity.value,
+    ),
     stickyChapterTitleEnabled: draftStickyChapterTitleEnabled.value,
     chapterNavToolbarEnabled: draftChapterNavToolbarEnabled.value,
     chapterCharCountExact: draftChapterCharCountExact.value,
@@ -711,6 +737,10 @@ async function onClearCache() {
               v-model:draft-font-size="draftFontSize"
               v-model:draft-line-height-multiple="draftLineHeightMultiple"
               v-model:draft-monaco-smooth-scrolling="draftMonacoSmoothScrolling"
+              v-model:draft-mouse-wheel-scroll-sensitivity="
+                draftMouseWheelScrollSensitivity
+              "
+              v-model:draft-fast-scroll-sensitivity="draftFastScrollSensitivity"
               v-model:draft-sticky-chapter-title-enabled="
                 draftStickyChapterTitleEnabled
               "

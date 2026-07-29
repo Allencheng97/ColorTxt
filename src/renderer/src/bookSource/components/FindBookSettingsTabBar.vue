@@ -1,5 +1,10 @@
 <script setup lang="ts">
-export type FindBookSettingsTabId = "download" | "reading" | "edit" | "proxy";
+export type FindBookSettingsTabId =
+  | "download"
+  | "reading"
+  | "edit"
+  | "voiceRead"
+  | "proxy";
 
 defineProps<{
   activeTab: FindBookSettingsTabId;
@@ -42,6 +47,16 @@ const emit = defineEmits<{
         @click="emit('update:activeTab', 'edit')"
       >
         编辑
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="tabBtn"
+        :class="{ active: activeTab === 'voiceRead' }"
+        :aria-selected="activeTab === 'voiceRead'"
+        @click="emit('update:activeTab', 'voiceRead')"
+      >
+        语音朗读
       </button>
       <button
         type="button"

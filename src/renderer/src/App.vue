@@ -117,6 +117,10 @@ import {
   defaultMonacoAdvancedWrapping,
   defaultMonacoCustomHighlight,
   defaultMonacoSmoothScrolling,
+  defaultMouseWheelScrollSensitivity,
+  defaultFastScrollSensitivity,
+  clampMouseWheelScrollSensitivity,
+  clampFastScrollSensitivity,
   defaultStickyChapterTitleEnabled,
   defaultChapterNavToolbarEnabled,
   defaultReaderEditShowLineNumbers,
@@ -527,6 +531,8 @@ const chapterMinCharCount = ref(defaultChapterMinCharCount);
 const monacoAdvancedWrapping = ref(defaultMonacoAdvancedWrapping);
 /** Monaco 阅读区平滑滚动（设置可关） */
 const monacoSmoothScrolling = ref(defaultMonacoSmoothScrolling);
+const mouseWheelScrollSensitivity = ref(defaultMouseWheelScrollSensitivity);
+const fastScrollSensitivity = ref(defaultFastScrollSensitivity);
 /** 阅读区顶部粘性章节标题 */
 const stickyChapterTitleEnabled = ref(defaultStickyChapterTitleEnabled);
 const chapterNavToolbarEnabled = ref(defaultChapterNavToolbarEnabled);
@@ -974,6 +980,8 @@ const persistence = useAppPersistence({
   chapterMinCharCount,
   monacoAdvancedWrapping,
   monacoSmoothScrolling,
+  mouseWheelScrollSensitivity,
+  fastScrollSensitivity,
   stickyChapterTitleEnabled,
   chapterNavToolbarEnabled,
   readerEditShowLineNumbers,
@@ -1020,6 +1028,7 @@ const persistence = useAppPersistence({
 });
 const {
   persistSettings,
+  persistSidebarWidth,
   persistVoiceReadSecretsToVault,
   clearRecentFiles,
   persistWindowUnloadState,
@@ -2520,6 +2529,12 @@ async function applySettings(payload: SettingsApplyPayload) {
   const prevCompressBlankKeepOneBlank = compressBlankKeepOneBlank.value;
   const prevChapterMinCharCount = chapterMinCharCount.value;
   monacoSmoothScrolling.value = payload.monacoSmoothScrolling;
+  mouseWheelScrollSensitivity.value = clampMouseWheelScrollSensitivity(
+    payload.mouseWheelScrollSensitivity,
+  );
+  fastScrollSensitivity.value = clampFastScrollSensitivity(
+    payload.fastScrollSensitivity,
+  );
   stickyChapterTitleEnabled.value = payload.stickyChapterTitleEnabled;
   chapterNavToolbarEnabled.value = payload.chapterNavToolbarEnabled;
   chapterCharCountExact.value = payload.chapterCharCountExact;
@@ -2663,7 +2678,7 @@ useAppWindowBindings({
   fileSession,
   persistWindowUnloadState,
   persistFileListCache,
-  persistSettings,
+  persistSidebarWidth,
   isFullscreenView,
   showSidebar,
   sidebarWidth,
@@ -3047,6 +3062,8 @@ useAppShellThemeWatch({
           :chapter-min-char-count="chapterMinCharCount"
           :monaco-advanced-wrapping="monacoAdvancedWrapping"
           :monaco-smooth-scrolling="monacoSmoothScrolling"
+          :mouse-wheel-scroll-sensitivity="mouseWheelScrollSensitivity"
+          :fast-scroll-sensitivity="fastScrollSensitivity"
           :sticky-chapter-title-enabled="stickyChapterTitleEnabled"
           :reader-edit-show-line-numbers="readerEditShowLineNumbers"
           :reader-edit-minimap="readerEditMinimap"
@@ -3263,6 +3280,8 @@ useAppShellThemeWatch({
       :reader-line-height-multiple="readerLineHeightMultiple"
       :compress-blank-keep-one-blank="compressBlankKeepOneBlank"
       :monaco-smooth-scrolling="monacoSmoothScrolling"
+      :mouse-wheel-scroll-sensitivity="mouseWheelScrollSensitivity"
+      :fast-scroll-sensitivity="fastScrollSensitivity"
       :sticky-chapter-title-enabled="stickyChapterTitleEnabled"
       :chapter-nav-toolbar-enabled="chapterNavToolbarEnabled"
       :chapter-char-count-exact="chapterCharCountExact"

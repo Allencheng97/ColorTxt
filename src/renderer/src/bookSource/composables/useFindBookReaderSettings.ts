@@ -32,12 +32,17 @@ import {
   type VoiceReadSettings,
 } from "../../constants/voiceRead";
 import type { VoiceReadProfile } from "@shared/voiceReadProfiles";
+import {
+  stripVoiceReadProfileApiKeysForDisk,
+  stripVoiceReadSettingsApiKeysForDisk,
+} from "@shared/voiceReadProfiles";
 import type { HighlightWordsByIndex } from "../../stores/fileMetaStore";
 import { normalizeHighlightWordsByIndex } from "../../stores/fileMetaStore";
 import { loadPersistedSettingsData } from "../../stores/cacheStore";
 import {
   cloneVoiceReadProfiles,
   migrateVoiceReadFromPersisted,
+  normalizeVoiceReadProfilesForSave,
 } from "../../services/voiceRead/voiceReadProfileState";
 import { hydrateVoiceReadProfilesWithSecrets } from "../../services/voiceRead/voiceReadSecretsHydration";
 import { ref } from "vue";
@@ -151,6 +156,25 @@ export function useFindBookReaderSettings() {
   const voiceReadSettings = ref<VoiceReadSettings>(
     mergeVoiceReadSettings(undefined),
   );
+  let voiceReadProfileBaselineIds = new Set<string>();
+  /** 语音落盘基线：未改则保留磁盘；磁盘合并结果不灌回本窗内存 */
+  const voiceReadPersistBaseline: Record<string, unknown> = {};
+
+  function setVoiceReadProfileBaseline(profiles: readonly VoiceReadProfile[]) {
+    voiceReadProfileBaselineIds = new Set(
+      profiles.map((p) => p.id).filter(Boolean),
+    );
+  }
+
+  function setVoiceReadPersistBaseline(payload: Record<string, unknown>) {
+    Object.keys(voiceReadPersistBaseline).forEach((k) => {
+      delete voiceReadPersistBaseline[k];
+    });
+    Object.assign(
+      voiceReadPersistBaseline,
+      JSON.parse(JSON.stringify(payload)) as Record<string, unknown>,
+    );
+  }
 
   async function applyVoiceReadFromPersisted(
     raw: Parameters<typeof migrateVoiceReadFromPersisted>[0],
@@ -165,6 +189,24 @@ export function useFindBookReaderSettings() {
     voiceReadSettings.value = mergeVoiceReadSettings(
       hydrated ?? bundle.activeSettings,
     );
+    setVoiceReadProfileBaseline(voiceReadProfiles.value);
+    const profilesForDisk = stripVoiceReadProfileApiKeysForDisk(
+      normalizeVoiceReadProfilesForSave(voiceReadProfiles.value),
+    );
+    const voiceReadMerged = stripVoiceReadSettingsApiKeysForDisk(
+      mergeVoiceReadSettings(voiceReadSettings.value),
+    );
+    const rawObj =
+      raw && typeof raw === "object" && !Array.isArray(raw)
+        ? (raw as Record<string, unknown>)
+        : {};
+    setVoiceReadPersistBaseline({
+      activeProfileId: activeVoiceReadProfileId.value,
+      profiles: profilesForDisk,
+      ...voiceReadMerged,
+      aiSpeakerTokenUsage: rawObj.aiSpeakerTokenUsage,
+      aiSpeakerTokenUsageAvailable: rawObj.aiSpeakerTokenUsageAvailable,
+    });
   }
 
   void applyVoiceReadFromPersisted(
@@ -256,7 +298,7 @@ export function useFindBookReaderSettings() {
   function syncSharedSettingsFromMain() {
     syncThemeFromMain();
     syncPaletteFromMain();
-    syncVoiceReadFromMain();
+    // 阅读/编辑/语音与主窗口一样：各窗内存独立，仅启动时从 LS 加载
   }
 
   return {
@@ -276,6 +318,8 @@ export function useFindBookReaderSettings() {
     textConvertDigit: fb.textConvertDigit,
     monacoAdvancedWrapping: fb.monacoAdvancedWrapping,
     monacoSmoothScrolling: fb.monacoSmoothScrolling,
+    mouseWheelScrollSensitivity: fb.mouseWheelScrollSensitivity,
+    fastScrollSensitivity: fb.fastScrollSensitivity,
     stickyChapterTitleEnabled: fb.stickyChapterTitleEnabled,
     chapterNavToolbarEnabled: fb.chapterNavToolbarEnabled,
     readerEditShowLineNumbers: fb.readerEditShowLineNumbers,
@@ -295,6 +339,10 @@ export function useFindBookReaderSettings() {
     voiceReadProfiles,
     activeVoiceReadProfileId,
     voiceReadSettings,
+    getVoiceReadProfileBaselineIds: () => voiceReadProfileBaselineIds,
+    setVoiceReadProfileBaseline,
+    voiceReadPersistBaseline,
+    setVoiceReadPersistBaseline,
     canIncreaseFont,
     canDecreaseFont,
     canIncreaseLineHeight,
