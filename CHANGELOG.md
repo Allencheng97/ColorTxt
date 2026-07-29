@@ -30,7 +30,7 @@
 | 模块    | 文件名                                                   |
 | ------- | -------------------------------------------------------- |
 | 书签    | `{书名}.bookmarks.json`                                  |
-| 高亮词  | `{书名}.highlights.json`<br />`favorite.highlights.json` |
+| 高亮词  | `{书名}.highlights.json` / `favorite.highlights.json` |
 | 笔记    | `{书名}.notes.{json\|md}`                                |
 | 角色卡  | `{书名}.characters.zip`                                  |
 | AI 对话 | `{书名}-{对话标题}[（带思考过程）].chat.{json\|md}`      |
