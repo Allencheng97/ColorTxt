@@ -232,7 +232,7 @@ function onRemoveMissing() {
     ref="modalRef"
     v-model="modelValue"
     title="阅读数据"
-    max-width="920px"
+    max-width="720px"
     panel-class="readingDataPanelModal"
     :mask-closable="false"
     :esc-closable="true"
@@ -368,7 +368,7 @@ function onRemoveMissing() {
         </div>
         <div class="readingDataFooterEnd">
           <span v-if="showSelCount" class="readingDataSelCount">
-            {{ selectedPaths.length }}/{{ visibleCount }}
+            已选中：{{ selectedPaths.length }}/{{ visibleCount }}
           </span>
           <button
             class="btn danger"
@@ -377,7 +377,7 @@ function onRemoveMissing() {
             :disabled="!hasSelection"
             @click="onDeleteSelected"
           >
-            删除
+            删除选中
           </button>
         </div>
       </div>
@@ -487,7 +487,7 @@ function onRemoveMissing() {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 5px;
 }
 
 .readingDataName {
