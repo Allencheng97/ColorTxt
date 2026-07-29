@@ -80,6 +80,9 @@ export const APP_TOAST_Z_INDEX = MODAL_STACK_BASE_Z_INDEX + 500;
 export const persistKey = "colorTxt.ui.settings";
 /** 同窗口内 localStorage 写入 {@link persistKey} 后派发，供找书阅读器等同步主界面设置 */
 export const persistedSettingsChangedEvent = "colortxt:persisted-settings-changed";
+/** 「书包密码」弹框「显示密码」勾选（`"1"` / 其它） */
+export const bookPackPromptShowPasswordKey =
+  "colorTxt.ui.bookPackPromptShowPassword";
 export const sessionKey = "colorTxt.session";
 export const fileListKey = "colorTxt.file.list";
 export const recentFilesKey = "colorTxt.recent.files";

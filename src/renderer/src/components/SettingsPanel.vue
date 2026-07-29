@@ -136,6 +136,7 @@ export type SettingsApplyPayload = {
   pomodoro: PomodoroSettings;
   ebookConvertOutputDir: string;
   bookPackUnpackDir: string;
+  bookPackPassword: string;
   characterPortraitCacheDir: string;
   aiSkillsEnabled: Record<string, boolean>;
   aiSkillOverrides: Record<string, AiSkillUserOverride>;
@@ -173,6 +174,7 @@ const props = defineProps<{
   pomodoroSettings: PomodoroSettings;
   ebookConvertOutputDir: string;
   bookPackUnpackDir: string;
+  bookPackPassword: string;
   characterPortraitCacheDir: string;
   aiSkillsEnabled: Record<string, boolean>;
   aiSkillOverrides: Record<string, AiSkillUserOverride>;
@@ -240,7 +242,9 @@ const draftPomodoroShortBreakMinutes = ref(defaultPomodoroShortBreakMinutes);
 const draftPomodoroLongBreakMinutes = ref(defaultPomodoroLongBreakMinutes);
 const draftEbookConvertOutputDir = ref("");
 const draftBookPackUnpackDir = ref("");
+const draftBookPackPassword = ref("");
 const draftCharacterPortraitCacheDir = ref("");
+const showBookPackPassword = ref(false);
 
 const draftAi = ref<AIConfig>(structuredClone(defaultAIConfig));
 const showAiExtensionTabs = computed(() => draftAi.value.aiEnabled);
@@ -303,6 +307,7 @@ function syncDraftFromProps() {
   draftPomodoroLongBreakMinutes.value = pomodoroMerged.longBreakMinutes;
   draftEbookConvertOutputDir.value = props.ebookConvertOutputDir;
   draftBookPackUnpackDir.value = props.bookPackUnpackDir;
+  draftBookPackPassword.value = props.bookPackPassword;
   draftCharacterPortraitCacheDir.value = props.characterPortraitCacheDir;
   draftAiSkillOverrides.value = mergeAiSkillOverrides(props.aiSkillOverrides);
   draftAiCustomSkills.value = mergeAiCustomSkills(props.aiCustomSkills ?? []);
@@ -395,6 +400,7 @@ function resetGeneralDraft() {
   draftChapterCharCountExact.value = defaultChapterCharCountExact;
   draftEbookConvertOutputDir.value = resolveDefaultEbookConvertOutputDirSync();
   draftBookPackUnpackDir.value = resolveDefaultUnpackedBooksDirSync();
+  draftBookPackPassword.value = "";
 }
 
 function resetReadingDraft() {
@@ -626,6 +632,7 @@ async function onConfirm() {
     }),
     ebookConvertOutputDir: draftEbookConvertOutputDir.value.trim(),
     bookPackUnpackDir: draftBookPackUnpackDir.value.trim(),
+    bookPackPassword: draftBookPackPassword.value,
     characterPortraitCacheDir: draftCharacterPortraitCacheDir.value.trim(),
     aiSkillsEnabled: mergeAiSkillsEnabled(
       draftAiSkillsEnabled.value,
@@ -728,6 +735,8 @@ async function onClearCache() {
                 draftEbookConvertOutputDir
               "
               v-model:draft-book-pack-unpack-dir="draftBookPackUnpackDir"
+              v-model:draft-book-pack-password="draftBookPackPassword"
+              v-model:show-book-pack-password="showBookPackPassword"
               @open-reading-data="emit('openReadingData')"
               @clear-cache="onClearCache"
             />

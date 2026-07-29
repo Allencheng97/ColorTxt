@@ -262,6 +262,8 @@ export function useAppPersistence(deps: {
   ebookConvertOutputDir: Ref<string>;
   /** 彩读书包解压目录；空串运行时回退 userData/UnpackedBooks；无键时首次写入默认路径 */
   bookPackUnpackDir: Ref<string>;
+  /** 彩读书包默认密码；空串表示不加密 */
+  bookPackPassword: Ref<string>;
   /** 角色立绘缓存根目录（绝对路径）；无键时默认 userData/CharacterPortrait */
   characterPortraitCacheDir: Ref<string>;
   /** 角色卡纹理/全息效果（全局） */
@@ -404,6 +406,7 @@ export function useAppPersistence(deps: {
           : { ...deps.lineationLastColors.value },
       ebookConvertOutputDir: deps.ebookConvertOutputDir.value,
       bookPackUnpackDir: deps.bookPackUnpackDir.value.trim(),
+      bookPackPassword: deps.bookPackPassword.value,
       characterPortraitCacheDir: deps.characterPortraitCacheDir.value.trim(),
       characterCardTextureEffect: deps.characterCardTextureEffect.value,
       fileCategory: deps.fileCategory.value,
@@ -1253,6 +1256,10 @@ export function useAppPersistence(deps: {
 
     if (typeof data.bookPackUnpackDir === "string") {
       deps.bookPackUnpackDir.value = data.bookPackUnpackDir.trim();
+    }
+
+    if (typeof data.bookPackPassword === "string") {
+      deps.bookPackPassword.value = data.bookPackPassword;
     }
 
     if (typeof data.characterPortraitCacheDir === "string") {

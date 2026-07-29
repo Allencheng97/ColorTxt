@@ -136,18 +136,20 @@
     ],
     "fileAssociations": [
       {
-        "ext": "txt",
-        "name": "Text Document",
-        "description": "纯文本文件",
-        "mimeType": "text/plain",
-        "role": "Editor"
+        "ext": "ctz",
+        "name": "ColorTxt.BookPack",
+        "description": "彩读书包",
+        "mimeType": "application/x-colortxt-book",
+        "role": "Viewer",
+        "rank": "Owner"
       },
       {
-        "ext": "md",
-        "name": "Markdown Document",
-        "description": "Markdown 文件",
-        "mimeType": "text/markdown",
-        "role": "Editor"
+        "ext": "ctzx",
+        "name": "ColorTxt.BookPackEncrypted",
+        "description": "加密彩读书包",
+        "mimeType": "application/x-colortxt-book-encrypted",
+        "role": "Viewer",
+        "rank": "Owner"
       }
     ],
     "mac": {
@@ -155,6 +157,36 @@
       "entitlements": "resources/entitlements.mac.plist",
       "entitlementsInherit": "resources/entitlements.mac.plist",
       "artifactName": "${name}-${version}-${arch}.${ext}",
+      "fileAssociations": [
+        {
+          "ext": "ctz",
+          "name": "ColorTxt.BookPack",
+          "description": "彩读书包",
+          "role": "Viewer",
+          "rank": "Owner"
+        },
+        {
+          "ext": "ctzx",
+          "name": "ColorTxt.BookPackEncrypted",
+          "description": "加密彩读书包",
+          "role": "Viewer",
+          "rank": "Owner"
+        },
+        {
+          "ext": "txt",
+          "name": "ColorTxt.Text",
+          "description": "纯文本文件",
+          "role": "Viewer",
+          "rank": "Alternate"
+        },
+        {
+          "ext": "md",
+          "name": "ColorTxt.Markdown",
+          "description": "Markdown 文件",
+          "role": "Viewer",
+          "rank": "Alternate"
+        }
+      ],
       "publish": {
         "provider": "github",
         "owner": "ssnangua",
@@ -174,6 +206,22 @@
     "win": {
       "icon": "resources/icon.ico",
       "artifactName": "${name}-${version}.${ext}",
+      "fileAssociations": [
+        {
+          "ext": "ctz",
+          "name": "ColorTxt.BookPack",
+          "description": "彩读书包",
+          "mimeType": "application/x-colortxt-book",
+          "role": "Viewer"
+        },
+        {
+          "ext": "ctzx",
+          "name": "ColorTxt.BookPackEncrypted",
+          "description": "加密彩读书包",
+          "mimeType": "application/x-colortxt-book-encrypted",
+          "role": "Viewer"
+        }
+      ],
       "target": [
         "nsis",
         "portable"
@@ -185,11 +233,33 @@
     "nsis": {
       "artifactName": "${name}-${version}-Setup.${ext}",
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "include": "resources/nsis/openWithOnly.nsh"
     },
     "linux": {
       "icon": "resources/icon.png",
       "artifactName": "${name}-${version}-${arch}.${ext}",
+      "category": "Office",
+      "fileAssociations": [
+        {
+          "ext": "ctz",
+          "name": "ColorTxt.BookPack",
+          "description": "彩读书包",
+          "mimeType": "application/x-colortxt-book",
+          "role": "Viewer"
+        },
+        {
+          "ext": "ctzx",
+          "name": "ColorTxt.BookPackEncrypted",
+          "description": "加密彩读书包",
+          "mimeType": "application/x-colortxt-book-encrypted",
+          "role": "Viewer"
+        }
+      ],
+      "mimeTypes": [
+        "text/plain",
+        "text/markdown"
+      ],
       "publish": {
         "provider": "github",
         "owner": "ssnangua",

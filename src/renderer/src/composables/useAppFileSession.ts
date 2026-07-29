@@ -8,7 +8,7 @@ import {
   mergeTxtFileLists,
   type TxtFileItem,
 } from "../services/fileListService";
-import { appAlert } from "../services/appDialog";
+import { appAlert, appConfirm, appPrompt } from "../services/appDialog";
 import { prepareOpenFile } from "../services/fileOpenService";
 import { loadSessionSnapshot } from "../stores/cacheStore";
 import { useAppPersistence } from "./useAppPersistence";
@@ -27,14 +27,18 @@ import {
 } from "../constants/fileCategories";
 import {
   APP_DISPLAY_NAME,
+  bookPackPromptShowPasswordKey,
   sessionKey,
   fileListKey,
 } from "../constants/appUi";
-import { COLOR_TXT_OPEN_BOOK_EXTENSIONS } from "@shared/colorTxtOpenSaveDialog";
+import {
+  COLOR_TXT_BOOK_PACK_ENCRYPTED_FILE_EXT,
+  COLOR_TXT_BOOK_PACK_FILE_EXT,
+  COLOR_TXT_OPEN_BOOK_EXTENSIONS,
+} from "@shared/colorTxtOpenSaveDialog";
 import { fileHistoryKey } from "../stores/recentHistoryStore";
 import { looksLikeZipBookPackCandidate } from "../utils/readerBookPack";
 import { importReaderBookPack } from "../utils/readerBookPackImport";
-import { appConfirm } from "../services/appDialog";
 import type { FileMetaRecord } from "../stores/fileMetaStore";
 import { appToast } from "../services/appToast";
 
@@ -112,6 +116,8 @@ export function useAppFileSession(deps: {
   fileMetaRecords: Ref<FileMetaRecord[]>;
   /** 彩读书包无同名书时的解压目录（空串回退 UnpackedBooks） */
   bookPackUnpackDir: Ref<string>;
+  /** 彩读书包默认密码（空串表示明文包） */
+  bookPackPassword: Ref<string>;
   characterPortraitCacheDir: Ref<string>;
   /**
    * 在合并进 `txtFiles` **之后**调用：传入本次新加入的路径；
@@ -513,11 +519,18 @@ export function useAppFileSession(deps: {
       filters: [
         {
           name: "电子书",
-          extensions: [...COLOR_TXT_OPEN_BOOK_EXTENSIONS],
+          extensions: [
+            ...COLOR_TXT_OPEN_BOOK_EXTENSIONS,
+            COLOR_TXT_BOOK_PACK_FILE_EXT,
+            COLOR_TXT_BOOK_PACK_ENCRYPTED_FILE_EXT,
+          ],
         },
         {
           name: "彩读书包",
-          extensions: ["zip"],
+          extensions: [
+            COLOR_TXT_BOOK_PACK_FILE_EXT,
+            COLOR_TXT_BOOK_PACK_ENCRYPTED_FILE_EXT,
+          ],
         },
         { name: "所有文件", extensions: ["*"] },
       ],
@@ -539,6 +552,43 @@ export function useAppFileSession(deps: {
         ebookConvertOutputDir: deps.ebookConvertOutputDir.value,
         portraitCacheDir: deps.characterPortraitCacheDir.value,
         bookPackUnpackDir: deps.bookPackUnpackDir.value,
+        password: deps.bookPackPassword.value,
+        askPassword: async (reason) => {
+          deps.bookPackUnpacking.value = false;
+          try {
+            let revealPassword = false;
+            try {
+              revealPassword =
+                localStorage.getItem(bookPackPromptShowPasswordKey) === "1";
+            } catch {
+              revealPassword = false;
+            }
+            return await appPrompt(
+              reason === "wrongPassword"
+                ? "密码不正确，请重新输入："
+                : "该书包已加密，请输入密码：",
+              {
+                title: "打开书包",
+                inputType: "password",
+                placeholder: "打开书包",
+                showPasswordToggle: true,
+                revealPassword,
+                onRevealPasswordChange: (reveal) => {
+                  try {
+                    localStorage.setItem(
+                      bookPackPromptShowPasswordKey,
+                      reveal ? "1" : "0",
+                    );
+                  } catch {
+                    // ignore
+                  }
+                },
+              },
+            );
+          } finally {
+            deps.bookPackUnpacking.value = true;
+          }
+        },
         currentFilePath: deps.currentFile.value,
         physicalReaderPath: deps.physicalReaderPath.value,
         recentFiles: deps.recentFiles.value,

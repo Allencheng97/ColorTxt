@@ -151,6 +151,11 @@ export type PersistedSettingsData = {
    * 若设置 JSON 中无此键，首次启动写入默认路径。
    */
   bookPackUnpackDir?: string;
+  /**
+   * 彩读书包默认密码。
+   * 空串表示导出不加密、导入明文 ZIP；非空时导出为 CTZE 加密包，导入需相同密码。
+   */
+  bookPackPassword?: string;
   /** 文件列表分类筛选：`__all__` | `__uncategorized__` | 分类名 */
   fileCategory?: string;
   /** 文件列表排序方式 */
@@ -466,6 +471,9 @@ export function loadPersistedSettingsData(
   }
   if (typeof obj.bookPackUnpackDir === "string") {
     data.bookPackUnpackDir = obj.bookPackUnpackDir.trim();
+  }
+  if (typeof obj.bookPackPassword === "string") {
+    data.bookPackPassword = obj.bookPackPassword;
   }
   if (typeof obj.fileCategory === "string" && obj.fileCategory.trim()) {
     data.fileCategory = obj.fileCategory.trim();

@@ -89,6 +89,7 @@ const props = defineProps<{
   lineationColorsDark: string[];
   ebookConvertOutputDir: string;
   bookPackUnpackDir: string;
+  bookPackPassword: string;
   characterPortraitCacheDir: string;
   aiSkillsEnabled: Record<string, boolean>;
   aiSkillOverrides: Record<string, AiSkillUserOverride>;
@@ -273,6 +274,7 @@ onBeforeUnmount(() => {
     :pomodoro-settings="pomodoroSettings"
     :ebook-convert-output-dir="ebookConvertOutputDir"
     :book-pack-unpack-dir="bookPackUnpackDir"
+    :book-pack-password="bookPackPassword"
     :character-portrait-cache-dir="characterPortraitCacheDir"
     :ai-skills-enabled="aiSkillsEnabled"
     :ai-skill-overrides="aiSkillOverrides"

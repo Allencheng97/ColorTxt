@@ -282,6 +282,14 @@ export async function importReaderBookPack(options: {
   portraitCacheDir: string;
   /** 设置中的解压目录；空串回退 userData/UnpackedBooks */
   bookPackUnpackDir?: string;
+  /** 书包默认密码；空串表示未加密包 */
+  password?: string;
+  /**
+   * 加密包密码缺失/错误时询问用户；返回 `null` 表示取消导入。
+   */
+  askPassword?: (
+    reason: "needPassword" | "wrongPassword",
+  ) => Promise<string | null>;
   currentFilePath?: string | null;
   physicalReaderPath?: string | null;
   recentFiles?: readonly { path: string }[];
@@ -299,8 +307,22 @@ export async function importReaderBookPack(options: {
       error: e instanceof Error ? e.message : String(e),
     };
   }
-  const parsed = await parseReaderBookPackZip(buffer);
-  if (!parsed.ok) return { ok: false, error: parsed.error };
+
+  let password = options.password ?? "";
+  let parsed = await parseReaderBookPackZip(buffer, password);
+  while (!parsed.ok) {
+    if (
+      (parsed.code === "needPassword" || parsed.code === "wrongPassword") &&
+      options.askPassword
+    ) {
+      const next = await options.askPassword(parsed.code);
+      if (next === null) return { ok: false, cancelled: true };
+      password = next;
+      parsed = await parseReaderBookPackZip(buffer, password);
+      continue;
+    }
+    return { ok: false, error: parsed.error };
+  }
   const pack = parsed.pack;
   const includeProgress =
     typeof pack.manifest.viewportTopPhysicalLine === "number";

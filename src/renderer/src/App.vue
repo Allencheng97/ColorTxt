@@ -579,6 +579,8 @@ const ebookConvertOutputDir = ref(
 );
 /** 彩读书包解压目录；默认 userData/UnpackedBooks；空串时运行时仍回退该默认 */
 const bookPackUnpackDir = ref(resolveDefaultUnpackedBooksDirSync());
+/** 彩读书包默认密码；空串表示导出不加密 */
+const bookPackPassword = ref("");
 /** 角色立绘缓存根目录（绝对路径）；出厂默认 userData/CharacterPortrait */
 const characterPortraitCacheDir = ref(
   (() => {
@@ -1007,6 +1009,7 @@ const persistence = useAppPersistence({
   lineationLastColors,
   ebookConvertOutputDir,
   bookPackUnpackDir,
+  bookPackPassword,
   characterPortraitCacheDir,
   characterCardTextureEffect,
   fileCategory,
@@ -1611,6 +1614,7 @@ const fileSession = useAppFileSession({
   ebookConversionSourcePath,
   fileMetaRecords,
   bookPackUnpackDir,
+  bookPackPassword,
   characterPortraitCacheDir,
   applyCurrentFileCategoryIfConcrete: applyCurrentFileCategoryToNewPaths,
   readerEditMode,
@@ -2349,9 +2353,14 @@ async function exportCurrentReaderBookPack(includeReadingProgress: boolean) {
       portraitCacheDir: characterPortraitCacheDir.value,
       includeReadingProgress,
       viewportTopPhysicalLine,
+      password: bookPackPassword.value,
     });
-    const name = buildReaderBookPackDefaultName(fileNameKey(sessionPath));
-    const r = await saveReaderBookPackFile(name, zipBuffer);
+    const encrypted = Boolean(bookPackPassword.value.trim());
+    const name = buildReaderBookPackDefaultName(
+      fileNameKey(sessionPath),
+      encrypted,
+    );
+    const r = await saveReaderBookPackFile(name, zipBuffer, encrypted);
     if (!r.ok) {
       if ("error" in r) await appAlert(r.error);
       return;
@@ -2569,6 +2578,7 @@ async function applySettings(payload: SettingsApplyPayload) {
   fullscreenShowSystemTime.value = payload.fullscreenShowSystemTime;
   ebookConvertOutputDir.value = payload.ebookConvertOutputDir;
   bookPackUnpackDir.value = payload.bookPackUnpackDir.trim();
+  bookPackPassword.value = payload.bookPackPassword ?? "";
   const prevPortraitCache = characterPortraitCacheDir.value.trim();
   const nextPortraitCache = payload.characterPortraitCacheDir.trim();
   if (
@@ -3318,6 +3328,7 @@ useAppShellThemeWatch({
       :lineation-colors-dark="lineationColorsDark"
       :ebook-convert-output-dir="ebookConvertOutputDir"
       :book-pack-unpack-dir="bookPackUnpackDir"
+      :book-pack-password="bookPackPassword"
       :character-portrait-cache-dir="characterPortraitCacheDir"
       :voice-read-settings="voiceReadSettings"
       :voice-read-profiles="voiceReadProfiles"

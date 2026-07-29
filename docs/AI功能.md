@@ -359,7 +359,7 @@ cardShellWrap（悬停抬高 z-index）
 | `SettingsSkillEditModal.vue` | 自定义技能新建/编辑弹窗 |
 | `AppPullFlashButton.vue` | 设置面板内刷新模型/采样器列表等，完成态闪光反馈 |
 | `PathPickerInput.vue` | 目录选择（含 **角色立绘缓存根目录** 等） |
-| `AiAssistantPanel.vue` | 侧栏 AI 阅读助手主面板：会话、输入、`onAgentEvent`（流式增量、工具、`token_usage_*`、`done`/`error`）；历史列表会话名 **`title`** 悬停提示；**`findLiveAgentAssistant`**；受 **`showTokenUsage`** 控制 Token 条。<br>**导出**默认名 **`{书名}-{日期}-{对话标题}[（带思考过程）].colortxt-chat.{md\|json}`**（`aiAssistantExport.buildChatExportDefaultName`）。<br>**`prefillQuotedText(text)`**：阅读器 **「问 AI」** 填入 blockquote 引用并 autosize / 滚至光标 |
+| `AiAssistantPanel.vue` | 侧栏 AI 阅读助手主面板：会话、输入、`onAgentEvent`（流式增量、工具、`token_usage_*`、`done`/`error`）；历史列表会话名 **`title`** 悬停提示；**`findLiveAgentAssistant`**；受 **`showTokenUsage`** 控制 Token 条。<br>**导出**默认名 **`{书名}-{对话标题}[（带思考过程）].chat.{md\|json}`**（`aiAssistantExport.buildChatExportDefaultName`）。<br>**`prefillQuotedText(text)`**：阅读器 **「问 AI」** 填入 blockquote 引用并 autosize / 滚至光标 |
 | `AiAssistantChatMessages.vue` | 消息列表：用户/助手气泡、思考块、工具折叠、**`AiMindmapView`** / **`AiWordcloudView`**（传入 `chapters`）；**`AiMarkdown`** 章节跳转；**`AiTokenUsageBanner`** |
 | `AiAssistantDetailsFold.vue` | 助手详情折叠（与 `directives/aiStickScroll`、`useAiFoldContentSelectAll` 配合） |
 | `AiToolFoldBody.vue` | 工具折叠正文；超长章压缩进度中 **`当前进度：M/N`** 高亮（`utils/aiToolFoldBody.ts`） |
