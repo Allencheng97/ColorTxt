@@ -404,6 +404,10 @@ const api = {
   openFindBookWindow: () => {
     ipcRenderer.send("window:openFindBook");
   },
+  /** 始终新建找书窗（默认「书架」标签） */
+  openNewFindBookWindow: () => {
+    ipcRenderer.send("window:newFindBook");
+  },
   createFindBookDesktopShortcut: () =>
     ipcRenderer.invoke("findBook:createDesktopShortcut") as Promise<
       { ok: true; shortcutPath: string } | { ok: false; error: string }

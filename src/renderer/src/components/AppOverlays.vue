@@ -241,6 +241,7 @@ onBeforeUnmount(() => {
   <AboutPanel v-model="showAboutPanel" />
   <ShortcutPanel
     v-model="showShortcutPanel"
+    panel-context="main"
     :shortcut-bindings="shortcutBindings"
     :default-shortcut-bindings="defaultShortcutBindings"
     @apply="emit('applyShortcutBindings', $event)"

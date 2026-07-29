@@ -63,6 +63,7 @@ import { registerVoiceReadIpcHandlers } from "./voiceRead/registerVoiceReadIpc";
 import { registerBookSourceIpcHandlers } from "./bookSource/registerBookSourceIpc";
 import { createFindBookDesktopShortcut } from "./findBookLaunch";
 import {
+  focusOrOpenFindBookWindow,
   focusOrOpenMainReaderWindow,
   openTxtInMainWindow,
 } from "./openTxtInMainWindow";
@@ -352,7 +353,15 @@ export function registerMainIpcHandlers(
   });
 
   ipcMain.on("window:openFindBook", () => {
-    createWindow({ openFindBook: true });
+    focusOrOpenFindBookWindow({
+      createWindow,
+      findBookWindowByWindowId,
+    });
+  });
+
+  /** 始终新建找书窗（默认书架），用于找书「更多 → 新窗口」 */
+  ipcMain.on("window:newFindBook", () => {
+    createWindow({ openFindBook: true, findBookInitialTab: "bookshelf" });
   });
 
   ipcMain.handle("findBook:createDesktopShortcut", async () => {

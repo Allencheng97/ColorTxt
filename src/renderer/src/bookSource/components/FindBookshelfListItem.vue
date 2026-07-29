@@ -39,6 +39,8 @@ const props = withDefaults(
     managing?: boolean;
     /** 编辑模式下是否选中 */
     selected?: boolean;
+    /** 该行「更多」菜单是否打开（保持按钮可见与激活态） */
+    moreMenuOpen?: boolean;
   }>(),
   {
     coverPending: false,
@@ -47,6 +49,7 @@ const props = withDefaults(
     updating: false,
     managing: false,
     selected: false,
+    moreMenuOpen: false,
   },
 );
 
@@ -339,8 +342,11 @@ function onSelectCategoryClick(e: MouseEvent) {
         <button
           type="button"
           class="findBookshelfMoreBtn"
+          :class="{ 'findBookshelfMoreBtn--active': moreMenuOpen }"
           aria-label="更多"
           title="更多"
+          aria-haspopup="menu"
+          :aria-expanded="moreMenuOpen"
           @click.stop="onMoreClick"
         >
           <span
@@ -617,11 +623,13 @@ img.findBookListItemCover {
   cursor: pointer;
   transition: opacity 0.12s ease, background 0.12s ease, color 0.12s ease;
 }
-.findBookListItem:hover .findBookshelfMoreBtn {
+.findBookListItem:hover .findBookshelfMoreBtn,
+.findBookshelfMoreBtn--active {
   opacity: 1;
   pointer-events: auto;
 }
-.findBookshelfMoreBtn:hover {
+.findBookshelfMoreBtn:hover,
+.findBookshelfMoreBtn--active {
   background: color-mix(in srgb, var(--fg) 8%, transparent);
   color: var(--fg);
 }

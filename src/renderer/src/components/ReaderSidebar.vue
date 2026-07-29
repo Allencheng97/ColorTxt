@@ -377,6 +377,7 @@ const characterMoreMenu = useAnchoredAppShellMenu({
   anchor: characterHeaderMoreBtnRef,
   placement: "below-end",
   widthPx: CHARACTER_HEADER_MORE_MENU_W,
+  gap: 6,
   disabled: characterHeaderMoreDisabled,
   excludeCloseWithin: computed(() => [
     characterTextureFlyoutPanelRef.value,
@@ -525,6 +526,7 @@ const aiMoreMenu = useAnchoredAppShellMenu({
   anchor: aiAssistantHeaderMoreBtnRef,
   placement: "below-end",
   widthPx: AI_ASSISTANT_HEADER_MORE_MENU_W,
+  gap: 6,
   disabled: aiAssistantHeaderMoreDisabled,
 });
 const {
@@ -804,8 +806,11 @@ defineExpose({
             ref="filesHeaderMoreBtnRef"
             type="button"
             class="aiReaderSidebarHeaderIconBtn"
+            :class="{ active: fileListPanelRef?.moreOpen }"
             title="更多"
             aria-label="更多"
+            aria-haspopup="menu"
+            :aria-expanded="!!fileListPanelRef?.moreOpen"
             @click="fileListPanelRef?.openMoreMenu()"
           >
             <span class="svg" v-html="icons.more" />
@@ -825,8 +830,11 @@ defineExpose({
             ref="chaptersHeaderMoreBtnRef"
             type="button"
             class="aiReaderSidebarHeaderIconBtn"
+            :class="{ active: chapterListPanelRef?.moreOpen }"
             title="更多"
             aria-label="更多"
+            aria-haspopup="menu"
+            :aria-expanded="!!chapterListPanelRef?.moreOpen"
             @click="chapterListPanelRef?.openMoreMenu()"
           >
             <span class="svg" v-html="icons.more" />
@@ -837,8 +845,11 @@ defineExpose({
             ref="bookmarksHeaderMoreBtnRef"
             type="button"
             class="aiReaderSidebarHeaderIconBtn"
+            :class="{ active: bookmarkPanelRef?.moreOpen }"
             title="更多"
             aria-label="更多"
+            aria-haspopup="menu"
+            :aria-expanded="!!bookmarkPanelRef?.moreOpen"
             @click="bookmarkPanelRef?.openMoreMenu()"
           >
             <span class="svg" v-html="icons.more" />
@@ -849,6 +860,7 @@ defineExpose({
             ref="characterHeaderMoreBtnRef"
             type="button"
             class="aiReaderSidebarHeaderIconBtn"
+            :class="{ active: characterHeaderMoreOpen }"
             title="更多"
             aria-label="更多"
             aria-haspopup="menu"
@@ -864,8 +876,11 @@ defineExpose({
             ref="highlightsHeaderMoreBtnRef"
             type="button"
             class="aiReaderSidebarHeaderIconBtn"
+            :class="{ active: highlightPanelRef?.moreOpen }"
             title="更多"
             aria-label="更多"
+            aria-haspopup="menu"
+            :aria-expanded="!!highlightPanelRef?.moreOpen"
             @click="highlightPanelRef?.openMoreMenu()"
           >
             <span class="svg" v-html="icons.more" />
@@ -876,8 +891,11 @@ defineExpose({
             ref="notesHeaderMoreBtnRef"
             type="button"
             class="aiReaderSidebarHeaderIconBtn"
+            :class="{ active: annotationPanelRef?.moreOpen }"
             title="更多"
             aria-label="更多"
+            aria-haspopup="menu"
+            :aria-expanded="!!annotationPanelRef?.moreOpen"
             @click="annotationPanelRef?.openMoreMenu()"
           >
             <span class="svg" v-html="icons.more" />
@@ -888,6 +906,7 @@ defineExpose({
             ref="aiAssistantHeaderMoreBtnRef"
             type="button"
             class="aiReaderSidebarHeaderIconBtn"
+            :class="{ active: aiAssistantHeaderMoreOpen }"
             title="更多"
             aria-label="更多"
             aria-haspopup="menu"
@@ -903,8 +922,11 @@ defineExpose({
             ref="searchHeaderMoreBtnRef"
             type="button"
             class="aiReaderSidebarHeaderIconBtn"
+            :class="{ active: searchPanelRef?.moreOpen }"
             title="更多"
             aria-label="更多"
+            aria-haspopup="menu"
+            :aria-expanded="!!searchPanelRef?.moreOpen"
             @click="searchPanelRef?.openMoreMenu()"
           >
             <span class="svg" v-html="icons.more" />
@@ -1095,6 +1117,7 @@ defineExpose({
       :left="aiAssistantHeaderMoreLeft"
       :top="aiAssistantHeaderMoreTop"
       :width="AI_ASSISTANT_HEADER_MORE_MENU_W"
+      caret="end"
       :on-panel-mount="bindAiAssistantHeaderMorePanel"
       aria-label="AI 阅读助手更多"
     >
@@ -1121,6 +1144,7 @@ defineExpose({
       :left="characterHeaderMoreLeft"
       :top="characterHeaderMoreTop"
       :width="CHARACTER_HEADER_MORE_MENU_W"
+      caret="end"
       :on-panel-mount="bindCharacterHeaderMorePanel"
       aria-label="角色卡更多"
     >
@@ -1431,7 +1455,8 @@ defineExpose({
   color: var(--tab-fg);
 }
 
-.aiReaderSidebarHeaderIconBtn:hover:not(:disabled) {
+.aiReaderSidebarHeaderIconBtn:hover:not(:disabled),
+.aiReaderSidebarHeaderIconBtn.active:not(:disabled) {
   color: var(--tab-fg-hover);
   background: var(--icon-btn-bg-hover);
 }

@@ -52,6 +52,7 @@ const moreMenu = useAnchoredAppShellMenu({
   anchor: anchorRef,
   placement: "below-end",
   widthPx: NOTES_HEADER_MORE_MENU_W,
+  gap: 6,
   disabled: computed(() => !props.currentFilePath),
 });
 const {
@@ -69,6 +70,7 @@ function bindMorePanel(el: HTMLElement | null) {
 
 defineExpose({
   openMoreMenu: toggleMoreMenu,
+  moreOpen,
 });
 
 const emptyMessage = computed(() =>
@@ -301,6 +303,7 @@ function chapterHeaderPadding(
       :left="moreLeft"
       :top="moreTop"
       :width="NOTES_HEADER_MORE_MENU_W"
+      caret="end"
       :on-panel-mount="bindMorePanel"
       aria-label="笔记更多"
     >

@@ -75,6 +75,7 @@ const moreMenu = useAnchoredAppShellMenu({
   anchor: moreAnchorRef,
   placement: "below-end",
   widthPx: SEARCH_HEADER_MORE_MENU_W,
+  gap: 6,
 });
 const {
   open: moreOpen,
@@ -91,6 +92,7 @@ function bindMorePanel(el: HTMLElement | null) {
 
 defineExpose({
   openMoreMenu: toggleMoreMenu,
+  moreOpen,
 });
 
 const copyResultsDisabled = computed(
@@ -317,6 +319,7 @@ function buildSegmentsByRanges(text: string, ranges: SearchRange[]) {
       :left="moreLeft"
       :top="moreTop"
       :width="SEARCH_HEADER_MORE_MENU_W"
+      caret="end"
       :on-panel-mount="bindMorePanel"
       aria-label="搜索更多"
     >

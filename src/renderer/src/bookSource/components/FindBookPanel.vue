@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from "vue";
 import AppModal from "../../components/AppModal.vue";
 import AppTabBar from "../../components/AppTabBar.vue";
 import IconButton from "../../components/IconButton.vue";
@@ -19,11 +19,16 @@ import FindBookshelfPanel from "./FindBookshelfPanel.vue";
 import FindBookListItem from "./FindBookListItem.vue";
 import { FIND_BOOK_LIST_ROW_STRIDE } from "./findBookListLayout";
 import FindBookSettingsPanel from "./FindBookSettingsPanel.vue";
+import ColorSchemePanel from "../../components/ColorSchemePanel.vue";
+import AboutPanel from "../../components/AboutPanel.vue";
+import ShortcutPanel from "../../components/ShortcutPanel.vue";
+import AppUpdateFlow from "../../components/AppUpdateFlow.vue";
 import VirtualList from "../../components/VirtualList.vue";
 import DisclaimerPanel from "./DisclaimerPanel.vue";
 import LoadingDotsBounce from "../../components/LoadingDotsBounce.vue";
 import type { FindBookSettingsTabId } from "./FindBookSettingsTabBar.vue";
 import { useFindBookSettings } from "../composables/useFindBookSettings";
+import { useFindBookReaderSettings } from "../composables/useFindBookReaderSettings";
 import { useFindBookPanelShortcuts } from "../composables/useFindBookPanelShortcuts";
 import { acceleratorToDisplayText } from "../../services/shortcutUtils";
 import { runFindBookDownloadAfterAction } from "../services/findBookDownloadActions";
@@ -73,6 +78,7 @@ import {
   type FileCategoryDefinition,
 } from "../../constants/fileCategories";
 import {
+  GITHUB_REPO_URL,
   persistKey,
   persistedSettingsChangedEvent,
 } from "../../constants/appUi";
@@ -267,6 +273,7 @@ const bookshelfToolbarMoreMenu = useAnchoredAppShellMenu({
   anchor: bookshelfToolbarMoreBtnRef,
   placement: "below-end",
   widthPx: 160,
+  gap: 6,
 });
 const {
   open: bookshelfToolbarMoreOpen,
@@ -310,12 +317,28 @@ const props = withDefaults(
 );
 
 const findBookSettings = useFindBookSettings();
+const fbReaderSettings = useFindBookReaderSettings();
+const {
+  currentTheme: colorSchemeTheme,
+  readerSurfaceLight: colorSchemeSurfaceLight,
+  readerSurfaceDark: colorSchemeSurfaceDark,
+  readerPaletteColorEnabledLight: colorSchemeColorEnabledLight,
+  readerPaletteColorEnabledDark: colorSchemeColorEnabledDark,
+  monacoFontFamily: colorSchemeFontFamily,
+  applyReaderPalettes,
+} = fbReaderSettings;
 const effectiveCacheDir = findBookSettings.effectiveCacheDir;
 const effectiveDownloadDir = findBookSettings.effectiveDownloadDir;
 
 const showSettingsPanel = ref(false);
+const showColorSchemePanel = ref(false);
+const showShortcutPanel = ref(false);
 const showDisclaimerPanel = ref(false);
+const showAboutPanel = ref(false);
 const settingsInitialTab = ref<FindBookSettingsTabId>("download");
+const appUpdateFlowRef = useTemplateRef<{
+  checkForUpdates: () => void | Promise<void>;
+}>("appUpdateFlowRef");
 
 const emit = defineEmits<{
   close: [];
@@ -368,11 +391,13 @@ const moreMenu = useAnchoredAppShellMenu({
   anchor: moreBtnRef,
   placement: "below-end",
   widthPx: 180,
+  gap: 6,
 });
 const searchOptionsMenu = useAnchoredAppShellMenu({
   anchor: searchOptionsBtnRef,
   placement: "below-end",
   widthPx: 200,
+  gap: 6,
 });
 const {
   open: moreOpen,
@@ -643,6 +668,21 @@ function onToggleDevTools() {
   void window.colorTxt.toggleDevTools();
 }
 
+function onCheckForUpdates() {
+  closeMoreMenu();
+  void appUpdateFlowRef.value?.checkForUpdates();
+}
+
+function onOpenGithub() {
+  closeMoreMenu();
+  void window.colorTxt.openExternal(GITHUB_REPO_URL);
+}
+
+function onOpenAbout() {
+  closeMoreMenu();
+  showAboutPanel.value = true;
+}
+
 async function onCreateDesktopShortcut() {
   closeMoreMenu();
   const result = await window.colorTxt.createFindBookDesktopShortcut();
@@ -657,12 +697,60 @@ function onOpenSettingsFromReader() {
   openSettings("reading");
 }
 
-const { shortcutBindings } = useFindBookPanelShortcuts({
+function openColorScheme() {
+  closeMoreMenu();
+  if (showBookReader.value) {
+    void nextTick(() => {
+      showColorSchemePanel.value = true;
+    });
+    return;
+  }
+  showColorSchemePanel.value = true;
+}
+
+function openShortcuts() {
+  closeMoreMenu();
+  if (showBookReader.value) {
+    void nextTick(() => {
+      showShortcutPanel.value = true;
+    });
+    return;
+  }
+  showShortcutPanel.value = true;
+}
+
+function onOpenColorSchemeFromReader() {
+  openColorScheme();
+}
+
+function onGoMain() {
+  closeMoreMenu();
+  emit("goMain");
+}
+
+function onOpenNewWindow() {
+  closeMoreMenu();
+  window.colorTxt.openNewFindBookWindow();
+}
+
+const {
+  shortcutBindings,
+  defaultShortcutBindings,
+  applyShortcutBindings,
+} = useFindBookPanelShortcuts({
   showSettingsPanel,
+  showColorSchemePanel,
+  showShortcutPanel,
   showBookSourcePanel,
   showBookReader,
   openSettings,
+  openColorScheme,
   openBookSources: onOpenBookSources,
+  goMain: onGoMain,
+  openNewWindow: () => {
+    closeMoreMenu();
+    window.colorTxt.openNewFindBookWindow();
+  },
 });
 
 const isMacPlatform = /mac|iphone|ipad|ipod/i.test(navigator.platform || "");
@@ -674,6 +762,18 @@ const bookSourceShortcutLabel = computed(() =>
 );
 const settingsShortcutLabel = computed(() =>
   acceleratorToDisplayText(shortcutBindings.value.openSettings, isMacPlatform),
+);
+const colorSchemeShortcutLabel = computed(() =>
+  acceleratorToDisplayText(
+    shortcutBindings.value.openColorScheme,
+    isMacPlatform,
+  ),
+);
+const findBookShortcutLabel = computed(() =>
+  acceleratorToDisplayText(shortcutBindings.value.openFindBook, isMacPlatform),
+);
+const newWindowShortcutLabel = computed(() =>
+  acceleratorToDisplayText(shortcutBindings.value.openNewWindow, isMacPlatform),
 );
 
 function bookshelfBookIdentity(item: SearchBookItem): string {
@@ -1029,9 +1129,6 @@ function onBack() {
   modelValue.value = false;
 }
 
-function onGoMain() {
-  emit("goMain");
-}
 </script>
 
 <template>
@@ -1093,8 +1190,12 @@ function onGoMain() {
           <div ref="moreBtnRef" class="findBookHeaderMore">
             <IconButton
               :icon-html="icons.more"
+              :active="moreOpen"
+              :pressed="moreOpen"
               title="更多"
               aria-label="更多"
+              aria-haspopup="menu"
+              :aria-expanded="moreOpen"
               @click="toggleMoreMenu"
             />
           </div>
@@ -1157,8 +1258,12 @@ function onGoMain() {
           <div ref="searchOptionsBtnRef" class="findBookSearchMore">
             <IconButton
               :icon-html="icons.more"
+              :active="searchOptionsOpen"
+              :pressed="searchOptionsOpen"
               title="更多"
               aria-label="搜索更多选项"
+              aria-haspopup="menu"
+              :aria-expanded="searchOptionsOpen"
               @click="toggleSearchOptionsMenu"
             />
           </div>
@@ -1205,8 +1310,12 @@ function onGoMain() {
           <IconButton
             class="findBookBookshelfToolbarMoreBtn"
             :icon-html="icons.more"
+            :active="bookshelfToolbarMoreOpen"
+            :pressed="bookshelfToolbarMoreOpen"
             title="更多"
             aria-label="更多"
+            aria-haspopup="menu"
+            :aria-expanded="bookshelfToolbarMoreOpen"
             @click="toggleBookshelfToolbarMoreMenu"
           />
         </div>
@@ -1231,6 +1340,7 @@ function onGoMain() {
         v-model:open="bookshelfToolbarMoreOpen"
         :left="bookshelfToolbarMoreLeft"
         :top="bookshelfToolbarMoreTop"
+        caret="end"
         :on-panel-mount="bindBookshelfToolbarMorePanel"
       >
         <button
@@ -1269,6 +1379,7 @@ function onGoMain() {
         v-model:open="searchOptionsOpen"
         :left="searchOptionsLeft"
         :top="searchOptionsTop"
+        caret="end"
         :on-panel-mount="bindSearchOptionsPanel"
       >
         <button
@@ -1294,6 +1405,7 @@ function onGoMain() {
         :width="180"
         :left="moreLeft"
         :top="moreTop"
+        caret="end"
         :on-panel-mount="bindMorePanel"
       >
         <button
@@ -1318,6 +1430,27 @@ function onGoMain() {
           <span class="appShellMenuIconSlot" v-html="icons.folderOpen" />
           <span class="appShellMenuLabel">打开下载目录</span>
         </button>
+        <div class="appShellMenuDivider" role="separator"></div>
+        <button
+          type="button"
+          class="appShellMenuItem"
+          role="menuitem"
+          @click="onOpenNewWindow"
+        >
+          <span class="appShellMenuIconSlot" v-html="icons.newWindow" />
+          <span class="appShellMenuLabel">新窗口</span>
+          <span class="appShellMenuShortcut">{{ newWindowShortcutLabel }}</span>
+        </button>
+        <div class="appShellMenuDivider" role="separator"></div>
+        <button
+          type="button"
+          class="appShellMenuItem"
+          role="menuitem"
+          @click="openShortcuts"
+        >
+          <span class="appShellMenuIconSlot" v-html="icons.shortcut" />
+          <span class="appShellMenuLabel">快捷键</span>
+        </button>
         <button
           type="button"
           class="appShellMenuItem"
@@ -1327,6 +1460,33 @@ function onGoMain() {
           <span class="appShellMenuIconSlot" v-html="icons.setting" />
           <span class="appShellMenuLabel">设置</span>
           <span class="appShellMenuShortcut">{{ settingsShortcutLabel }}</span>
+        </button>
+        <button
+          type="button"
+          class="appShellMenuItem"
+          role="menuitem"
+          @click="openColorScheme"
+        >
+          <span
+            class="appShellMenuIconSlot appShellMenuIconSlot--colorful"
+            v-html="icons.palette"
+          />
+          <span class="appShellMenuLabel">配色</span>
+          <span class="appShellMenuShortcut">{{ colorSchemeShortcutLabel }}</span>
+        </button>
+        <button
+          v-if="standalone"
+          type="button"
+          class="appShellMenuItem"
+          role="menuitem"
+          @click="onGoMain"
+        >
+          <span
+            class="appShellMenuIconSlot appShellMenuIconSlot--colorful"
+            v-html="icons.home"
+          />
+          <span class="appShellMenuLabel">主界面</span>
+          <span class="appShellMenuShortcut">{{ findBookShortcutLabel }}</span>
         </button>
         <div class="appShellMenuDivider" role="separator"></div>
         <button
@@ -1343,10 +1503,40 @@ function onGoMain() {
           type="button"
           class="appShellMenuItem"
           role="menuitem"
+          @click="onCheckForUpdates"
+        >
+          <span class="appShellMenuIconSlot" v-html="icons.update" />
+          <span class="appShellMenuLabel">检查更新</span>
+        </button>
+        <button
+          type="button"
+          class="appShellMenuItem"
+          role="menuitem"
           @click="onToggleDevTools"
         >
           <span class="appShellMenuIconSlot" v-html="icons.devTools" />
           <span class="appShellMenuLabel">开发者工具</span>
+        </button>
+        <button
+          type="button"
+          class="appShellMenuItem"
+          role="menuitem"
+          @click="onOpenGithub"
+        >
+          <span
+            class="appShellMenuIconSlot appShellMenuIconSlot--github"
+            v-html="icons.github"
+          />
+          <span class="appShellMenuLabel">GitHub</span>
+        </button>
+        <button
+          type="button"
+          class="appShellMenuItem"
+          role="menuitem"
+          @click="onOpenAbout"
+        >
+          <span class="appShellMenuIconSlot" v-html="icons.info" />
+          <span class="appShellMenuLabel">关于</span>
         </button>
         <button
           type="button"
@@ -1553,6 +1743,7 @@ function onGoMain() {
       :initial-chapter-index="readerInitialChapterIndex"
       :toc-loading="readerTocLoading"
       @open-settings="onOpenSettingsFromReader"
+      @open-color-scheme="onOpenColorSchemeFromReader"
       @open-book-detail="onOpenBookDetailFromReader"
       @chapter-cache-cleared="onChapterCacheCleared"
       @toc-refreshed="onReaderTocRefreshed"
@@ -1566,7 +1757,29 @@ function onGoMain() {
       @chapter-cache-cleared="onChapterCacheCleared"
     />
 
+    <ColorSchemePanel
+      v-model="showColorSchemePanel"
+      :current-theme="colorSchemeTheme"
+      :reader-surface-light="colorSchemeSurfaceLight"
+      :reader-surface-dark="colorSchemeSurfaceDark"
+      :reader-palette-color-enabled-light="colorSchemeColorEnabledLight"
+      :reader-palette-color-enabled-dark="colorSchemeColorEnabledDark"
+      :monaco-font-family="colorSchemeFontFamily"
+      :visible-tabs="['reader']"
+      @apply-reader-palettes="applyReaderPalettes"
+    />
+
+    <ShortcutPanel
+      v-model="showShortcutPanel"
+      panel-context="findBook"
+      :shortcut-bindings="shortcutBindings"
+      :default-shortcut-bindings="defaultShortcutBindings"
+      @apply="applyShortcutBindings"
+    />
+
     <DisclaimerPanel v-model="showDisclaimerPanel" />
+    <AboutPanel v-model="showAboutPanel" />
+    <AppUpdateFlow ref="appUpdateFlowRef" />
 
     <BookSourcePanel
       v-model="showBookSourcePanel"

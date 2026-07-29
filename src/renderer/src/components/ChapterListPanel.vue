@@ -44,6 +44,7 @@ const moreMenu = useAnchoredAppShellMenu({
   anchor: moreAnchorRef,
   placement: "below-end",
   widthPx: CHAPTERS_HEADER_MORE_MENU_W,
+  gap: 6,
 });
 const {
   open: moreOpen,
@@ -60,6 +61,7 @@ function bindMorePanel(el: HTMLElement | null) {
 
 defineExpose({
   openMoreMenu: toggleMoreMenu,
+  moreOpen,
 });
 
 const copyTocDisabled = computed(
@@ -164,6 +166,7 @@ function onBindListRef(value: Element | ComponentPublicInstance | null) {
       :left="moreLeft"
       :top="moreTop"
       :width="CHAPTERS_HEADER_MORE_MENU_W"
+      caret="end"
       :on-panel-mount="bindMorePanel"
       aria-label="章节更多"
     >

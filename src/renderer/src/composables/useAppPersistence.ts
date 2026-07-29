@@ -363,24 +363,19 @@ export function useAppPersistence(deps: {
       timedScroll: deps.timedScrollSettings.value,
       pomodoro: deps.pomodoroSettings.value,
       shortcutBindings: deps.shortcutBindings.value,
-      readerPaletteOverridesLight:
-        Object.keys(deps.readerPaletteOverridesLight.value).length > 0
-          ? deps.readerPaletteOverridesLight.value
-          : undefined,
-      readerPaletteOverridesDark:
-        Object.keys(deps.readerPaletteOverridesDark.value).length > 0
-          ? deps.readerPaletteOverridesDark.value
-          : undefined,
-      readerPaletteColorEnabledOverridesLight:
-        Object.keys(deps.readerPaletteColorEnabledOverridesLight.value)
-          .length > 0
-          ? deps.readerPaletteColorEnabledOverridesLight.value
-          : undefined,
-      readerPaletteColorEnabledOverridesDark:
-        Object.keys(deps.readerPaletteColorEnabledOverridesDark.value)
-          .length > 0
-          ? deps.readerPaletteColorEnabledOverridesDark.value
-          : undefined,
+      // 空对象也要写入：合并落盘时若用 undefined 会跳过，磁盘上旧覆盖无法清除（恢复默认失效）
+      readerPaletteOverridesLight: {
+        ...deps.readerPaletteOverridesLight.value,
+      },
+      readerPaletteOverridesDark: {
+        ...deps.readerPaletteOverridesDark.value,
+      },
+      readerPaletteColorEnabledOverridesLight: {
+        ...deps.readerPaletteColorEnabledOverridesLight.value,
+      },
+      readerPaletteColorEnabledOverridesDark: {
+        ...deps.readerPaletteColorEnabledOverridesDark.value,
+      },
       highlightColorsLight: highlightColorsPersistPayload(
         deps.highlightColorsLight.value,
         DEFAULT_HIGHLIGHT_COLORS_LIGHT,

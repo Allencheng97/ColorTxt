@@ -13,6 +13,9 @@ import {
   parseReaderPaletteColorEnabledOverrides,
   parseReaderPaletteOverrides,
   resolveEffectiveReaderPalette,
+  overridesFromColorEnabled,
+  overridesFromFullPalette,
+  type ReaderSurfaceColorEnabled,
   type ReaderSurfacePalette,
 } from "../../constants/appUi";
 import {
@@ -39,6 +42,7 @@ import {
 import type { HighlightWordsByIndex } from "../../stores/fileMetaStore";
 import { normalizeHighlightWordsByIndex } from "../../stores/fileMetaStore";
 import { loadPersistedSettingsData } from "../../stores/cacheStore";
+import { patchPersistedMainSettings } from "../services/findBookSettingsStore";
 import {
   cloneVoiceReadProfiles,
   migrateVoiceReadFromPersisted,
@@ -52,7 +56,9 @@ function loadMainSettingsData() {
   return loadPersistedSettingsData(localStorage, persistKey)?.data ?? {};
 }
 
-export function useFindBookReaderSettings() {
+let store: ReturnType<typeof createFindBookReaderSettingsStore> | null = null;
+
+function createFindBookReaderSettingsStore() {
   const fb = useFindBookSettings();
   const mainData = loadMainSettingsData();
 
@@ -301,6 +307,38 @@ export function useFindBookReaderSettings() {
     // 阅读/编辑/语音与主窗口一样：各窗内存独立，仅启动时从 LS 加载
   }
 
+  function applyReaderPalettes(payload: {
+    light: ReaderSurfacePalette;
+    dark: ReaderSurfacePalette;
+    colorEnabledLight: ReaderSurfaceColorEnabled;
+    colorEnabledDark: ReaderSurfaceColorEnabled;
+  }) {
+    const lightOverrides = overridesFromFullPalette(
+      payload.light,
+      defaultReaderPaletteLight,
+    );
+    const darkOverrides = overridesFromFullPalette(
+      payload.dark,
+      defaultReaderPaletteDark,
+    );
+    const colorEnabledLightOverrides = overridesFromColorEnabled(
+      payload.colorEnabledLight,
+    );
+    const colorEnabledDarkOverrides = overridesFromColorEnabled(
+      payload.colorEnabledDark,
+    );
+    readerPaletteOverridesLight.value = lightOverrides;
+    readerPaletteOverridesDark.value = darkOverrides;
+    readerPaletteColorEnabledOverridesLight.value = colorEnabledLightOverrides;
+    readerPaletteColorEnabledOverridesDark.value = colorEnabledDarkOverrides;
+    patchPersistedMainSettings({
+      readerPaletteOverridesLight: lightOverrides,
+      readerPaletteOverridesDark: darkOverrides,
+      readerPaletteColorEnabledOverridesLight: colorEnabledLightOverrides,
+      readerPaletteColorEnabledOverridesDark: colorEnabledDarkOverrides,
+    });
+  }
+
   return {
     currentTheme,
     sidebarWidth: fb.sidebarWidth,
@@ -329,6 +367,10 @@ export function useFindBookReaderSettings() {
     chapterMinCharCount,
     timedScrollSettings: fb.timedScrollSettings,
     aiFeaturesEnabled,
+    readerSurfaceLight,
+    readerSurfaceDark,
+    readerPaletteColorEnabledLight,
+    readerPaletteColorEnabledDark,
     effectiveReaderSurfaceLight,
     effectiveReaderSurfaceDark,
     highlightColorsForReader,
@@ -348,9 +390,19 @@ export function useFindBookReaderSettings() {
     canIncreaseLineHeight,
     canDecreaseLineHeight,
     persistReaderUiPrefs: fb.persistReaderUiPrefs,
+    applyReaderPalettes,
     syncThemeFromMain,
     syncPaletteFromMain,
     syncVoiceReadFromMain,
     syncSharedSettingsFromMain,
   };
+}
+
+export function useFindBookReaderSettings() {
+  if (!store) store = createFindBookReaderSettingsStore();
+  return store;
+}
+
+export function resetFindBookReaderSettingsStoreForTests() {
+  store = null;
 }

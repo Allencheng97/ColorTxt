@@ -112,6 +112,7 @@ const modelValue = defineModel<boolean>({ default: false });
 
 const emit = defineEmits<{
   openSettings: [];
+  openColorScheme: [];
   openBookDetail: [];
   chapterCacheCleared: [];
   /** 重新获取目录后同步父级 detail/chapters */
@@ -144,6 +145,7 @@ const topMoreMenu = useAnchoredAppShellMenu({
   anchor: topMoreBtnRef,
   placement: "below-end",
   widthPx: 180,
+  gap: 6,
 });
 const {
   open: topMoreOpen,
@@ -934,6 +936,15 @@ const isMacPlatform = /mac|iphone|ipad|ipod/i.test(navigator.platform || "");
 const settingsShortcutLabel = computed(() =>
   acceleratorToDisplayText(shortcutBindings.value.openSettings, isMacPlatform),
 );
+const colorSchemeShortcutLabel = computed(() =>
+  acceleratorToDisplayText(
+    shortcutBindings.value.openColorScheme,
+    isMacPlatform,
+  ),
+);
+const findShortcutLabel = computed(() =>
+  acceleratorToDisplayText(shortcutBindings.value.toggleFind, isMacPlatform),
+);
 
 watch(
   () => [modelValue.value, props.detail.name] as const,
@@ -1369,6 +1380,11 @@ function buildShelfItem(): SearchBookItem {
   };
 }
 
+function onToggleFindFromToolbar() {
+  if (isVoiceReadBlocksFind.value) return;
+  readerRef.value?.toggleFindWidget?.();
+}
+
 function onToggleBookshelf() {
   const item = buildShelfItem();
   const added = toggleBookshelf(item, {
@@ -1473,7 +1489,14 @@ watch(
 );
 
 watch(
-  [readerFontSize, readerLineHeightMultiple, monacoFontFamily],
+  [
+    readerFontSize,
+    readerLineHeightMultiple,
+    monacoFontFamily,
+    effectiveReaderSurfaceLight,
+    effectiveReaderSurfaceDark,
+    currentTheme,
+  ],
   () => {
     if (!modelValue.value) return;
     applyReaderAppearance();
@@ -1746,6 +1769,7 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
           v-model:open="topMoreOpen"
           :left="topMoreLeft"
           :top="topMoreTop"
+          caret="end"
           :on-panel-mount="bindTopMorePanel"
         >
           <button
@@ -1803,6 +1827,8 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
           :can-timed-scroll="canStartTimedScroll"
           :voice-read-header-locked="isVoiceReadScrollLocked"
           :settings-shortcut-label="settingsShortcutLabel"
+          :color-scheme-shortcut-label="colorSchemeShortcutLabel"
+          :find-shortcut-label="findShortcutLabel"
           :reader-edit-mode="readerEditMode"
           :can-enter-reader-edit-mode="canEnterReaderEditMode"
           :text-replace-active="textReplaceActive"
@@ -1830,6 +1856,8 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
           @voice-read-toggle="voiceRead.toggleVoiceReadToolbar"
           @timed-scroll-toggle="timedScroll.toggleTimedScroll"
           @open-settings="emit('openSettings')"
+          @open-color-scheme="emit('openColorScheme')"
+          @toggle-find="onToggleFindFromToolbar"
           @toggle-bookshelf="onToggleBookshelf"
           @open-text-replace="onOpenTextReplace"
           @toggle-reader-edit="onToggleReaderEdit"

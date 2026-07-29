@@ -68,6 +68,7 @@ const moreMenu = useAnchoredAppShellMenu({
   anchor: anchorRef,
   placement: "below-end",
   widthPx: HIGHLIGHTS_HEADER_MORE_MENU_W,
+  gap: 6,
 });
 const {
   open: moreOpen,
@@ -84,6 +85,7 @@ function bindMorePanel(el: HTMLElement | null) {
 
 defineExpose({
   openMoreMenu: toggleMoreMenu,
+  moreOpen,
 });
 
 function onRemoveHighlightTermClick(
@@ -225,6 +227,7 @@ const emptyMessage = computed(() => {
       :left="moreLeft"
       :top="moreTop"
       :width="HIGHLIGHTS_HEADER_MORE_MENU_W"
+      caret="end"
       :on-panel-mount="bindMorePanel"
       aria-label="高亮词更多"
     >

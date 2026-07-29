@@ -136,6 +136,7 @@ const moreMenu = useAnchoredAppShellMenu({
   anchor: moreAnchorRef,
   placement: "below-end",
   widthPx: FILES_HEADER_MORE_MENU_W,
+  gap: 6,
 });
 const {
   open: moreOpen,
@@ -185,6 +186,7 @@ async function onRemoveMissingFiles() {
 
 defineExpose({
   openMoreMenu: toggleMoreMenu,
+  moreOpen,
 });
 
 function onBindListRef(value: Element | ComponentPublicInstance | null) {
@@ -1197,6 +1199,7 @@ onBeforeUnmount(() => {
       :left="moreLeft"
       :top="moreTop"
       :width="FILES_HEADER_MORE_MENU_W"
+      caret="end"
       :on-panel-mount="bindMorePanel"
       aria-label="文件更多"
     >

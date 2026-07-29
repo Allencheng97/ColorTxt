@@ -81,6 +81,7 @@ const headerMoreMenu = useAnchoredAppShellMenu({
   anchor: headerMoreBtnRef,
   placement: "below-end",
   widthPx: 200,
+  gap: 6,
 });
 const {
   open: headerMoreOpen,
@@ -112,6 +113,7 @@ const rowMenu = useAnchoredAppShellMenu({
   anchor: rowMenuAnchor,
   placement: "below-end",
   widthPx: 168,
+  gap: 6,
 });
 const {
   open: rowMenuOpen,
@@ -751,14 +753,19 @@ function onEditDone() {
         <div ref="headerMoreBtnRef" class="bsMoreWrap">
           <IconButton
             :icon-html="icons.more"
+            :active="headerMoreOpen"
+            :pressed="headerMoreOpen"
             title="更多"
             aria-label="更多"
+            aria-haspopup="menu"
+            :aria-expanded="headerMoreOpen"
             @click="toggleHeaderMoreMenu"
           />
           <AppShellMenuTeleport
             v-model:open="headerMoreOpen"
             :left="headerMoreLeft"
             :top="headerMoreTop"
+            caret="end"
             :on-panel-mount="bindHeaderMorePanel"
           >
             <button type="button" class="appShellMenuItem" @click="onNewSource">
@@ -856,6 +863,19 @@ function onEditDone() {
                   :icon-html="icons.more"
                   title="更多"
                   aria-label="更多"
+                  aria-haspopup="menu"
+                  :aria-expanded="
+                    rowMenuOpen &&
+                    rowMenuItem?.bookSourceUrl === item.bookSourceUrl
+                  "
+                  :active="
+                    rowMenuOpen &&
+                    rowMenuItem?.bookSourceUrl === item.bookSourceUrl
+                  "
+                  :pressed="
+                    rowMenuOpen &&
+                    rowMenuItem?.bookSourceUrl === item.bookSourceUrl
+                  "
                   @click="onRowMoreClick(item, $event)"
                 />
                 <span
@@ -875,6 +895,7 @@ function onEditDone() {
       v-model:open="rowMenuOpen"
       :left="rowMenuLeft"
       :top="rowMenuTop"
+      caret="end"
       :on-panel-mount="bindRowMenuPanel"
     >
       <button type="button" class="appShellMenuItem" @click="onRowMenuTop">
@@ -939,8 +960,12 @@ function onEditDone() {
             <div ref="footerMoreBtnRef" class="bsFooterMoreWrap">
               <IconButton
                 :icon-html="icons.more"
+                :active="footerMoreOpen"
+                :pressed="footerMoreOpen"
                 title="更多"
                 aria-label="更多"
+                aria-haspopup="menu"
+                :aria-expanded="footerMoreOpen"
                 @click="toggleFooterMoreMenu"
               />
               <AppShellMenuTeleport
