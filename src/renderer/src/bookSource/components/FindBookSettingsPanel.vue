@@ -9,6 +9,7 @@ import FindBookSettingsTabBar, {
 } from "./FindBookSettingsTabBar.vue";
 import FindBookSettingsDownloadPanel from "./FindBookSettingsDownloadPanel.vue";
 import FindBookSettingsProxyPanel from "./FindBookSettingsProxyPanel.vue";
+import SettingsWebDavPanel from "../../components/SettingsWebDavPanel.vue";
 import {
   clampFindBookReaderLineHeight,
   defaultTimedScrollIntervalMs,
@@ -124,6 +125,11 @@ const draftProxyHost = ref(DEFAULT_FIND_BOOK_PROXY_SETTINGS.host);
 const draftProxyPort = ref(DEFAULT_FIND_BOOK_PROXY_SETTINGS.port);
 const draftProxyUsername = ref(DEFAULT_FIND_BOOK_PROXY_SETTINGS.username);
 const draftProxyPassword = ref(DEFAULT_FIND_BOOK_PROXY_SETTINGS.password);
+const draftWebDavEnabled = ref(false);
+const draftWebDavUrl = ref("");
+const draftWebDavUsername = ref("");
+const draftWebDavPassword = ref("");
+const draftWebDavRemoteDir = ref("ColorTxt");
 const draftFontSize = ref(defaultReaderFontSize);
 const draftLineHeightMultiple = ref(defaultReaderLineHeightMultiple);
 const draftMonacoSmoothScrolling = ref(defaultMonacoSmoothScrolling);
@@ -163,6 +169,28 @@ function syncFindBookOnlyDraftFromStore() {
   draftProxyPort.value = fb.proxy.value.port;
   draftProxyUsername.value = fb.proxy.value.username;
   draftProxyPassword.value = fb.proxy.value.password;
+}
+
+function syncWebDavDraftFromMainSettings() {
+  const main = loadMainSettingsData();
+  draftWebDavEnabled.value = main.webDavEnabled === true;
+  draftWebDavUrl.value =
+    typeof main.webDavUrl === "string" ? main.webDavUrl : "";
+  draftWebDavUsername.value =
+    typeof main.webDavUsername === "string" ? main.webDavUsername : "";
+  draftWebDavRemoteDir.value =
+    typeof main.webDavRemoteDir === "string" && main.webDavRemoteDir.trim()
+      ? main.webDavRemoteDir.trim()
+      : "ColorTxt";
+}
+
+async function loadWebDavPasswordDraft() {
+  try {
+    const r = await window.colorTxt.secrets.getWebDavPassword();
+    draftWebDavPassword.value = r.password ?? "";
+  } catch {
+    draftWebDavPassword.value = "";
+  }
 }
 
 function syncSharedReaderDraftFromStore() {
@@ -217,6 +245,8 @@ async function syncAllDraftsFromStores() {
   // 阅读/编辑/语音均用本窗内存（与多主窗口一致）
   syncFindBookOnlyDraftFromStore();
   syncSharedReaderDraftFromStore();
+  syncWebDavDraftFromMainSettings();
+  await loadWebDavPasswordDraft();
   await syncVoiceDraftFromStore();
   await nextTick();
   voiceReadPanelRef.value?.initVoiceReadProfiles?.();
@@ -237,6 +267,14 @@ function resetProxyDraft() {
   draftProxyPort.value = DEFAULT_FIND_BOOK_PROXY_SETTINGS.port;
   draftProxyUsername.value = DEFAULT_FIND_BOOK_PROXY_SETTINGS.username;
   draftProxyPassword.value = DEFAULT_FIND_BOOK_PROXY_SETTINGS.password;
+}
+
+function resetWebDavDraft() {
+  draftWebDavEnabled.value = false;
+  draftWebDavUrl.value = "";
+  draftWebDavUsername.value = "";
+  draftWebDavPassword.value = "";
+  draftWebDavRemoteDir.value = "ColorTxt";
 }
 
 function resetReadingDraft() {
@@ -272,6 +310,7 @@ function onResetCurrentTab() {
   if (activeTab.value === "download") resetDownloadDraft();
   else if (activeTab.value === "edit") resetEditDraft();
   else if (activeTab.value === "proxy") resetProxyDraft();
+  else if (activeTab.value === "webDav") resetWebDavDraft();
   else if (activeTab.value === "voiceRead") resetVoiceReadDraft();
   else resetReadingDraft();
 }
@@ -425,6 +464,22 @@ async function onConfirm() {
 
   fb.persistAll();
   fb.persistReaderUiPrefs();
+
+  try {
+    await window.colorTxt.secrets.setWebDavPassword(draftWebDavPassword.value);
+  } catch (e) {
+    await appAlert(
+      e instanceof Error ? e.message : "保存 WebDAV 密码失败",
+    );
+    return;
+  }
+  patchPersistedMainSettings({
+    webDavEnabled: draftWebDavEnabled.value,
+    webDavUrl: draftWebDavUrl.value.trim(),
+    webDavUsername: draftWebDavUsername.value.trim(),
+    webDavRemoteDir: draftWebDavRemoteDir.value.trim() || "ColorTxt",
+  });
+
   await persistVoiceDraftToMain();
 
   modelValue.value = false;
@@ -460,6 +515,9 @@ watch(
 watch(activeTab, (tab, prev) => {
   if (prev === "voiceRead" && tab !== "voiceRead") {
     voiceReadPanelRef.value?.cancelPreview?.();
+  }
+  if (tab === "webDav") {
+    void loadWebDavPasswordDraft();
   }
 });
 
@@ -551,6 +609,16 @@ watch(draftFontSize, (size) => {
               v-model:draft-proxy-username="draftProxyUsername"
               v-model:draft-proxy-password="draftProxyPassword"
             />
+
+            <SettingsWebDavPanel
+              v-show="activeTab === 'webDav'"
+              context="findBook"
+              v-model:draft-web-dav-enabled="draftWebDavEnabled"
+              v-model:draft-web-dav-url="draftWebDavUrl"
+              v-model:draft-web-dav-username="draftWebDavUsername"
+              v-model:draft-web-dav-password="draftWebDavPassword"
+              v-model:draft-web-dav-remote-dir="draftWebDavRemoteDir"
+            />
           </div>
         </div>
       </div>
@@ -597,6 +665,7 @@ watch(draftFontSize, (size) => {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
+  min-width: 0;
   min-height: 0;
 }
 

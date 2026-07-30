@@ -26,6 +26,7 @@ import AppDialogHost from "./components/AppDialogHost.vue";
 import AppCaptchaHost from "./components/AppCaptchaHost.vue";
 import AppToastHost from "./components/AppToastHost.vue";
 import AppOverlays from "./components/AppOverlays.vue";
+import WebDavSyncPanel from "./components/WebDavSyncPanel.vue";
 import FullscreenSystemClock from "./components/FullscreenSystemClock.vue";
 import PomodoroBreakOverlay from "./components/PomodoroBreakOverlay.vue";
 import type { SettingsApplyPayload } from "./components/SettingsPanel.vue";
@@ -192,6 +193,8 @@ import {
 } from "./constants/lineationColors";
 import { formatCharCount, formatFileSize } from "./utils/format";
 import { resolveDefaultUnpackedBooksDirSync } from "./utils/defaultCacheDirs";
+import { joinFs } from "./ebook/pathUtils";
+import { buildWebDavAuth } from "./utils/webDavAuth";
 import { READER_EDITOR_DEFAULT_FONT_FAMILY } from "./monaco/readerEditorOptions";
 import {
   createDefaultShortcutBindings,
@@ -307,11 +310,18 @@ const showAboutPanel = ref(false);
 const showShortcutPanel = ref(false);
 const showSettingsPanel = ref(false);
 const showColorSchemePanel = ref(false);
+const showWebDavPanel = ref(false);
 const appOverlaysRef = ref<InstanceType<typeof AppOverlays> | null>(null);
 watch(
-  () => [showSettingsPanel.value, showColorSchemePanel.value] as const,
-  ([settingsOpen, colorOpen]) => {
-    suppressFullscreenSidebarHover.value = settingsOpen || colorOpen;
+  () =>
+    [
+      showSettingsPanel.value,
+      showColorSchemePanel.value,
+      showWebDavPanel.value,
+    ] as const,
+  ([settingsOpen, colorOpen, webDavOpen]) => {
+    suppressFullscreenSidebarHover.value =
+      settingsOpen || colorOpen || webDavOpen;
   },
   { immediate: true },
 );
@@ -333,8 +343,8 @@ function refreshReplaceRulesCache() {
   cachedReplaceRules.value = listReplaceRulesLocal("app");
 }
 
-function onReplaceRulesChanged() {
-  refreshReplaceRulesCache();
+/** 按当前展示设置（替换/转换/压缩空行/缩进等）从物理行重跑管线，并尽量保持视口 */
+function reformatReaderDisplayPreservingViewport() {
   if (!currentFile.value || readerEditMode.value || loading.value) return;
   const anchor =
     captureViewportRestoreAnchor() ?? {
@@ -350,10 +360,44 @@ function onReplaceRulesChanged() {
   });
 }
 
+function onReplaceRulesChanged() {
+  refreshReplaceRulesCache();
+  reformatReaderDisplayPreservingViewport();
+}
+
 const currentFile = ref<string | null>(null);
 const loading = ref(false);
 /** 打开文件时主进程流式读取的字节进度（0–100），无总大小时为 null */
 const loadingProgressPercent = ref<number | null>(null);
+/** 底栏路径旁：WebDAV 书包上传/同步进度 */
+const webDavBookPackProgress = ref<{
+  kind: "upload" | "sync";
+  percent: number;
+} | null>(null);
+let webDavBookPackProgressRequestId: string | null = null;
+let webDavBookPackProgressUnsub: (() => void) | null = null;
+
+function beginWebDavBookPackProgress(kind: "upload" | "sync"): string {
+  const requestId = `webdav-bp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  webDavBookPackProgressRequestId = requestId;
+  webDavBookPackProgress.value = { kind, percent: 0 };
+  webDavBookPackProgressUnsub?.();
+  webDavBookPackProgressUnsub =
+    window.colorTxt?.webdav?.onTransferProgress((p) => {
+      if (p.requestId !== webDavBookPackProgressRequestId) return;
+      const cur = webDavBookPackProgress.value;
+      if (!cur) return;
+      webDavBookPackProgress.value = { ...cur, percent: p.percent };
+    }) ?? null;
+  return requestId;
+}
+
+function endWebDavBookPackProgress() {
+  webDavBookPackProgressUnsub?.();
+  webDavBookPackProgressUnsub = null;
+  webDavBookPackProgressRequestId = null;
+  webDavBookPackProgress.value = null;
+}
 /** 递归扫描目录中的 .txt 时：蒙版 + 当前处理的相对路径 */
 const dirListScanning = ref(false);
 const dirListCurrentName = ref("");
@@ -428,6 +472,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener(appReplaceRulesChangedEvent, onReplaceRulesChanged);
+  endWebDavBookPackProgress();
 });
 
 watch(showSettingsPanel, (open, wasOpen) => {
@@ -581,6 +626,14 @@ const ebookConvertOutputDir = ref(
 const bookPackUnpackDir = ref(resolveDefaultUnpackedBooksDirSync());
 /** 彩读书包默认密码；空串表示导出不加密 */
 const bookPackPassword = ref("");
+/** 是否启用 WebDAV 同步入口 */
+const webDavEnabled = ref(false);
+/** WebDAV 服务地址 */
+const webDavUrl = ref("");
+/** WebDAV 用户名 */
+const webDavUsername = ref("");
+/** WebDAV 应用根目录名（默认 ColorTxt） */
+const webDavRemoteDir = ref("ColorTxt");
 /** 角色立绘缓存根目录（绝对路径）；出厂默认 userData/CharacterPortrait */
 const characterPortraitCacheDir = ref(
   (() => {
@@ -1010,6 +1063,10 @@ const persistence = useAppPersistence({
   ebookConvertOutputDir,
   bookPackUnpackDir,
   bookPackPassword,
+  webDavEnabled,
+  webDavUrl,
+  webDavUsername,
+  webDavRemoteDir,
   characterPortraitCacheDir,
   characterCardTextureEffect,
   fileCategory,
@@ -1046,6 +1103,7 @@ const {
   applyRecentFilesHistoryLimitFromSettings,
   clearPersistedSession,
   metaProgressByPathKey,
+  loadPersistedSettings,
 } = persistence;
 
 watch(fileListEditing, (editing, wasEditing) => {
@@ -2375,6 +2433,205 @@ async function exportCurrentReaderBookPack(includeReadingProgress: boolean) {
   }
 }
 
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  const chunk = 0x8000;
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += chunk) {
+    const sub = bytes.subarray(i, Math.min(i + chunk, bytes.length));
+    binary += String.fromCharCode(...sub);
+  }
+  return btoa(binary);
+}
+
+async function uploadCurrentReaderBookPackToWebDav() {
+  if (webDavBookPackProgress.value) return;
+  const sessionPath = currentFile.value?.trim();
+  const physicalPath =
+    physicalReaderPath.value?.trim() || sessionPath || "";
+  if (!sessionPath || !physicalPath) {
+    await appAlert("请先打开文件");
+    return;
+  }
+  const auth = buildWebDavAuth({
+    webDavEnabled: webDavEnabled.value,
+    webDavUrl: webDavUrl.value,
+    webDavUsername: webDavUsername.value,
+    webDavRemoteDir: webDavRemoteDir.value,
+  });
+  if (!auth || !window.colorTxt?.webdav) {
+    appToast("请先在设置中配置 WebDAV", { kind: "warning" });
+    return;
+  }
+  const requestId = beginWebDavBookPackProgress("upload");
+  const {
+    buildReaderBookPackDefaultName,
+    buildReaderBookPackZip,
+  } = await import("./utils/readerBookPack");
+  let viewportTopPhysicalLine: number | undefined;
+  const top = readerRef.value?.getViewportTopLine?.();
+  if (typeof top === "number" && Number.isFinite(top)) {
+    viewportTopPhysicalLine = readerEditMode.value
+      ? Math.max(1, Math.floor(top))
+      : stream.viewportDisplayLineToPhysicalLine(top);
+  }
+  try {
+    const zipBuffer = await buildReaderBookPackZip({
+      physicalContentPath: physicalPath,
+      sessionFilePath: sessionPath,
+      meta: findFileMetaRecord(fileMetaRecords.value, sessionPath),
+      portraitCacheDir: characterPortraitCacheDir.value,
+      includeReadingProgress: true,
+      viewportTopPhysicalLine,
+      password: bookPackPassword.value,
+    });
+    const encrypted = Boolean(bookPackPassword.value.trim());
+    const name = buildReaderBookPackDefaultName(
+      fileNameKey(sessionPath),
+      encrypted,
+    );
+    const tempRoot = await window.colorTxt.getPath("temp");
+    if (!tempRoot) {
+      await appAlert("无法获取临时目录");
+      return;
+    }
+    const tempDir = joinFs(tempRoot, "colortxt-webdav-upload");
+    await window.colorTxt.mkdir(tempDir);
+    const tempPath = joinFs(tempDir, name);
+    await window.colorTxt.writeBinaryFile(
+      tempPath,
+      arrayBufferToBase64(zipBuffer),
+    );
+    const ensure = await window.colorTxt.webdav.ensureLayout(auth);
+    if (!ensure.ok) {
+      appToast(ensure.error, { kind: "danger" });
+      return;
+    }
+    const put = await window.colorTxt.webdav.putFile(
+      auth,
+      `Books/${name}`,
+      tempPath,
+      "application/octet-stream",
+      requestId,
+    );
+    try {
+      await window.colorTxt.removePath(tempPath);
+    } catch {
+      /* ignore */
+    }
+    if (!put.ok) {
+      appToast(put.error, { kind: "danger" });
+      return;
+    }
+    appToast(`已上传书包：${name}`, { kind: "success" });
+  } catch (e) {
+    await appAlert(e instanceof Error ? e.message : String(e));
+  } finally {
+    endWebDavBookPackProgress();
+  }
+}
+
+async function updateCurrentReaderBookPackFromWebDav() {
+  if (webDavBookPackProgress.value) return;
+  const sessionPath = currentFile.value?.trim();
+  if (!sessionPath) {
+    await appAlert("请先打开文件");
+    return;
+  }
+  const auth = buildWebDavAuth({
+    webDavEnabled: webDavEnabled.value,
+    webDavUrl: webDavUrl.value,
+    webDavUsername: webDavUsername.value,
+    webDavRemoteDir: webDavRemoteDir.value,
+  });
+  if (!auth || !window.colorTxt?.webdav) {
+    appToast("请先在设置中配置 WebDAV", { kind: "warning" });
+    return;
+  }
+  const requestId = beginWebDavBookPackProgress("sync");
+  const { buildReaderBookPackDefaultName } = await import(
+    "./utils/readerBookPack"
+  );
+  const encrypted = Boolean(bookPackPassword.value.trim());
+  const preferred = buildReaderBookPackDefaultName(
+    fileNameKey(sessionPath),
+    encrypted,
+  );
+  const fallback = buildReaderBookPackDefaultName(
+    fileNameKey(sessionPath),
+    !encrypted,
+  );
+  const names = preferred === fallback ? [preferred] : [preferred, fallback];
+  let downloadedPath: string | null = null;
+  let lastError = "";
+  try {
+    for (const name of names) {
+      const r = await window.colorTxt.webdav.getToFile(
+        auth,
+        `Books/${name}`,
+        name,
+        requestId,
+      );
+      if (r.ok) {
+        downloadedPath = r.filePath;
+        break;
+      }
+      lastError = r.error;
+    }
+    if (!downloadedPath) {
+      appToast(lastError || "远端未找到对应书包", { kind: "danger" });
+      return;
+    }
+    endWebDavBookPackProgress();
+    const opened = await openFilePath(downloadedPath);
+    if (opened) {
+      appToast("已从 WebDAV 同步书包", { kind: "success" });
+    }
+  } catch (e) {
+    await appAlert(e instanceof Error ? e.message : String(e));
+  } finally {
+    endWebDavBookPackProgress();
+  }
+}
+
+async function onWebDavImportPackPaths(
+  paths: string[],
+  opts?: {
+    silent?: boolean;
+    passwordBook?: string[];
+    skipOnDecryptFail?: boolean;
+  },
+): Promise<{
+  imported: Array<{ packPath: string; openPath: string }>;
+  okCount: number;
+  skipCount: number;
+  failCount: number;
+  passwordBook: string[];
+  skipOnDecryptFail: boolean;
+}> {
+  if (!paths.length) {
+    return {
+      imported: [],
+      okCount: 0,
+      skipCount: 0,
+      failCount: 0,
+      passwordBook: opts?.passwordBook ? [...opts.passwordBook] : [],
+      skipOnDecryptFail: opts?.skipOnDecryptFail ?? false,
+    };
+  }
+  return await importPathsIntoFileList(paths, opts);
+}
+
+function onWebDavConfigDownloaded() {
+  loadPersistedSettings();
+  refreshReplaceRulesCache();
+  // loadPersistedSettings 只写 ref；字号/行高/字体等需推到 Monaco 才生效
+  applyReaderAppearanceFromSettings();
+  applyRecentFilesHistoryLimitFromSettings();
+  // 替换、转换、压缩空行、行首缩进、章节字数等可能已变，按物理行重跑展示
+  reformatReaderDisplayPreservingViewport();
+}
+
 function quitApp() {
   void (async () => {
     if (readerEditMode.value && readerEditorDirty.value) {
@@ -2382,6 +2639,19 @@ function quitApp() {
     }
     window.colorTxt.quitApp();
   })();
+}
+
+function applyReaderAppearanceFromSettings() {
+  applyReaderSurfaceToDocument(
+    currentTheme.value,
+    readerSurfaceLight.value,
+    readerSurfaceDark.value,
+  );
+  readerRef.value?.setTheme(currentTheme.value);
+  readerRef.value?.setFontSize(readerFontSize.value);
+  readerRef.value?.setLineHeightMultiple(readerLineHeightMultiple.value);
+  readerRef.value?.setFontFamily(monacoFontFamily.value);
+  readerRef.value?.setWrappingStrategyAdvanced(monacoAdvancedWrapping.value);
 }
 
 function refreshReaderSurfaceAfterPaletteChange() {
@@ -2580,6 +2850,11 @@ async function applySettings(payload: SettingsApplyPayload) {
   ebookConvertOutputDir.value = payload.ebookConvertOutputDir;
   bookPackUnpackDir.value = payload.bookPackUnpackDir.trim();
   bookPackPassword.value = payload.bookPackPassword ?? "";
+  webDavEnabled.value = payload.webDavEnabled === true;
+  webDavUrl.value = payload.webDavUrl ?? "";
+  webDavUsername.value = payload.webDavUsername ?? "";
+  webDavRemoteDir.value =
+    (payload.webDavRemoteDir ?? "").trim() || "ColorTxt";
   const prevPortraitCache = characterPortraitCacheDir.value.trim();
   const nextPortraitCache = payload.characterPortraitCacheDir.trim();
   if (
@@ -3028,6 +3303,8 @@ useAppShellThemeWatch({
           @update:file-list-editing="fileListEditing = $event"
           @request-expand-panel="showSidebar = true"
           @request-collapse-panel="showSidebar = false"
+          :web-dav-enabled="webDavEnabled"
+          @open-web-dav="showWebDavPanel = true"
           @open-color-scheme="showColorSchemePanel = true"
         @open-find-book="openFindBookWindow"
           @open-settings="showSettingsPanel = true"
@@ -3228,6 +3505,8 @@ useAppShellThemeWatch({
         :path-menu-reload-enabled="footerPathMenuReloadEnabled"
         :path-menu-reconvert-enabled="footerPathMenuReconvertEnabled"
         :path-menu-close-enabled="footerPathMenuCloseEnabled"
+        :web-dav-menu-enabled="webDavEnabled"
+        :web-dav-book-pack-progress="webDavBookPackProgress"
         :edit-cursor-label="readerEditCursorFooterLabel"
         :pomodoro-enabled="pomodoroSettings.enabled"
         :pomodoro-phase="pomodoroPhase"
@@ -3239,6 +3518,8 @@ useAppShellThemeWatch({
         @path-reveal-in-folder="revealCurrentFileInFolder"
         @path-reload="reloadCurrentFileFromDisk"
         @path-reconvert="reconvertCurrentEbookFromDisk"
+        @path-upload-book-pack-web-dav="uploadCurrentReaderBookPackToWebDav"
+        @path-update-book-pack-web-dav="updateCurrentReaderBookPackFromWebDav"
         @path-export-book-pack="exportCurrentReaderBookPack(false)"
         @path-export-book-pack-with-progress="exportCurrentReaderBookPack(true)"
         @path-clear-reading-data="clearCurrentFileReadingData"
@@ -3268,6 +3549,19 @@ useAppShellThemeWatch({
       :token-usage-available="aiSmartFormatProgressTokenUsageAvailable"
       :token-price-per-million="aiSmartFormatProgressTokenPricePerMillion"
       @stop="stopAiSmartFormat()"
+    />
+
+    <WebDavSyncPanel
+      v-model="showWebDavPanel"
+      :web-dav="{
+        webDavEnabled,
+        webDavUrl,
+        webDavUsername,
+        webDavRemoteDir,
+      }"
+      :import-pack-paths="onWebDavImportPackPaths"
+      @open-file="(p) => void openFilePath(p)"
+      @config-downloaded="onWebDavConfigDownloaded"
     />
 
     <AppOverlays
@@ -3331,6 +3625,10 @@ useAppShellThemeWatch({
       :ebook-convert-output-dir="ebookConvertOutputDir"
       :book-pack-unpack-dir="bookPackUnpackDir"
       :book-pack-password="bookPackPassword"
+      :web-dav-enabled="webDavEnabled"
+      :web-dav-url="webDavUrl"
+      :web-dav-username="webDavUsername"
+      :web-dav-remote-dir="webDavRemoteDir"
       :character-portrait-cache-dir="characterPortraitCacheDir"
       :voice-read-settings="voiceReadSettings"
       :voice-read-profiles="voiceReadProfiles"

@@ -150,6 +150,8 @@ const props = withDefaults(
     voiceReadSettings?: VoiceReadSettings;
     /** 编辑态章节面板是否显示「刷新章节」（仅手动刷新场景） */
     showEditChapterRefreshButton?: boolean;
+    /** 设置已启用 WebDAV 时在活动栏显示同步入口 */
+    webDavEnabled?: boolean;
   }>(),
   {
     panelExpanded: true,
@@ -188,6 +190,7 @@ const props = withDefaults(
     aiAssistantConfigSyncNonce: 0,
     voiceReadSettings: () => ({ ...defaultVoiceReadSettings }),
     showEditChapterRefreshButton: false,
+    webDavEnabled: false,
   },
 );
 
@@ -255,6 +258,7 @@ const emit = defineEmits<{
   requestExpandPanel: [];
   requestCollapsePanel: [];
   openColorScheme: [];
+  openWebDav: [];
   openSettings: [];
   refreshChaptersFromReader: [];
   findHighlightTerm: [text: string];
@@ -766,6 +770,16 @@ defineExpose({
       </div>
       <div class="activityBarSpacer" aria-hidden="true" />
       <div class="activitySecondaryTabs">
+        <button
+          v-if="webDavEnabled"
+          type="button"
+          class="activityTabBtn"
+          title="WebDAV"
+          aria-label="WebDAV"
+          @click="emit('openWebDav')"
+        >
+          <span class="activityIcon" v-html="icons.webDav"></span>
+        </button>
         <button
           type="button"
           class="activityTabBtn color"

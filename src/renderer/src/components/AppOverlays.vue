@@ -90,6 +90,10 @@ const props = defineProps<{
   ebookConvertOutputDir: string;
   bookPackUnpackDir: string;
   bookPackPassword: string;
+  webDavEnabled: boolean;
+  webDavUrl: string;
+  webDavUsername: string;
+  webDavRemoteDir: string;
   characterPortraitCacheDir: string;
   aiSkillsEnabled: Record<string, boolean>;
   aiSkillOverrides: Record<string, AiSkillUserOverride>;
@@ -275,6 +279,10 @@ onBeforeUnmount(() => {
     :ebook-convert-output-dir="ebookConvertOutputDir"
     :book-pack-unpack-dir="bookPackUnpackDir"
     :book-pack-password="bookPackPassword"
+    :web-dav-enabled="webDavEnabled"
+    :web-dav-url="webDavUrl"
+    :web-dav-username="webDavUsername"
+    :web-dav-remote-dir="webDavRemoteDir"
     :character-portrait-cache-dir="characterPortraitCacheDir"
     :ai-skills-enabled="aiSkillsEnabled"
     :ai-skill-overrides="aiSkillOverrides"

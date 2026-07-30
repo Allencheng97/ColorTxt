@@ -22,7 +22,9 @@ import {
   newEmptyBookSource,
   useBookSourceApi,
 } from "../composables/useBookSource";
-import type { BookSourceListItem } from "@shared/bookSource/types";
+import type {
+  BookSourceListItem,
+} from "@shared/bookSource/types";
 import type { BookSourceCheckEvent } from "@shared/bookSource/ipc";
 import { appConfirm, appPrompt } from "../../services/appDialog";
 import { appToast } from "../../services/appToast";
@@ -280,6 +282,10 @@ async function refreshAndNotify() {
   await refresh();
   emit("sourcesChanged");
 }
+
+defineExpose({
+  refreshLibrary: refreshAndNotify,
+});
 
 function notifySourcesChanged() {
   emit("sourcesChanged");
@@ -672,7 +678,7 @@ async function onClipboardImport() {
   showImport.value = true;
 }
 
-function onImportDone() {
+async function onImportDone() {
   showImport.value = false;
   focusList();
   void refreshAndNotify();
@@ -947,10 +953,10 @@ function onEditDone() {
             </template>
           </AppCheckbox>
           <div class="bsFooterActions">
-            <button type="button" class="btn bsFooterBtn" size="large" @click="invertSelect">反选</button>
+            <button type="button" class="btn" size="large" @click="invertSelect">反选</button>
             <button
               type="button"
-              class="btn danger bsFooterBtn"
+              class="btn danger"
               size="large"
               :disabled="!selectedCount"
               @click="onDelete"
@@ -1326,10 +1332,6 @@ function onEditDone() {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-.bsFooterBtn {
-  justify-content: center;
-  line-height: 1;
 }
 .bsFooterMoreWrap {
   position: relative;

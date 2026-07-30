@@ -264,6 +264,14 @@ export function useAppPersistence(deps: {
   bookPackUnpackDir: Ref<string>;
   /** 彩读书包默认密码；空串表示不加密 */
   bookPackPassword: Ref<string>;
+  /** 是否启用 WebDAV 同步入口 */
+  webDavEnabled: Ref<boolean>;
+  /** WebDAV 服务地址 */
+  webDavUrl: Ref<string>;
+  /** WebDAV 用户名 */
+  webDavUsername: Ref<string>;
+  /** WebDAV 应用根目录名（默认 ColorTxt） */
+  webDavRemoteDir: Ref<string>;
   /** 角色立绘缓存根目录（绝对路径）；无键时默认 userData/CharacterPortrait */
   characterPortraitCacheDir: Ref<string>;
   /** 角色卡纹理/全息效果（全局） */
@@ -407,6 +415,10 @@ export function useAppPersistence(deps: {
       ebookConvertOutputDir: deps.ebookConvertOutputDir.value,
       bookPackUnpackDir: deps.bookPackUnpackDir.value.trim(),
       bookPackPassword: deps.bookPackPassword.value,
+      webDavEnabled: deps.webDavEnabled.value,
+      webDavUrl: deps.webDavUrl.value,
+      webDavUsername: deps.webDavUsername.value,
+      webDavRemoteDir: deps.webDavRemoteDir.value.trim() || "ColorTxt",
       characterPortraitCacheDir: deps.characterPortraitCacheDir.value.trim(),
       characterCardTextureEffect: deps.characterCardTextureEffect.value,
       fileCategory: deps.fileCategory.value,
@@ -1260,6 +1272,19 @@ export function useAppPersistence(deps: {
 
     if (typeof data.bookPackPassword === "string") {
       deps.bookPackPassword.value = data.bookPackPassword;
+    }
+
+    if (typeof data.webDavEnabled === "boolean") {
+      deps.webDavEnabled.value = data.webDavEnabled;
+    }
+    if (typeof data.webDavUrl === "string") {
+      deps.webDavUrl.value = data.webDavUrl;
+    }
+    if (typeof data.webDavUsername === "string") {
+      deps.webDavUsername.value = data.webDavUsername;
+    }
+    if (typeof data.webDavRemoteDir === "string") {
+      deps.webDavRemoteDir.value = data.webDavRemoteDir.trim() || "ColorTxt";
     }
 
     if (typeof data.characterPortraitCacheDir === "string") {

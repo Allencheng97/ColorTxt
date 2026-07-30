@@ -156,6 +156,14 @@ export type PersistedSettingsData = {
    * 空串表示导出不加密、导入明文 ZIP；非空时导出为 CTZE 加密包，导入需相同密码。
    */
   bookPackPassword?: string;
+  /** 是否启用 WebDAV 同步入口（默认 false） */
+  webDavEnabled?: boolean;
+  /** WebDAV 服务地址 */
+  webDavUrl?: string;
+  /** WebDAV 用户名 */
+  webDavUsername?: string;
+  /** WebDAV 应用根目录名（默认 ColorTxt）；密码存 secrets vault */
+  webDavRemoteDir?: string;
   /** 文件列表分类筛选：`__all__` | `__uncategorized__` | 分类名 */
   fileCategory?: string;
   /** 文件列表排序方式 */
@@ -474,6 +482,18 @@ export function loadPersistedSettingsData(
   }
   if (typeof obj.bookPackPassword === "string") {
     data.bookPackPassword = obj.bookPackPassword;
+  }
+  if (typeof obj.webDavEnabled === "boolean") {
+    data.webDavEnabled = obj.webDavEnabled;
+  }
+  if (typeof obj.webDavUrl === "string") {
+    data.webDavUrl = obj.webDavUrl;
+  }
+  if (typeof obj.webDavUsername === "string") {
+    data.webDavUsername = obj.webDavUsername;
+  }
+  if (typeof obj.webDavRemoteDir === "string") {
+    data.webDavRemoteDir = obj.webDavRemoteDir;
   }
   if (typeof obj.fileCategory === "string" && obj.fileCategory.trim()) {
     data.fileCategory = obj.fileCategory.trim();

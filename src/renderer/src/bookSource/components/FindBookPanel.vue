@@ -93,6 +93,15 @@ import {
   readPersistedAppShellTheme,
   type AppShellTheme,
 } from "../../utils/appShellThemeSync";
+import { buildWebDavAuth } from "../../utils/webDavAuth";
+import {
+  downloadFindBookBookshelf,
+  downloadFindBookBookSources,
+  downloadFindBookSettings,
+  uploadFindBookBookshelf,
+  uploadFindBookBookSources,
+  uploadFindBookSettings,
+} from "../../utils/webDavFindBookSync";
 import "../bookSourceToolbar.css";
 import "./findBookListShared.css";
 
@@ -131,7 +140,7 @@ function onBookshelfSortChange(mode: string) {
   saveBookshelfSortMode(next);
 }
 
-const { applyBooks, books: bookshelfBooks, applyCategoryCatalogEdit } =
+const { applyBooks, books: bookshelfBooks, applyCategoryCatalogEdit, refresh: refreshBookshelf } =
   useFindBookBookshelf();
 
 const bookshelfCategoryMenuCounts = computed(() => {
@@ -359,6 +368,9 @@ const searchInputRef = ref<HTMLInputElement | null>(null);
 const searchInputFocused = ref(false);
 const searchHistory = ref<string[]>(loadFindBookSearchHistory());
 const showBookSourcePanel = ref(false);
+const bookSourcePanelRef = ref<InstanceType<typeof BookSourcePanel> | null>(
+  null,
+);
 const showReplaceRulePanel = ref(false);
 const showBookDetail = ref(false);
 const showBookReader = ref(false);
@@ -386,11 +398,18 @@ const searchScope = ref<Pick<BookSourceListItem, "bookSourceUrl" | "bookSourceNa
 );
 const precisionSearch = ref(false);
 const moreBtnRef = ref<HTMLElement | null>(null);
+const webDavBtnRef = ref<HTMLElement | null>(null);
 const searchOptionsBtnRef = ref<HTMLElement | null>(null);
 const moreMenu = useAnchoredAppShellMenu({
   anchor: moreBtnRef,
   placement: "below-end",
   widthPx: 180,
+  gap: 6,
+});
+const webDavMenu = useAnchoredAppShellMenu({
+  anchor: webDavBtnRef,
+  placement: "below-center",
+  widthPx: 160,
   gap: 6,
 });
 const searchOptionsMenu = useAnchoredAppShellMenu({
@@ -408,8 +427,21 @@ const {
   panelRef: morePanelRef,
 } = moreMenu;
 
+const {
+  open: webDavMenuOpen,
+  left: webDavMenuLeft,
+  top: webDavMenuTop,
+  toggleMenu: toggleWebDavMenu,
+  closeMenu: closeWebDavMenu,
+  panelRef: webDavMenuPanelRef,
+} = webDavMenu;
+
 function bindMorePanel(el: HTMLElement | null) {
   morePanelRef.value = el;
+}
+
+function bindWebDavMenuPanel(el: HTMLElement | null) {
+  webDavMenuPanelRef.value = el;
 }
 
 const {
@@ -1035,11 +1067,18 @@ function onPrecisionSearchChange(value: boolean) {
 }
 
 const currentTheme = ref<AppShellTheme>(readPersistedAppShellTheme());
+const webDavEnabled = ref(false);
+const webDavBusy = ref(false);
 let offThemeSync: (() => void) | null = null;
 let offActivateTab: (() => void) | null = null;
 
 function syncThemeFromStorage() {
   currentTheme.value = readPersistedAppShellTheme();
+}
+
+function syncWebDavEnabledFromStorage() {
+  const loaded = loadPersistedSettingsData(localStorage, persistKey);
+  webDavEnabled.value = loaded?.data?.webDavEnabled === true;
 }
 
 function onToggleTheme() {
@@ -1053,14 +1092,196 @@ function onToggleTheme() {
   });
 }
 
+function refreshFindBookAfterWebDavDownload() {
+  refreshBookshelf();
+  bookshelfCategoryFilter.value = loadBookshelfCategoryFilter();
+  bookshelfCategoryCatalog.value = loadBookshelfCategoryCatalog();
+  bookshelfSortMode.value = loadBookshelfSortMode();
+  syncThemeFromStorage();
+  findBookSettings.hydrateSharedReaderFromMain();
+}
+
+function formatBookshelfSyncToast(
+  action: "upload" | "download",
+  stats: {
+    booksUploaded: number;
+    booksSkipped: number;
+    booksDeletedRemote: number;
+    booksDownloaded: number;
+    booksDownloadSkipped: number;
+  },
+): string {
+  if (action === "upload") {
+    if (stats.booksUploaded === 0 && stats.booksSkipped === 0) {
+      return "本地书架为空，仅同步了分类/排序";
+    }
+    if (stats.booksUploaded === 0 && stats.booksSkipped > 0) {
+      return `书架已是最新（跳过 ${stats.booksSkipped} 本）`;
+    }
+    return `已上传书架（+${stats.booksUploaded}，跳过 ${stats.booksSkipped}，远端删除 ${stats.booksDeletedRemote}）`;
+  }
+  return `已同步书架（+${stats.booksDownloaded}，跳过 ${stats.booksDownloadSkipped}）`;
+}
+
+function readWebDavAuthFromSettings() {
+  const loaded = loadPersistedSettingsData(localStorage, persistKey)?.data ?? {};
+  return buildWebDavAuth({
+    webDavEnabled: loaded.webDavEnabled === true,
+    webDavUrl: typeof loaded.webDavUrl === "string" ? loaded.webDavUrl : "",
+    webDavUsername:
+      typeof loaded.webDavUsername === "string" ? loaded.webDavUsername : "",
+    webDavRemoteDir:
+      typeof loaded.webDavRemoteDir === "string" && loaded.webDavRemoteDir.trim()
+        ? loaded.webDavRemoteDir.trim()
+        : "ColorTxt",
+  });
+}
+
+async function withWebDavBusy(
+  run: () => Promise<void>,
+): Promise<void> {
+  webDavBusy.value = true;
+  try {
+    await run();
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    appToast(msg || "WebDAV 操作失败", { kind: "danger" });
+  } finally {
+    webDavBusy.value = false;
+  }
+}
+
+async function onUploadFindBookBookshelfWebDav() {
+  closeWebDavMenu();
+  const auth = readWebDavAuthFromSettings();
+  if (!auth) {
+    appToast("请先配置 WebDAV", { kind: "warning" });
+    return;
+  }
+  await withWebDavBusy(async () => {
+    const r = await uploadFindBookBookshelf(auth);
+    if (!r.ok) {
+      appToast(r.error, { kind: "danger" });
+      return;
+    }
+    appToast(formatBookshelfSyncToast("upload", r.stats), {
+      kind: r.stats.booksUploaded > 0 ? "success" : "info",
+    });
+  });
+}
+
+async function onUpdateFindBookBookshelfWebDav() {
+  closeWebDavMenu();
+  const auth = readWebDavAuthFromSettings();
+  if (!auth) {
+    appToast("请先配置 WebDAV", { kind: "warning" });
+    return;
+  }
+  await withWebDavBusy(async () => {
+    const r = await downloadFindBookBookshelf(auth);
+    if (!r.ok) {
+      appToast(r.error, { kind: "danger" });
+      return;
+    }
+    refreshFindBookAfterWebDavDownload();
+    appToast(formatBookshelfSyncToast("download", r.stats), { kind: "success" });
+  });
+}
+
+async function onUploadFindBookBookSourcesWebDav() {
+  closeWebDavMenu();
+  const auth = readWebDavAuthFromSettings();
+  if (!auth) {
+    appToast("请先配置 WebDAV", { kind: "warning" });
+    return;
+  }
+  await withWebDavBusy(async () => {
+    const r = await uploadFindBookBookSources(auth);
+    if (!r.ok) {
+      appToast(r.error, { kind: r.error.includes("没有可上传") ? "warning" : "danger" });
+      return;
+    }
+    appToast(`已上传 ${r.stats.sourceCount} 个书源`, { kind: "success" });
+  });
+}
+
+async function onUpdateFindBookBookSourcesWebDav() {
+  closeWebDavMenu();
+  const auth = readWebDavAuthFromSettings();
+  if (!auth) {
+    appToast("请先配置 WebDAV", { kind: "warning" });
+    return;
+  }
+  await withWebDavBusy(async () => {
+    const r = await downloadFindBookBookSources(auth);
+    if (!r.ok) {
+      appToast(r.error, { kind: "danger" });
+      return;
+    }
+    await bookSourcePanelRef.value?.refreshLibrary?.();
+    void onBookSourcesChanged();
+    if (!r.stats.added && !r.stats.updated) {
+      appToast("没有需要新增或更新的书源", { kind: "info" });
+      return;
+    }
+    appToast(
+      `已同步书源（新增 ${r.stats.added}，更新 ${r.stats.updated}）`,
+      { kind: "success" },
+    );
+  });
+}
+
+async function onUploadFindBookSettingsWebDav() {
+  closeWebDavMenu();
+  const auth = readWebDavAuthFromSettings();
+  if (!auth) {
+    appToast("请先配置 WebDAV", { kind: "warning" });
+    return;
+  }
+  await withWebDavBusy(async () => {
+    const r = await uploadFindBookSettings(auth);
+    if (!r.ok) {
+      appToast(r.error, { kind: "danger" });
+      return;
+    }
+    appToast("已上传设置", { kind: "success" });
+  });
+}
+
+async function onUpdateFindBookSettingsWebDav() {
+  closeWebDavMenu();
+  const auth = readWebDavAuthFromSettings();
+  if (!auth) {
+    appToast("请先配置 WebDAV", { kind: "warning" });
+    return;
+  }
+  await withWebDavBusy(async () => {
+    const r = await downloadFindBookSettings(auth);
+    if (!r.ok) {
+      appToast(r.error, { kind: "danger" });
+      return;
+    }
+    refreshFindBookAfterWebDavDownload();
+    appToast("已同步设置", { kind: "success" });
+  });
+}
+
 onMounted(() => {
   if (props.standalone) {
     searchHistory.value = loadFindBookSearchHistory();
   }
   syncThemeFromStorage();
+  syncWebDavEnabledFromStorage();
   void refreshHasEnabledSearchSources();
-  offThemeSync = listenPersistedSettingsSync(syncThemeFromStorage);
+  offThemeSync = listenPersistedSettingsSync(() => {
+    syncThemeFromStorage();
+    syncWebDavEnabledFromStorage();
+  });
   window.addEventListener(persistedSettingsChangedEvent, syncThemeFromStorage);
+  window.addEventListener(
+    persistedSettingsChangedEvent,
+    syncWebDavEnabledFromStorage,
+  );
   window.addEventListener("storage", onBookshelfCategoryCatalogStorage);
   offActivateTab = window.colorTxt.onFindBookActivateTab((tab) => {
     if (tab === "bookshelf" || tab === "search" || tab === "discover") {
@@ -1077,6 +1298,10 @@ onBeforeUnmount(() => {
   window.removeEventListener(
     persistedSettingsChangedEvent,
     syncThemeFromStorage,
+  );
+  window.removeEventListener(
+    persistedSettingsChangedEvent,
+    syncWebDavEnabledFromStorage,
   );
   window.removeEventListener("storage", onBookshelfCategoryCatalogStorage);
 });
@@ -1177,6 +1402,19 @@ function onBack() {
           />
         </div>
         <div class="findBookHeaderSide findBookHeaderSide--end">
+          <div v-if="webDavEnabled" ref="webDavBtnRef" class="findBookHeaderWebDav">
+            <IconButton
+              :icon-html="icons.webDav"
+              :active="webDavMenuOpen"
+              :pressed="webDavMenuOpen"
+              :disabled="webDavBusy"
+              title="WebDAV"
+              aria-label="WebDAV"
+              aria-haspopup="menu"
+              :aria-expanded="webDavMenuOpen"
+              @click="toggleWebDavMenu"
+            />
+          </div>
           <IconButton
             :icon-html="currentTheme === 'vs' ? icons.light : icons.dark"
             :title="
@@ -1401,8 +1639,80 @@ function onBack() {
       </AppShellMenuTeleport>
 
       <AppShellMenuTeleport
+        v-model:open="webDavMenuOpen"
+        :width="120"
+        :left="webDavMenuLeft"
+        :top="webDavMenuTop"
+        caret="center"
+        :on-panel-mount="bindWebDavMenuPanel"
+      >
+        <button
+          type="button"
+          class="appShellMenuItem"
+          role="menuitem"
+          :disabled="webDavBusy"
+          @click="onUploadFindBookBookshelfWebDav"
+        >
+          <span class="appShellMenuIconSlot" v-html="icons.webDavUpload" />
+          <span class="appShellMenuLabel">上传书架</span>
+        </button>
+        <button
+          type="button"
+          class="appShellMenuItem"
+          role="menuitem"
+          :disabled="webDavBusy"
+          @click="onUpdateFindBookBookshelfWebDav"
+        >
+          <span class="appShellMenuIconSlot" v-html="icons.webDavDownload" />
+          <span class="appShellMenuLabel">同步书架</span>
+        </button>
+        <div class="appShellMenuDivider" role="separator" />
+        <button
+          type="button"
+          class="appShellMenuItem"
+          role="menuitem"
+          :disabled="webDavBusy"
+          @click="onUploadFindBookBookSourcesWebDav"
+        >
+          <span class="appShellMenuIconSlot" v-html="icons.webDavUpload" />
+          <span class="appShellMenuLabel">上传书源</span>
+        </button>
+        <button
+          type="button"
+          class="appShellMenuItem"
+          role="menuitem"
+          :disabled="webDavBusy"
+          @click="onUpdateFindBookBookSourcesWebDav"
+        >
+          <span class="appShellMenuIconSlot" v-html="icons.webDavDownload" />
+          <span class="appShellMenuLabel">同步书源</span>
+        </button>
+        <div class="appShellMenuDivider" role="separator" />
+        <button
+          type="button"
+          class="appShellMenuItem"
+          role="menuitem"
+          :disabled="webDavBusy"
+          @click="onUploadFindBookSettingsWebDav"
+        >
+          <span class="appShellMenuIconSlot" v-html="icons.webDavUpload" />
+          <span class="appShellMenuLabel">上传设置</span>
+        </button>
+        <button
+          type="button"
+          class="appShellMenuItem"
+          role="menuitem"
+          :disabled="webDavBusy"
+          @click="onUpdateFindBookSettingsWebDav"
+        >
+          <span class="appShellMenuIconSlot" v-html="icons.webDavDownload" />
+          <span class="appShellMenuLabel">同步设置</span>
+        </button>
+      </AppShellMenuTeleport>
+
+      <AppShellMenuTeleport
         v-model:open="moreOpen"
-        :width="180"
+        :width="200"
         :left="moreLeft"
         :top="moreTop"
         caret="end"
@@ -1782,6 +2092,7 @@ function onBack() {
     <AppUpdateFlow ref="appUpdateFlowRef" />
 
     <BookSourcePanel
+      ref="bookSourcePanelRef"
       v-model="showBookSourcePanel"
       @search-source="onSearchFromSource"
       @sources-changed="onBookSourcesChanged"

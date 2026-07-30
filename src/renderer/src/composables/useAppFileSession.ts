@@ -669,8 +669,38 @@ export function useAppFileSession(deps: {
   }
 
   /** 侧栏加文件：批量导入书包（不打开；临时密码本仅本次流程） */
-  async function importBookPacksIntoFileList(packPaths: string[]) {
-    if (packPaths.length === 0) return;
+  async function importBookPacksIntoFileList(
+    packPaths: string[],
+    opts?: {
+      /** 不弹汇总 toast，且不显示「解包中」蒙层（密码/覆盖确认仍会弹出） */
+      silent?: boolean;
+      /** 跨多次调用延续的密码本（WebDAV 串联下载导入） */
+      passwordBook?: string[];
+      skipOnDecryptFail?: boolean;
+    },
+  ): Promise<{
+    imported: Array<{ packPath: string; openPath: string }>;
+    okCount: number;
+    skipCount: number;
+    failCount: number;
+    passwordBook: string[];
+    skipOnDecryptFail: boolean;
+  }> {
+    const empty = {
+      imported: [] as Array<{ packPath: string; openPath: string }>,
+      okCount: 0,
+      skipCount: 0,
+      failCount: 0,
+      passwordBook: [] as string[],
+      skipOnDecryptFail: false,
+    };
+    if (packPaths.length === 0) {
+      return {
+        ...empty,
+        passwordBook: opts?.passwordBook ? [...opts.passwordBook] : [],
+        skipOnDecryptFail: opts?.skipOnDecryptFail ?? false,
+      };
+    }
     const uniquePacks: string[] = [];
     const seen = new Set<string>();
     for (const p of packPaths) {
@@ -679,20 +709,33 @@ export function useAppFileSession(deps: {
       seen.add(key);
       uniquePacks.push(key);
     }
-    if (uniquePacks.length === 0) return;
+    if (uniquePacks.length === 0) {
+      return {
+        ...empty,
+        passwordBook: opts?.passwordBook ? [...opts.passwordBook] : [],
+        skipOnDecryptFail: opts?.skipOnDecryptFail ?? false,
+      };
+    }
 
+    const silent = Boolean(opts?.silent);
     let passwordBook = prependPasswordBook(
-      [],
+      opts?.passwordBook ? [...opts.passwordBook] : [],
       deps.bookPackPassword.value,
     );
-    let skipOnDecryptFail = false;
+    let skipOnDecryptFail = opts?.skipOnDecryptFail ?? false;
     let okCount = 0;
     let skipCount = 0;
     let failCount = 0;
     const knownBefore = new Set(deps.txtFiles.value.map((f) => f.path));
     const newlyAddedPaths: string[] = [];
+    const imported: Array<{ packPath: string; openPath: string }> = [];
 
-    deps.bookPackUnpacking.value = true;
+    const setUnpacking = (v: boolean) => {
+      if (silent) return;
+      deps.bookPackUnpacking.value = v;
+    };
+
+    setUnpacking(true);
     try {
       for (const packPath of uniquePacks) {
         const result = await importReaderBookPack({
@@ -708,7 +751,7 @@ export function useAppFileSession(deps: {
             if (reason === "wrongPassword" && skipOnDecryptFail) {
               return { skip: true };
             }
-            deps.bookPackUnpacking.value = false;
+            setUnpacking(false);
             try {
               let revealPassword = false;
               try {
@@ -748,19 +791,19 @@ export function useAppFileSession(deps: {
               if (input === null) return { skip: true };
               return input;
             } finally {
-              deps.bookPackUnpacking.value = true;
+              setUnpacking(true);
             }
           },
           currentFilePath: deps.currentFile.value,
           physicalReaderPath: deps.physicalReaderPath.value,
           recentFiles: deps.recentFiles.value,
           confirmOverwrite: async (message, detail) => {
-            deps.bookPackUnpacking.value = false;
+            setUnpacking(false);
             try {
               const full = detail ? `${message}\n\n${detail}` : message;
               return await appConfirm(full);
             } finally {
-              deps.bookPackUnpacking.value = true;
+              setUnpacking(true);
             }
           },
         });
@@ -780,6 +823,7 @@ export function useAppFileSession(deps: {
         }
 
         okCount += 1;
+        imported.push({ packPath, openPath: result.openPath });
         if (result.usedPassword) {
           passwordBook = prependPasswordBook(passwordBook, result.usedPassword);
         }
@@ -798,7 +842,7 @@ export function useAppFileSession(deps: {
           deps.currentFile.value &&
           result.openPath === deps.currentFile.value
         ) {
-          deps.bookPackUnpacking.value = false;
+          setUnpacking(false);
           try {
             await openFilePath(result.openPath, {
               restorePhysicalLine: result.restorePhysicalLine,
@@ -807,7 +851,7 @@ export function useAppFileSession(deps: {
               keepSidebarTab: true,
             });
           } finally {
-            deps.bookPackUnpacking.value = true;
+            setUnpacking(true);
           }
         }
       }
@@ -825,9 +869,17 @@ export function useAppFileSession(deps: {
     if (okCount > 0) parts.push(`成功 ${okCount}`);
     if (skipCount > 0) parts.push(`跳过 ${skipCount}`);
     if (failCount > 0) parts.push(`失败 ${failCount}`);
-    if (parts.length > 0) {
-      appToast(`书包导入：${parts.join("，")}`, { kind: "info", });
+    if (parts.length > 0 && !silent) {
+      appToast(`书包导入：${parts.join("，")}`, { kind: "info" });
     }
+    return {
+      imported,
+      okCount,
+      skipCount,
+      failCount,
+      passwordBook,
+      skipOnDecryptFail,
+    };
   }
 
   function openFileFromSidebar(item: TxtFileItem) {
@@ -903,8 +955,30 @@ export function useAppFileSession(deps: {
   }
 
   /** 拖放 / 文件列表导入：按路径顺序合并目录内 txt/电子书/书包 或单个支持的文件 */
-  async function importPathsIntoFileList(paths: string[]) {
-    if (!window.colorTxt || paths.length === 0) return;
+  async function importPathsIntoFileList(
+    paths: string[],
+    opts?: {
+      silent?: boolean;
+      passwordBook?: string[];
+      skipOnDecryptFail?: boolean;
+    },
+  ): Promise<{
+    imported: Array<{ packPath: string; openPath: string }>;
+    okCount: number;
+    skipCount: number;
+    failCount: number;
+    passwordBook: string[];
+    skipOnDecryptFail: boolean;
+  }> {
+    const empty = {
+      imported: [] as Array<{ packPath: string; openPath: string }>,
+      okCount: 0,
+      skipCount: 0,
+      failCount: 0,
+      passwordBook: opts?.passwordBook ? [...opts.passwordBook] : ([] as string[]),
+      skipOnDecryptFail: opts?.skipOnDecryptFail ?? false,
+    };
+    if (!window.colorTxt || paths.length === 0) return empty;
     const unsub = subscribeDirListTxtScan();
     const packPaths: string[] = [];
     try {
@@ -964,8 +1038,9 @@ export function useAppFileSession(deps: {
       deps.dirListCurrentName.value = "";
     }
     if (packPaths.length > 0) {
-      await importBookPacksIntoFileList(packPaths);
+      return await importBookPacksIntoFileList(packPaths, opts);
     }
+    return empty;
   }
 
   function scrollFileListsToIndex(index: number) {

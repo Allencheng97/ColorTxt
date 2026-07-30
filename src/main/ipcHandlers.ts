@@ -61,6 +61,7 @@ import { readActiveChatEndpoint } from "@shared/aiEndpointProfiles";
 import { attributeVoiceReadSpeakers } from "./ai/voiceReadSpeaker";
 import { registerVoiceReadIpcHandlers } from "./voiceRead/registerVoiceReadIpc";
 import { registerBookSourceIpcHandlers } from "./bookSource/registerBookSourceIpc";
+import { registerWebDavIpcHandlers } from "./webdav/registerWebDavIpc";
 import { createFindBookDesktopShortcut } from "./findBookLaunch";
 import {
   focusOrOpenFindBookWindow,
@@ -1057,4 +1058,5 @@ function unknownQuoteAttributions(
   registerBookSourceIpcHandlers();
   registerSecretsIpcHandlers();
   registerTextConvertIpcHandlers();
+  registerWebDavIpcHandlers();
 }

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from "vue";
 import AppModal from "./AppModal.vue";
+import AppCheckbox from "./AppCheckbox.vue";
 import AppCustomSelect, { type CustomSelectItem } from "./AppCustomSelect.vue";
 import IconButton from "./IconButton.vue";
 import VirtualList from "./VirtualList.vue";
@@ -10,6 +11,7 @@ import {
   formatFileReadProgress,
   isProgressComplete,
 } from "../utils/fileListPanelDisplay";
+import "../bookSource/bookSourceToolbar.css";
 
 export type ReadingDataListItem = {
   path: string;
@@ -31,9 +33,8 @@ export type ReadingDataSortMode =
 
 const DEFAULT_SORT: ReadingDataSortMode = "lastOpenedAtDesc";
 
-/** 双行内容高度 + 行间距（与侧栏 itemGap 的 padding-bottom 一致） */
-const READING_DATA_ROW_GAP = 5;
-const READING_DATA_ROW_STRIDE = 52 + READING_DATA_ROW_GAP;
+/** 对齐书源行高（min-height 50 + 底部分隔线） */
+const READING_DATA_ROW_STRIDE = 51;
 
 const SORT_LABELS: Record<ReadingDataSortMode, string> = {
   nameAsc: "文件名",
@@ -198,7 +199,10 @@ function formatOpenedDate(ms: number | undefined): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  const ss = String(d.getSeconds()).padStart(2, "0");
+  return `${y}-${m}-${day} ${hh}:${mm}:${ss}`;
 }
 
 function progressText(p: number | undefined): string {
@@ -232,7 +236,6 @@ function onRemoveMissing() {
     ref="modalRef"
     v-model="modelValue"
     title="阅读数据"
-    max-width="720px"
     panel-class="readingDataPanelModal"
     :mask-closable="false"
     :esc-closable="true"
@@ -240,16 +243,23 @@ function onRemoveMissing() {
     @keydown="onModalKeydown"
   >
     <div class="readingDataBody">
-      <div class="readingDataToolbar">
-        <input
-          v-model="filterQuery"
-          class="readingDataFilterInput"
-          type="search"
-          spellcheck="false"
-          autocomplete="off"
-          placeholder="过滤路径…"
-          aria-label="过滤阅读数据路径"
-        />
+      <header class="bookSourceToolbarHeader readingDataToolbar">
+        <div class="readingDataFilterField">
+          <span
+            class="readingDataFilterIcon"
+            aria-hidden="true"
+            v-html="icons.filter"
+          />
+          <input
+            v-model="filterQuery"
+            class="bookSourceToolbarSearch readingDataFilterInput"
+            type="search"
+            spellcheck="false"
+            autocomplete="off"
+            placeholder="过滤路径…"
+            aria-label="过滤阅读数据路径"
+          />
+        </div>
         <AppCustomSelect
           class="readingDataSortSelect"
           :model-value="sortMode"
@@ -262,7 +272,7 @@ function onRemoveMissing() {
           ariaLabel="阅读数据排序"
           @update:model-value="onSortSelect"
         />
-      </div>
+      </header>
 
       <div
         ref="listFocusEl"
@@ -276,32 +286,22 @@ function onRemoveMissing() {
         </div>
         <VirtualList
           v-else
-          class="readingDataList readingDataList--itemGap"
+          class="readingDataList"
           :item-count="visibleCount"
           :row-stride="READING_DATA_ROW_STRIDE"
           :overscan="10"
           :item-key="(i) => filteredSortedItems[i]?.path ?? i"
         >
           <template #default="{ index }">
-            <div
-              class="readingDataRow"
-              :class="{
-                'readingDataRow--selected': selectedPaths.includes(
-                  filteredSortedItems[index]!.path,
-                ),
-              }"
-              @click="onItemClick(index, $event)"
-            >
-              <span class="checkbox readingDataCheckbox" aria-hidden="true">
-                <input
-                  type="checkbox"
-                  :checked="
-                    selectedPaths.includes(filteredSortedItems[index]!.path)
-                  "
-                  tabindex="-1"
-                  aria-hidden="true"
-                />
-              </span>
+            <div class="readingDataRow" @click="onItemClick(index, $event)">
+              <AppCheckbox
+                class="readingDataCheckbox"
+                passive
+                :model-value="
+                  selectedPaths.includes(filteredSortedItems[index]!.path)
+                "
+                :aria-label="`选择 ${filteredSortedItems[index]!.fileName}`"
+              />
               <div class="readingDataIdentity">
                 <span
                   class="readingDataName"
@@ -387,8 +387,44 @@ function onRemoveMissing() {
 
 <style>
 .appModalPanel.readingDataPanelModal {
-  height: calc(100vh - 100px);
-  max-height: calc(100vh - 100px);
+  --min-width: 600px;
+  --max-width: 800px;
+  --max-height: calc(100vh - 48px);
+  padding: 0;
+  overflow: hidden;
+  max-width: var(--max-width) !important;
+  width: max(min(calc(100vw - 48px), var(--max-width)), var(--min-width));
+  max-height: var(--max-height) !important;
+  height: var(--max-height);
+}
+.appModalPanel.readingDataPanelModal .appModalPanelHeader {
+  margin-bottom: 0;
+  padding: 12px 48px 12px 16px;
+}
+.appModalPanel.readingDataPanelModal .appModalBody {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+}
+.appModalPanel.readingDataPanelModal .readingDataToolbar {
+  padding: 0 10px 10px;
+  border-bottom: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+}
+.appModalPanel.readingDataPanelModal .appModalFooter {
+  margin-top: 0;
+  padding: 10px 10px 10px 16px;
+  border-top: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+}
+.appModalPanel.readingDataPanelModal .readingDataList {
+  padding: 0 16px;
+}
+.appModalPanel.readingDataPanelModal
+  input.bookSourceToolbarSearch.readingDataFilterInput[type="search"] {
+  width: 100%;
+  flex: none;
+  padding-left: 32px;
+  font-size: 14px;
 }
 </style>
 
@@ -399,6 +435,7 @@ function onRemoveMissing() {
   outline: none;
   overflow: hidden;
   flex: 1;
+  min-height: 0;
 }
 
 .readingDataListFocus {
@@ -409,28 +446,41 @@ function onRemoveMissing() {
   outline: none;
 }
 
-.readingDataToolbar {
-  flex-shrink: 0;
+.readingDataFilterField {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.readingDataFilterIcon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  z-index: 1;
+  transform: translateY(-50%);
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 0;
-  /* border-bottom: 1px solid var(--border); */
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: var(--secondary);
+  pointer-events: none;
 }
 
-.readingDataFilterInput {
-  flex: 1 1 auto;
-  box-sizing: border-box;
+.readingDataFilterIcon :deep(svg) {
+  width: 16px;
+  height: 16px;
+  display: block;
 }
 
-.readingDataFilterInput:focus {
-  outline: none;
-  border-color: var(--accent, var(--primary));
+.readingDataFilterIcon :deep(svg path) {
+  fill: currentColor;
 }
 
 .readingDataSortSelect {
-  flex: 0 0 148px;
-  min-width: 132px;
+  flex-shrink: 0;
+  width: 114px;
+  min-width: 114px;
 }
 
 .readingDataEmpty {
@@ -439,21 +489,15 @@ function onRemoveMissing() {
   align-items: center;
   justify-content: center;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
   padding: 24px;
 }
 
 .readingDataList {
   flex: 1;
-  min-height: 200px;
-  height: min(60vh, 480px);
-  padding: 8px;
+  min-height: 0;
+  min-width: 0;
   background: var(--bg);
-  border-radius: 8px;
-}
-
-.readingDataList--itemGap :deep(.virtualList-row) {
-  padding-bottom: 5px;
 }
 
 .readingDataRow {
@@ -463,22 +507,20 @@ function onRemoveMissing() {
   width: 100%;
   height: 100%;
   margin: 0;
-  padding: 0 8px;
+  padding: 6px 0;
+  box-sizing: border-box;
+  min-height: 50px;
   border: none;
-  border-radius: 4px;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
   background: transparent;
   color: var(--fg);
   text-align: left;
-  cursor: pointer;
-  box-sizing: border-box;
-}
-
-.readingDataRow:hover {
-  background: var(--hover-bg, color-mix(in srgb, var(--fg) 6%, transparent));
+  user-select: none;
 }
 
 .readingDataCheckbox {
-  flex: 0 0 auto;
+  flex-shrink: 0;
   pointer-events: none;
 }
 
@@ -488,13 +530,14 @@ function onRemoveMissing() {
   display: flex;
   flex-direction: column;
   gap: 3px;
+  overflow: hidden;
 }
 
 .readingDataName {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.25;
   color: var(--fg);
 }
@@ -509,7 +552,7 @@ function onRemoveMissing() {
 }
 
 .readingDataProgress {
-  flex: 0 0 50px;
+  flex: 0 0 48px;
   text-align: right;
   font-size: 12px;
   font-variant-numeric: tabular-nums;
@@ -525,11 +568,12 @@ function onRemoveMissing() {
 }
 
 .readingDataOpened {
-  flex: 0 0 80px;
+  flex: 0 0 126px;
   text-align: right;
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   color: var(--muted);
+  white-space: nowrap;
 }
 
 .readingDataDelete {

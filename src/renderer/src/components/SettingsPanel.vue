@@ -29,6 +29,7 @@ import SettingsVectorModelPanel from "./SettingsVectorModelPanel.vue";
 import SettingsTxt2ImgPanel from "./SettingsTxt2ImgPanel.vue";
 import SettingsSkillsPanel from "./SettingsSkillsPanel.vue";
 import SettingsVoiceReadPanel from "./SettingsVoiceReadPanel.vue";
+import SettingsWebDavPanel from "./SettingsWebDavPanel.vue";
 import {
   clampLineHeightMultipleForFontSize,
   defaultChapterMinCharCount,
@@ -137,6 +138,10 @@ export type SettingsApplyPayload = {
   ebookConvertOutputDir: string;
   bookPackUnpackDir: string;
   bookPackPassword: string;
+  webDavEnabled: boolean;
+  webDavUrl: string;
+  webDavUsername: string;
+  webDavRemoteDir: string;
   characterPortraitCacheDir: string;
   aiSkillsEnabled: Record<string, boolean>;
   aiSkillOverrides: Record<string, AiSkillUserOverride>;
@@ -175,6 +180,10 @@ const props = defineProps<{
   ebookConvertOutputDir: string;
   bookPackUnpackDir: string;
   bookPackPassword: string;
+  webDavEnabled: boolean;
+  webDavUrl: string;
+  webDavUsername: string;
+  webDavRemoteDir: string;
   characterPortraitCacheDir: string;
   aiSkillsEnabled: Record<string, boolean>;
   aiSkillOverrides: Record<string, AiSkillUserOverride>;
@@ -243,6 +252,11 @@ const draftPomodoroLongBreakMinutes = ref(defaultPomodoroLongBreakMinutes);
 const draftEbookConvertOutputDir = ref("");
 const draftBookPackUnpackDir = ref("");
 const draftBookPackPassword = ref("");
+const draftWebDavEnabled = ref(false);
+const draftWebDavUrl = ref("");
+const draftWebDavUsername = ref("");
+const draftWebDavPassword = ref("");
+const draftWebDavRemoteDir = ref("ColorTxt");
 const draftCharacterPortraitCacheDir = ref("");
 const showBookPackPassword = ref(false);
 
@@ -308,6 +322,10 @@ function syncDraftFromProps() {
   draftEbookConvertOutputDir.value = props.ebookConvertOutputDir;
   draftBookPackUnpackDir.value = props.bookPackUnpackDir;
   draftBookPackPassword.value = props.bookPackPassword;
+  draftWebDavEnabled.value = props.webDavEnabled === true;
+  draftWebDavUrl.value = props.webDavUrl;
+  draftWebDavUsername.value = props.webDavUsername;
+  draftWebDavRemoteDir.value = props.webDavRemoteDir.trim() || "ColorTxt";
   draftCharacterPortraitCacheDir.value = props.characterPortraitCacheDir;
   draftAiSkillOverrides.value = mergeAiSkillOverrides(props.aiSkillOverrides);
   draftAiCustomSkills.value = mergeAiCustomSkills(props.aiCustomSkills ?? []);
@@ -346,6 +364,15 @@ async function syncAiFromMain() {
   txt2imgPanelRef.value?.initTxt2ImgProfiles?.();
 }
 
+async function loadWebDavPasswordDraft() {
+  try {
+    const r = await window.colorTxt.secrets.getWebDavPassword();
+    draftWebDavPassword.value = r.password ?? "";
+  } catch {
+    draftWebDavPassword.value = "";
+  }
+}
+
 watch(modelValue, (open) => {
   if (!open) {
     voiceReadPanelRef.value?.cancelPreview?.();
@@ -355,6 +382,7 @@ watch(modelValue, (open) => {
   draftAi.value.embedding = normalizeEmbeddingEndpoint(draftAi.value.embedding);
   applyAllActiveProfilesToConfig(draftAi.value);
   syncDraftFromProps();
+  void loadWebDavPasswordDraft();
   void nextTick(() => {
     voiceReadPanelRef.value?.initVoiceReadProfiles?.();
   });
@@ -371,6 +399,9 @@ watch(draftFontSize, (fs) => {
 watch(activeTab, (tab, prev) => {
   if (prev === "voiceRead" && tab !== "voiceRead") {
     voiceReadPanelRef.value?.cancelPreview?.();
+  }
+  if (tab === "webDav") {
+    void loadWebDavPasswordDraft();
   }
   void nextTick(() => {
     const el = settingsTabScrollerEl.value;
@@ -467,6 +498,14 @@ function resetVoiceReadDraft() {
   voiceReadPanelRef.value?.resetCurrentVoiceReadProfile?.();
 }
 
+function resetWebDavDraft() {
+  draftWebDavEnabled.value = false;
+  draftWebDavUrl.value = "";
+  draftWebDavUsername.value = "";
+  draftWebDavPassword.value = "";
+  draftWebDavRemoteDir.value = "ColorTxt";
+}
+
 function onResetCurrentTab() {
   if (activeTab.value === "general") resetGeneralDraft();
   else if (activeTab.value === "reading") resetReadingDraft();
@@ -476,6 +515,7 @@ function onResetCurrentTab() {
   else if (activeTab.value === "txt2img") resetTxt2ImgDraft();
   else if (activeTab.value === "skills") resetSkillsDraft();
   else if (activeTab.value === "voiceRead") resetVoiceReadDraft();
+  else if (activeTab.value === "webDav") resetWebDavDraft();
 }
 
 function onCancel() {
@@ -573,6 +613,15 @@ async function onConfirm() {
     return;
   }
 
+  try {
+    await window.colorTxt.secrets.setWebDavPassword(draftWebDavPassword.value);
+  } catch (e) {
+    await appAlert(
+      e instanceof Error ? e.message : "保存 WebDAV 密码失败",
+    );
+    return;
+  }
+
   aiPanelRef.value?.finalizeChatProfiles?.();
   txt2imgPanelRef.value?.finalizeTxt2ImgProfiles?.();
   voiceReadPanelRef.value?.finalizeVoiceReadProfiles?.();
@@ -633,6 +682,10 @@ async function onConfirm() {
     ebookConvertOutputDir: draftEbookConvertOutputDir.value.trim(),
     bookPackUnpackDir: draftBookPackUnpackDir.value.trim(),
     bookPackPassword: draftBookPackPassword.value,
+    webDavEnabled: draftWebDavEnabled.value,
+    webDavUrl: draftWebDavUrl.value.trim(),
+    webDavUsername: draftWebDavUsername.value.trim(),
+    webDavRemoteDir: draftWebDavRemoteDir.value.trim() || "ColorTxt",
     characterPortraitCacheDir: draftCharacterPortraitCacheDir.value.trim(),
     aiSkillsEnabled: mergeAiSkillsEnabled(
       draftAiSkillsEnabled.value,
@@ -833,6 +886,16 @@ async function onClearCache() {
               v-model:overrides="draftAiSkillOverrides"
               v-model:custom-skills="draftAiCustomSkills"
             />
+
+            <SettingsWebDavPanel
+              v-show="activeTab === 'webDav'"
+              context="main"
+              v-model:draft-web-dav-enabled="draftWebDavEnabled"
+              v-model:draft-web-dav-url="draftWebDavUrl"
+              v-model:draft-web-dav-username="draftWebDavUsername"
+              v-model:draft-web-dav-password="draftWebDavPassword"
+              v-model:draft-web-dav-remote-dir="draftWebDavRemoteDir"
+            />
           </div>
         </div>
       </div>
@@ -887,6 +950,7 @@ async function onClearCache() {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
+  min-width: 0;
   min-height: 0;
 }
 
