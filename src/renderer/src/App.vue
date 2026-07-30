@@ -414,7 +414,7 @@ const activeChapterIdx = ref<number>(-1);
 useAiChapterPlainTextBridge(readerRef, chapters);
 const showChapterCounts = ref(defaultShowChapterCounts);
 const chapterCharCountExact = ref(defaultChapterCharCountExact);
-/** 依赖 exact 开关，变更时更新函数引用以刷新章节列表字数展示 */
+/** 依赖 exact 开关，变更时更新函数引用以刷新章节列表字数展示（底栏总字数直接读同一开关） */
 const formatChapterCharCount = computed(
   () => (n: number) => formatCharCount(n, chapterCharCountExact.value),
 );
@@ -3497,7 +3497,9 @@ useAppShellThemeWatch({
         :reading-progress-detail-part="readingProgressParts.detailPart"
         :reading-progress-placeholder="readingProgressParts.placeholder"
         :reading-progress-complete="readingProgressParts.complete"
-        :total-char-count-text="formatCharCount(totalCharCount)"
+        :total-char-count-text="
+          formatCharCount(totalCharCount, chapterCharCountExact)
+        "
         :file-size-text="formatFileSize(currentFileSize)"
         :file-encoding="fileEncoding"
         :encoding-actions-enabled="footerEncodingActionsEnabled"
