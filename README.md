@@ -45,6 +45,7 @@
 | <img src="./src/renderer/src/assets/character.svg" width="18" height="18" alt=""> | **角色卡生成** | 借助 **AI** 检索小说中角色的相关信息生成摘要，通过 **文生图** 生成角色立绘 |
 | <img src="./src/renderer/src/assets/AI_compose.svg" width="18" height="18" alt=""> | **AI 智能排版** | 让 **AI** 对文本进行排版，可自动处理硬换行、修正标点符号等 |
 | <img src="./src/renderer/src/assets/findBook.svg" width="18" height="18" alt=""> | 书源找书 | 可多源搜索，支持在线阅读或整书下载 |
+| <img src="./src/renderer/src/assets/WebDAV.svg" width="18" height="18" alt=""> | **WebDAV** | 用于跨设备同步应用配置、书包 |
 | <img src="./src/renderer/src/assets/compress.svg" width="18" height="18" alt=""> | 空行压缩 | 压缩多余空行 |
 | <img src="./src/renderer/src/assets/indent.svg" width="18" height="18" alt=""> | 行首缩进 | 在行首添加全角缩进 |
 | <img src="./src/renderer/src/assets/ebook.svg" width="18" height="18" alt=""> | 文件列表 | 拖放添加文件 / 目录（会递归读取子目录），支持分类 / 排序 / 过滤 |
@@ -188,6 +189,27 @@ OpenAI 接口拼接方式：
 可通过「设置 → 技能 → 智能排版」自定义 AI 排版行为。
 
 > 「最大 Token 数」会限制 AI 单次回复内容长度，所以排版时会根据该设置进行分段，如果想减少分段数（请求次数），可以适当调高该值，如改为 8192。
+
+## WebDAV 同步
+
+用于跨设备同步应用配置、书包。
+
+在「设置 → WebDAV」中开启：
+
+- 主界面：
+  - 侧栏「WebDAV」面板：上传/同步「配置」；拉取上传的书包列表，可过滤、排序、下载
+  - 底栏「文件路径」菜单：上传/同步「书包」（基于当前打开文件导出的带阅读进度的书包）
+- 找书窗口：
+  - 顶栏「WebDAV」菜单可分别上传/同步「书架 / 书源 / 设置」
+
+远端目录结构：
+
+```text
+ColorTxt/
+  Main/      # 主界面配置
+  Books/     # 上传的书包
+  FindBook/  # 找书窗口书架/书源/设置
+```
 
 ## 预设字体
 
