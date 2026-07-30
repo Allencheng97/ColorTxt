@@ -28,6 +28,7 @@
 | :---: | --- | --- |
 |  | 本地文件阅读 | 支持本地 `.txt` / `.md` 文件 |
 |  | 其他电子书 | 支持常见的电子书格式（如 `.epub`），打开时会转换为 `.md` 进行加载 |
+|  | 彩读书包 | 可导入/导出彩读专用的 `.ctz` / `.ctzx` 书包文件 |
 |  | 自动编码识别 | `UTF-8` 和 `ANSI` 都能正常打开 |
 | <img src="./src/renderer/src/assets/chapter_list.svg" width="18" height="18" alt=""> | 自动章节识别 | 内置常用的章节匹配规则，也支持自定义匹配规则 |
 | <img src="./src/renderer/src/assets/palette.svg" width="18" height="18" alt=""> | **个性内容上色** | 使用一套自定义的高亮规则对内容进行着色，带来 **独特的阅读体验**！ |
@@ -190,7 +191,30 @@ OpenAI 接口拼接方式：
 
 > 「最大 Token 数」会限制 AI 单次回复内容长度，所以排版时会根据该设置进行分段，如果想减少分段数（请求次数），可以适当调高该值，如改为 8192。
 
-## 关于 WebDAV
+## 关于「书包」
+
+书包是彩读专用的压缩包格式，方便分享和跨设备同步。
+
+书包文件的扩展名为 **`.ctz`**（普通 zip 包）/ **`.ctzx`**（加密包），目录结构如下：
+
+```text
+{文件名}.ctz|ctzx/
+  characters/
+    portraits/       # 角色立绘
+    manifest.json    # 角色卡
+  content/
+    {文件名}.txt|md   # 原文件
+    {文件名}.Images   # md 文件的插图
+  bookmarks.json     # 书签
+  highlights.json    # 高亮词
+  notes.json         # 笔记
+  manifest.json      # 书包配置文件
+```
+
+- 书籍文件（`txt`/`md`）`插图目录` + `书签`/`高亮`/`笔记`/`角色卡` + `阅读进度`
+彩读支持导入/导出专用的 `.ctz`（普通 zip 包）与 `.ctzx`（加密包）格式
+
+## 关于「WebDAV」
 
 用于跨设备同步应用配置、书包。
 
@@ -206,9 +230,9 @@ OpenAI 接口拼接方式：
 
 ```text
 ColorTxt/
-  Main/      # 主界面配置
-  Books/     # 上传的书包
-  FindBook/  # 找书窗口书架/书源/设置
+  Main/       # 主界面配置
+  Books/      # 上传的书包
+  FindBook/   # 找书窗口书架/书源/设置
 ```
 
 ## 预设字体
