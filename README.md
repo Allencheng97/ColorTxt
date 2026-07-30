@@ -204,7 +204,7 @@ OpenAI 接口拼接方式：
     manifest.json    # 角色卡
   content/
     {文件名}.txt|md   # 原文件
-    {文件名}.Images   # md 文件的插图
+    {文件名}.Images/  # md 文件的插图
   bookmarks.json     # 书签
   highlights.json    # 高亮词
   notes.json         # 笔记
