@@ -249,7 +249,7 @@ cardShellWrap（悬停抬高 z-index）
 | 工具参数 | `reasoning`、`title`、`mode`（`general` \| `semantic`）、`semanticQuery`（semantic 必填，贴近用户原话）、`scope`（`full` \| `chapter`）、`chapterIndex`、`maxWords`（未指定时用设置 **`wordcloudMaxWords`**，默认 **80**，范围 **10–200**） |
 | **general** | 全书或单章高频词：`@node-rs/jieba` 分词 + 停用词过滤；按章词频合并后取 Top N |
 | **semantic** | 两阶段：① 抽样章节 LLM **抽取**候选词项；② 全书计数后 LLM 按 **`semanticQuery`** **筛选**相关词（无预设语义类别，由用户原话驱动，如「武功招式」「角色名」等） |
-| 分词缓存 | 数据缓存根下 **`segment.sqlite`**（`aiSegmentCache.ts`）：按 **`bookHash` + chapterIndex** 缓存章级词频；章节正文变更时重建 |
+| 分词缓存 | 数据缓存根下 **`segment.sqlite`**（`segmentCache.ts`）：按 **`bookHash` + chapterIndex** 缓存章级词频；章节正文变更时按 content hash 重建；侧栏 **更多 → 重建词云分词**（`ai:segment:rebuildBook`）可全书预热 |
 | 防剧透 | 与阅读助手共用 **`spoilerSafe`**：统计章节范围不超过当前阅读章节 |
 | 进度 | 工具折叠区展示阶段标题（构建分词缓存、语义抽取/筛选等） |
 | 侧栏预览 | 与思维导图类似：缩略 Canvas、点击打开全屏；标题行 **`icons.wordcloud`** |
@@ -359,7 +359,7 @@ cardShellWrap（悬停抬高 z-index）
 | `SettingsSkillEditModal.vue` | 自定义技能新建/编辑弹窗 |
 | `AppPullFlashButton.vue` | 设置面板内刷新模型/采样器列表等，完成态闪光反馈 |
 | `PathPickerInput.vue` | 目录选择（含 **角色立绘缓存根目录** 等） |
-| `AiAssistantPanel.vue` | 侧栏 AI 阅读助手主面板：会话、输入、`onAgentEvent`（流式增量、工具、`token_usage_*`、`done`/`error`）；历史列表会话名 **`title`** 悬停提示；**`findLiveAgentAssistant`**；受 **`showTokenUsage`** 控制 Token 条。<br>**导出**默认名 **`{书名}-{对话标题}[（带思考过程）].chat.{md\|json}`**（`aiAssistantExport.buildChatExportDefaultName`）。<br>**`prefillQuotedText(text)`**：阅读器 **「问 AI」** 填入 blockquote 引用并 autosize / 滚至光标 |
+| `AiAssistantPanel.vue` | 侧栏 AI 阅读助手主面板：会话、输入、`onAgentEvent`（流式增量、工具、`token_usage_*`、`done`/`error`）；历史列表会话名 **`title`** 悬停提示；**`findLiveAgentAssistant`**；受 **`showTokenUsage`** 控制 Token 条。<br>标题行 **更多**：重建向量索引 / 重建词云分词；清除向量索引缓存 / 清除词云分词缓存 / 清除对话记录（`ai:index:deleteBook` 仅向量；`ai:segment:deleteBook` / `ai:segment:rebuildBook`）。<br>**导出**默认名 **`{书名}-{对话标题}[（带思考过程）].chat.{md\|json}`**（`aiAssistantExport.buildChatExportDefaultName`）。<br>**`prefillQuotedText(text)`**：阅读器 **「问 AI」** 填入 blockquote 引用并 autosize / 滚至光标 |
 | `AiAssistantChatMessages.vue` | 消息列表：用户/助手气泡、思考块、工具折叠、**`AiMindmapView`** / **`AiWordcloudView`**（传入 `chapters`）；**`AiMarkdown`** 章节跳转；**`AiTokenUsageBanner`** |
 | `AiAssistantDetailsFold.vue` | 助手详情折叠（与 `directives/aiStickScroll`、`useAiFoldContentSelectAll` 配合） |
 | `AiToolFoldBody.vue` | 工具折叠正文；超长章压缩进度中 **`当前进度：M/N`** 高亮（`utils/aiToolFoldBody.ts`） |

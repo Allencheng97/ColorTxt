@@ -193,6 +193,7 @@ import {
 } from "./constants/lineationColors";
 import { formatCharCount, formatFileSize } from "./utils/format";
 import { resolveDefaultUnpackedBooksDirSync } from "./utils/defaultCacheDirs";
+import { clearAiReadingTracesForBook } from "./utils/clearAiChatForBook";
 import { joinFs } from "./ebook/pathUtils";
 import { buildWebDavAuth } from "./utils/webDavAuth";
 import { READER_EDITOR_DEFAULT_FONT_FAMILY } from "./monaco/readerEditorOptions";
@@ -1602,8 +1603,45 @@ async function removePortraitCacheForBook(bookPath: string) {
   }
 }
 
+/** 与 AI 助手一致：会话路径 + 正文文件 size/mtime → bookHash，再删对话/向量/分词 */
+async function clearAiReadingTracesForReadingDataPath(
+  sessionPath: string,
+  meta: FileMetaRecord | null | undefined,
+): Promise<void> {
+  const session = sessionPath.trim();
+  if (!session) return;
+  const sessionKey = normalizeFileMetaPathKey(session);
+  const curKey = currentFile.value?.trim()
+    ? normalizeFileMetaPathKey(currentFile.value)
+    : "";
+  let physical = "";
+  if (curKey && sessionKey === curKey && physicalReaderPath.value?.trim()) {
+    physical = physicalReaderPath.value.trim();
+  } else {
+    const converted = meta?.convertedMdPath?.trim() ?? "";
+    if (converted) {
+      try {
+        const st = await window.colorTxt.stat(converted);
+        if (st.isFile) physical = converted;
+      } catch {
+        /* fall through */
+      }
+    }
+    if (!physical) physical = session;
+  }
+  try {
+    await clearAiReadingTracesForBook({
+      sessionPath: session,
+      physicalPath: physical,
+    });
+  } catch {
+    /* AI 库不可用或路径失效时不阻断清除阅读数据 */
+  }
+}
+
 /**
- * 清除若干路径的阅读数据（进度/书签/高亮/笔记/角色卡及立绘）。
+ * 清除若干路径的阅读数据（进度/书签/高亮/笔记/角色卡及立绘），
+ * 并清除对应 AI 对话、向量索引与分词缓存。
  * - 当前打开文件：收成空壳（保留 convertedMdPath 等），避免关窗时内存进度再次写回。
  * - 其它文件：直接删除对应 meta 项。
  * 不关闭当前打开的文件。
@@ -1636,12 +1674,14 @@ async function clearReadingDataForPaths(
     const hadProgress = metaProgressByPathKey.value.has(key);
     if (!metaHasClearableReadingData(shown) && !hadProgress) continue;
 
-    await removePortraitCacheForBook(path);
-
     const prevExact =
       fileMetaRecords.value.find(
         (m) => normalizeFileMetaPathKey(m.path) === pathKey,
       ) ?? null;
+
+    await clearAiReadingTracesForReadingDataPath(path, prevExact);
+    await removePortraitCacheForBook(path);
+
     const withoutExact = fileMetaRecords.value.filter(
       (m) => normalizeFileMetaPathKey(m.path) !== pathKey,
     );
@@ -1687,6 +1727,7 @@ async function clearReadingDataForPaths(
   if (touchedCurrent) {
     void refreshReaderHighlightDisplayLayer();
     bumpAnnotationDisplayEpoch();
+    void readerSidebarRef.value?.reloadAiAssistantAfterChatHistoryCleared?.();
   }
   if (options?.toast !== false) {
     appToast("已清除阅读数据", { kind: "success" });
@@ -1701,7 +1742,7 @@ async function clearCurrentFileReadingData() {
     return;
   }
   const ok = await appConfirm(
-    "将清除当前文件的阅读进度、书签、高亮词、笔记、角色卡（含立绘）等数据；不会删除文件本身。",
+    "将清除当前文件的书签、高亮词、笔记、角色卡（含立绘）、AI 对话记录、向量索引与分词缓存等数据；不会删除文件本身。",
     "清除阅读数据",
   );
   if (!ok) return;
@@ -1719,7 +1760,7 @@ async function onClearAllReadingData() {
     return;
   }
   const ok = await appConfirm(
-    "将清除全部文件的阅读进度、书签、高亮词、笔记、角色卡（含立绘）等数据；不会删除文件本身。",
+    "将清除全部文件的阅读进度、书签、高亮词、笔记、角色卡（含立绘）、AI 对话记录、向量索引与分词缓存等数据；不会删除文件本身。",
     "清空阅读数据",
   );
   if (!ok) return;
