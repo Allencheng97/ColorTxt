@@ -1,9 +1,16 @@
-## 3.2
+## 3.3
 
 新功能：
 
-- **语音朗读**
-  - Windows 新增服务商「**讲述人自然语音**」（`winSapi`）：经 SAPI5 调用本机音色，可使用 NaturalVoiceSAPIAdapter 安装的讲述人/Edge 自然语音（与「系统语音」Web Speech / OneCore 通道不同）
+- 语音朗读：Windows 新增服务商「**讲述人自然语音**」（通过 Windows SAPI5 调用本机音色，需安装适配器与语音包，如 [NaturalVoiceSAPIAdapter](https://github.com/gexgd0419/NaturalVoiceSAPIAdapter)）
+
+改进：
+
+- 语音朗读：小米 MiMo 按 API 密钥前缀自动选择网关（`sk-` 走按量付费，`tp-` 走 Token Plan 中国集群）
+
+## 3.2
+
+新功能：
 
 - **彩读书包**
   - 底栏路径菜单可「**导出书包**」（`txt`/`md`/`插图目录` + `书签`/`高亮词`/`笔记`/`角色卡` + `阅读进度`）

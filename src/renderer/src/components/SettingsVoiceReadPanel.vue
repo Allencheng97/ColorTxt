@@ -1025,6 +1025,10 @@ onUnmounted(() => {
             </div>
           </div>
           <p class="settingsHint">{{ secretStorageHint }}</p>
+          <p class="settingsHint">
+            按量付费密钥（sk-）与 Token Plan 密钥（tp-）将自动选用对应网关；Token Plan
+            默认中国集群。
+          </p>
         </div>
         <div v-if="showMimoModel" class="settingsRow">
           <div class="settingsRowMain settingsRowMain--baseline">
