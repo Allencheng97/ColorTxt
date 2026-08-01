@@ -361,8 +361,8 @@ function onRemoveMissing() {
                 <IconButton
                   danger
                   :icon-html="icons.remove"
-                  aria-label="删除阅读数据"
-                  title="删除"
+                  aria-label="清除阅读数据"
+                  title="清除"
                   @click="onDeleteOne(filteredSortedItems[index]!.path, $event)"
                 />
               </div>
@@ -374,39 +374,45 @@ function onRemoveMissing() {
 
     <template #footer>
       <div class="readingDataFooter">
-        <div class="readingDataFooterStart">
-          <button
-            class="btn warning"
-            type="button"
-            size="large"
-            :disabled="!hasAnyItems"
-            @click="onClearAll"
-          >
-            清空
-          </button>
-          <button
-            class="btn"
-            type="button"
-            size="large"
-            :disabled="!hasAnyItems"
-            @click="onRemoveMissing"
-          >
-            删除失效文件
-          </button>
-        </div>
-        <div class="readingDataFooterEnd">
-          <span v-if="showSelCount" class="readingDataSelCount">
-            已选中：{{ selectedPaths.length }}/{{ visibleCount }}
-          </span>
-          <button
-            class="btn danger"
-            type="button"
-            size="large"
-            :disabled="!hasSelection"
-            @click="onDeleteSelected"
-          >
-            删除选中
-          </button>
+        <p class="readingDataFooterHint">
+          清除阅读数据会清除文件的阅读进度、书签、高亮词、笔记、角色卡（含立绘）、AI
+          对话记录、向量索引与分词缓存等数据，并从最近打开中移除；不会删除文件本身。
+        </p>
+        <div class="readingDataFooterBar">
+          <div class="readingDataFooterStart">
+            <button
+              class="btn warning"
+              type="button"
+              size="large"
+              :disabled="!hasAnyItems"
+              @click="onClearAll"
+            >
+              清空
+            </button>
+            <button
+              class="btn"
+              type="button"
+              size="large"
+              :disabled="!hasAnyItems"
+              @click="onRemoveMissing"
+            >
+              清除失效文件
+            </button>
+          </div>
+          <div class="readingDataFooterEnd">
+            <span v-if="showSelCount" class="readingDataSelCount">
+              已选中：{{ selectedPaths.length }}/{{ visibleCount }}
+            </span>
+            <button
+              class="btn danger"
+              type="button"
+              size="large"
+              :disabled="!hasSelection"
+              @click="onDeleteSelected"
+            >
+              清除选中
+            </button>
+          </div>
         </div>
       </div>
     </template>
@@ -612,6 +618,21 @@ function onRemoveMissing() {
 }
 
 .readingDataFooter {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  width: 100%;
+}
+
+.readingDataFooterHint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.readingDataFooterBar {
   display: flex;
   align-items: center;
   justify-content: space-between;

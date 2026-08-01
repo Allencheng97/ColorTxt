@@ -161,6 +161,7 @@ import {
   minChapterMinCharCount,
   minLineHeightMultiple,
   SIDEBAR_ACTIVITY_BAR_WIDTH,
+  APP_DISPLAY_NAME,
   type ReaderSurfaceColorEnabled,
   type ReaderSurfacePalette,
 } from "./constants/appUi";
@@ -1095,6 +1096,7 @@ const {
   persistWindowUnloadState,
   persistFileListCache,
   persistFileMeta,
+  removeFileMetaPaths,
   persistRecentFiles,
   touchRecentFile,
   upsertBookmark,
@@ -1525,17 +1527,10 @@ function onOpenFileInNewWindow(path: string) {
 
 function onClearFileMeta(path: string) {
   const key = fileHistoryKey(path);
-  const next = fileMetaRecords.value.filter(
-    (m) => fileHistoryKey(m.path) !== key,
-  );
-  if (next.length === fileMetaRecords.value.length) return;
-  fileMetaRecords.value = next;
-  if (metaProgressByPathKey.value.has(key)) {
-    const m = new Map(metaProgressByPathKey.value);
-    m.delete(key);
-    metaProgressByPathKey.value = m;
+  if (!fileMetaRecords.value.some((m) => fileHistoryKey(m.path) === key)) {
+    return;
   }
-  persistFileMeta();
+  removeFileMetaPaths([key]);
 }
 
 function metaHasClearableReadingData(rec: FileMetaRecord | undefined): boolean {
@@ -1642,9 +1637,8 @@ async function clearAiReadingTracesForReadingDataPath(
 /**
  * 清除若干路径的阅读数据（进度/书签/高亮/笔记/角色卡及立绘），
  * 并清除对应 AI 对话、向量索引与分词缓存。
- * - 当前打开文件：收成空壳（保留 convertedMdPath 等），避免关窗时内存进度再次写回。
- * - 其它文件：直接删除对应 meta 项。
- * 不关闭当前打开的文件。
+ * 从 file.meta 删除路径并移出最近打开 → 直接覆盖写盘（不合并）→ 他窗经 storage 按磁盘重载。
+ * 不关闭当前打开的文件。先落盘，再异步清 AI / 立绘。
  */
 async function clearReadingDataForPaths(
   paths: string[],
@@ -1662,68 +1656,44 @@ async function clearReadingDataForPaths(
   }
   if (unique.length === 0) return false;
 
-  let anyCleared = false;
-  let touchedCurrent = false;
+  type ClearJob = {
+    path: string;
+    pathKey: string;
+    prevExact: FileMetaRecord | null;
+    isCurrent: boolean;
+  };
+  const jobs: ClearJob[] = [];
   const cur = currentFile.value?.trim() ?? "";
   const curKey = cur ? normalizeFileMetaPathKey(cur) : "";
 
   for (const path of unique) {
-    const key = fileHistoryKey(path);
+    const historyKey = fileHistoryKey(path);
     const pathKey = normalizeFileMetaPathKey(path);
     const shown = findFileMetaRecord(fileMetaRecords.value, path);
-    const hadProgress = metaProgressByPathKey.value.has(key);
+    const hadProgress = metaProgressByPathKey.value.has(historyKey);
     if (!metaHasClearableReadingData(shown) && !hadProgress) continue;
-
     const prevExact =
       fileMetaRecords.value.find(
         (m) => normalizeFileMetaPathKey(m.path) === pathKey,
       ) ?? null;
-
-    await clearAiReadingTracesForReadingDataPath(path, prevExact);
-    await removePortraitCacheForBook(path);
-
-    const withoutExact = fileMetaRecords.value.filter(
-      (m) => normalizeFileMetaPathKey(m.path) !== pathKey,
-    );
-    const isCurrent = Boolean(curKey && pathKey === curKey);
-
-    if (isCurrent) {
-      const cleared: FileMetaRecord = {
-        path: prevExact?.path ?? path,
-        fileName: fileNameKey(prevExact?.path ?? path),
-        bookmarks: [],
-        updatedAt: Date.now(),
-      };
-      if (prevExact?.convertedMdPath)
-        cleared.convertedMdPath = prevExact.convertedMdPath;
-      if (prevExact?.sourceMtimeMsAtConvert != null) {
-        cleared.sourceMtimeMsAtConvert = prevExact.sourceMtimeMsAtConvert;
-      }
-      if (prevExact?.lastOpenedAt != null) {
-        cleared.lastOpenedAt = prevExact.lastOpenedAt;
-      }
-      fileMetaRecords.value = [cleared, ...withoutExact];
-      touchedCurrent = true;
-    } else {
-      fileMetaRecords.value = withoutExact;
-    }
-
-    if (metaProgressByPathKey.value.has(key)) {
-      const m = new Map(metaProgressByPathKey.value);
-      m.delete(key);
-      metaProgressByPathKey.value = m;
-    }
-    anyCleared = true;
+    jobs.push({
+      path,
+      pathKey,
+      prevExact,
+      isCurrent: Boolean(curKey && pathKey === curKey),
+    });
   }
 
-  if (!anyCleared) {
+  if (jobs.length === 0) {
     if (options?.toast !== false) {
       appToast("没有可清除的阅读数据", { kind: "info" });
     }
     return false;
   }
 
-  persistFileMeta();
+  const touchedCurrent = jobs.some((j) => j.isCurrent);
+  removeFileMetaPaths(jobs.map((j) => j.pathKey));
+
   if (touchedCurrent) {
     void refreshReaderHighlightDisplayLayer();
     bumpAnnotationDisplayEpoch();
@@ -1731,6 +1701,11 @@ async function clearReadingDataForPaths(
   }
   if (options?.toast !== false) {
     appToast("已清除阅读数据", { kind: "success" });
+  }
+
+  for (const job of jobs) {
+    await clearAiReadingTracesForReadingDataPath(job.path, job.prevExact);
+    await removePortraitCacheForBook(job.path);
   }
   return true;
 }
@@ -1742,7 +1717,7 @@ async function clearCurrentFileReadingData() {
     return;
   }
   const ok = await appConfirm(
-    "将清除当前文件的书签、高亮词、笔记、角色卡（含立绘）、AI 对话记录、向量索引与分词缓存等数据；不会删除文件本身。",
+    "将清除当前文件的阅读进度、书签、高亮词、笔记、角色卡（含立绘）、AI 对话记录、向量索引与分词缓存等数据，并从最近打开中移除；不会删除文件本身。",
     "清除阅读数据",
   );
   if (!ok) return;
@@ -1759,11 +1734,18 @@ async function onClearAllReadingData() {
     appToast("没有可清除的阅读数据", { kind: "info" });
     return;
   }
-  const ok = await appConfirm(
-    "将清除全部文件的阅读进度、书签、高亮词、笔记、角色卡（含立绘）、AI 对话记录、向量索引与分词缓存等数据；不会删除文件本身。",
-    "清空阅读数据",
-  );
-  if (!ok) return;
+  const r = await window.colorTxt.showMessageBox({
+    type: "warning",
+    title: APP_DISPLAY_NAME,
+    buttons: ["取消", "清空"],
+    defaultId: 1,
+    cancelId: 0,
+    message: "是否清空全部阅读数据？",
+    detail:
+      "将清除全部文件的阅读数据；不会删除文件本身。",
+    noLink: true,
+  });
+  if (r.response !== 1) return;
   await clearReadingDataForPaths(paths);
 }
 
