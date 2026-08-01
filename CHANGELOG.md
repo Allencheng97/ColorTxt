@@ -18,12 +18,14 @@
     - 底栏「文件路径」菜单：上传/同步「书包」（基于当前打开文件导出的带阅读进度的书包）
   - 找书窗口：
     - 顶栏「WebDAV」菜单可分别上传/同步「书架 / 书源 / 设置」
-- 语音朗读：Windows 新增服务商「**讲述人自然语音**」（通过 Windows SAPI5 调用本机音色，需安装适配器与语音包，如 [NaturalVoiceSAPIAdapter](https://github.com/gexgd0419/NaturalVoiceSAPIAdapter)）
+- 语音朗读：Windows 新增服务商「**讲述人自然语音**」（通过 Windows SAPI5 调用本机音色，需安装适配器与语音包，如 [NaturalVoiceSAPIAdapter](https://github.com/gexgd0419/NaturalVoiceSAPIAdapter)） [#36](https://github.com/ssnangua/ColorTxt/issues/36)
 - 「设置 → 常规 → 数据管理」：新增「**阅读数据**」面板，可管理各书阅读数据
 
 改进：
 
-- 语音朗读：小米 MiMo 按 API 密钥前缀自动选择网关（`sk-` 走按量付费，`tp-` 走 Token Plan 中国集群）
+- 语音朗读
+  - 小米 MiMo 按 API 密钥前缀自动选择网关（`sk-` 走按量付费，`tp-` 走 Token Plan 中国集群） [#41](https://github.com/ssnangua/ColorTxt/issues/41)
+  - AI 识别说话人时会带上少量上下文，能一定程度上增加一些准确性 [#39](https://github.com/ssnangua/ColorTxt/issues/39)
 - 主界面
   - 侧栏「文件」面板增加「更多」→「选择文件 / 移除失效文件」
   - 侧栏「文件」列表里的 `.txt`/`.md` 文件右键菜单可「替换文件」 [#38](https://github.com/ssnangua/ColorTxt/issues/38)
