@@ -1604,7 +1604,9 @@ async function removePortraitCacheForBook(bookPath: string) {
 
 /**
  * 清除若干路径的阅读数据（进度/书签/高亮/笔记/角色卡及立绘）。
- * 保留电子书转换路径等空壳 meta；不关闭当前打开的文件。
+ * - 当前打开文件：收成空壳（保留 convertedMdPath 等），避免关窗时内存进度再次写回。
+ * - 其它文件：直接删除对应 meta 项。
+ * 不关闭当前打开的文件。
  */
 async function clearReadingDataForPaths(
   paths: string[],
@@ -1643,21 +1645,28 @@ async function clearReadingDataForPaths(
     const withoutExact = fileMetaRecords.value.filter(
       (m) => normalizeFileMetaPathKey(m.path) !== pathKey,
     );
-    const cleared: FileMetaRecord = {
-      path: prevExact?.path ?? path,
-      fileName: fileNameKey(prevExact?.path ?? path),
-      bookmarks: [],
-      updatedAt: Date.now(),
-    };
-    if (prevExact?.convertedMdPath)
-      cleared.convertedMdPath = prevExact.convertedMdPath;
-    if (prevExact?.sourceMtimeMsAtConvert != null) {
-      cleared.sourceMtimeMsAtConvert = prevExact.sourceMtimeMsAtConvert;
+    const isCurrent = Boolean(curKey && pathKey === curKey);
+
+    if (isCurrent) {
+      const cleared: FileMetaRecord = {
+        path: prevExact?.path ?? path,
+        fileName: fileNameKey(prevExact?.path ?? path),
+        bookmarks: [],
+        updatedAt: Date.now(),
+      };
+      if (prevExact?.convertedMdPath)
+        cleared.convertedMdPath = prevExact.convertedMdPath;
+      if (prevExact?.sourceMtimeMsAtConvert != null) {
+        cleared.sourceMtimeMsAtConvert = prevExact.sourceMtimeMsAtConvert;
+      }
+      if (prevExact?.lastOpenedAt != null) {
+        cleared.lastOpenedAt = prevExact.lastOpenedAt;
+      }
+      fileMetaRecords.value = [cleared, ...withoutExact];
+      touchedCurrent = true;
+    } else {
+      fileMetaRecords.value = withoutExact;
     }
-    if (prevExact?.lastOpenedAt != null) {
-      cleared.lastOpenedAt = prevExact.lastOpenedAt;
-    }
-    fileMetaRecords.value = [cleared, ...withoutExact];
 
     if (metaProgressByPathKey.value.has(key)) {
       const m = new Map(metaProgressByPathKey.value);
@@ -1665,7 +1674,6 @@ async function clearReadingDataForPaths(
       metaProgressByPathKey.value = m;
     }
     anyCleared = true;
-    if (curKey && pathKey === curKey) touchedCurrent = true;
   }
 
   if (!anyCleared) {
@@ -3841,6 +3849,7 @@ useAppShellThemeWatch({
       @clear-reading-data-paths="onClearReadingDataPaths"
       @clear-all-reading-data="onClearAllReadingData"
       @remove-missing-reading-data-files="onRemoveMissingReadingDataFiles"
+      @open-reading-data-path="(p) => void openFilePath(p)"
       @apply-replace-rule-format="onApplyReplaceRuleFormat"
     />
   </div>

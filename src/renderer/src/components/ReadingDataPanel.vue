@@ -68,6 +68,7 @@ const emit = defineEmits<{
   clearAllReadingData: [];
   clearPaths: [paths: string[]];
   removeMissingFiles: [];
+  openPath: [path: string];
 }>();
 
 const filterQuery = ref("");
@@ -222,6 +223,20 @@ function onDeleteOne(path: string, ev: MouseEvent) {
   emit("clearPaths", [path]);
 }
 
+function onOpenOne(path: string, ev: MouseEvent) {
+  ev.stopPropagation();
+  const p = path.trim();
+  if (!p) return;
+  emit("openPath", p);
+}
+
+function onRevealOne(path: string, ev: MouseEvent) {
+  ev.stopPropagation();
+  const p = path.trim();
+  if (!p) return;
+  void window.colorTxt?.showItemInFolder(p).catch(() => {});
+}
+
 function onClearAll() {
   emit("clearAllReadingData");
 }
@@ -330,14 +345,27 @@ function onRemoveMissing() {
               <span class="readingDataOpened">{{
                 formatOpenedDate(filteredSortedItems[index]!.lastOpenedAt)
               }}</span>
-              <IconButton
-                class="readingDataDelete"
-                danger
-                :icon-html="icons.remove"
-                aria-label="删除阅读数据"
-                title="删除"
-                @click="onDeleteOne(filteredSortedItems[index]!.path, $event)"
-              />
+              <div class="readingDataActions" @click.stop>
+                <IconButton
+                  :icon-html="icons.read"
+                  aria-label="打开"
+                  title="打开"
+                  @click="onOpenOne(filteredSortedItems[index]!.path, $event)"
+                />
+                <IconButton
+                  :icon-html="icons.folderOpen"
+                  aria-label="在文件管理器中显示"
+                  title="在文件管理器中显示"
+                  @click="onRevealOne(filteredSortedItems[index]!.path, $event)"
+                />
+                <IconButton
+                  danger
+                  :icon-html="icons.remove"
+                  aria-label="删除阅读数据"
+                  title="删除"
+                  @click="onDeleteOne(filteredSortedItems[index]!.path, $event)"
+                />
+              </div>
             </div>
           </template>
         </VirtualList>
@@ -576,8 +604,11 @@ function onRemoveMissing() {
   white-space: nowrap;
 }
 
-.readingDataDelete {
+.readingDataActions {
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
 }
 
 .readingDataFooter {

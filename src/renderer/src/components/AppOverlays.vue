@@ -133,6 +133,7 @@ const emit = defineEmits<{
   clearReadingDataPaths: [paths: string[]];
   clearAllReadingData: [];
   removeMissingReadingDataFiles: [];
+  openReadingDataPath: [path: string];
 }>();
 
 const showAboutPanel = defineModel<boolean>("showAboutPanel", {
@@ -300,6 +301,7 @@ onBeforeUnmount(() => {
     @clear-paths="emit('clearReadingDataPaths', $event)"
     @clear-all-reading-data="emit('clearAllReadingData')"
     @remove-missing-files="emit('removeMissingReadingDataFiles')"
+    @open-path="emit('openReadingDataPath', $event)"
   />
   <ChapterRulePanel
     v-model="showChapterRulePanel"
