@@ -561,6 +561,7 @@ const {
   resetChapterSessionUi,
   clearReaderEditFlags,
   contentIndexFor,
+  viewportDisplayLineToPhysicalLine,
 } = useFindBookChapterSession({
   readerRef,
   detail: () => props.detail,
@@ -2014,6 +2015,7 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
             :reader-edit-mode="readerEditMode"
             :reader-edit-show-line-numbers="readerEditShowLineNumbers"
             :reader-edit-minimap="readerEditMinimap"
+            :ebook-display-line-to-physical="viewportDisplayLineToPhysicalLine"
             :monaco-font-family="monacoFontFamily"
             @viewport-top-line-change="readerUi.onViewportTopLineChange"
             @viewport-end-line-change="onFindBookViewportEndLineChange"

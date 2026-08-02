@@ -854,6 +854,7 @@ function restoreViewportToRestoreAnchor(
             anchor.physicalLine,
             m.getLineCount(),
             displayLineToPhysicalLine,
+            (d) => m.getLineContent(d),
           );
           e.setPosition({ lineNumber: displayLine, column: 1 });
         } else if (anchor.physicalLine >= m.getLineCount()) {
