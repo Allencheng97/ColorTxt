@@ -1959,6 +1959,7 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
           </div>
           <div
             class="resizer findBookReaderResizer"
+            :class="{ 'resizer--active': resizingSidebar }"
             @mousedown="startResizeSidebar"
           ></div>
         </aside>
@@ -2347,15 +2348,33 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
 .findBookReaderResizer {
   position: absolute;
   top: 0;
-  right: -3px;
+  right: calc(var(--app-sash-size, 4px) / -2);
   bottom: 0;
   z-index: 20;
-  width: 6px;
-  cursor: col-resize;
+  width: var(--app-sash-size, 4px);
+  cursor: ew-resize;
   touch-action: none;
+  background: transparent;
 }
-.findBookReaderResizer:hover {
-  background: var(--accent);
+.findBookReaderResizer::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: var(--app-sash-hover-size, 4px);
+  left: calc(50% - (var(--app-sash-hover-size, 4px) / 2));
+  background: transparent;
+  transition: background-color var(--app-sash-fade-duration, 0.1s) ease-out;
+  transition-delay: 0s;
+}
+.findBookReaderResizer:hover::before {
+  background: var(--app-sash-hover-border, var(--accent));
+  transition-delay: var(--app-sash-hover-delay, 300ms);
+}
+.findBookReaderResizer.resizer--active::before {
+  background: var(--app-sash-hover-border, var(--accent));
+  transition-delay: 0s;
 }
 .sidebarPanelColumn {
   flex: 1 1 auto;

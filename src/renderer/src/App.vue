@@ -3530,13 +3530,15 @@ useAppShellThemeWatch({
         <div
           v-show="isFullscreenView"
           class="resizer resizer--fullscreenSidebar"
+          :class="{ 'resizer--active': resizingSidebar }"
           @mousedown="startResizeSidebar"
         ></div>
       </div>
       <div
         v-show="showSidebar && !isFullscreenView"
         class="resizer"
-        :style="{ left: `${sidebarWidthForLayout - 3}px` }"
+        :class="{ 'resizer--active': resizingSidebar }"
+        :style="{ left: `calc(${sidebarWidthForLayout}px - var(--app-sash-size, 4px) / 2)` }"
         @mousedown="startResizeSidebar"
       ></div>
       <div

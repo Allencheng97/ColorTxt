@@ -2170,9 +2170,23 @@ function onEditorEditContextMenuSelect(id: string) {
 
 const FIND_CONTROLLER_ID = "editor.contrib.findController";
 
+/** 查找目标：Diff 预览时用当前聚焦侧（默认右侧 modified），否则用主编辑器 */
+function getFindTargetEditor(): monaco.editor.ICodeEditor | null {
+  if (smartFormatReviewActive.value) {
+    const diff = smartFormatDiffEditor.value;
+    if (!diff) return null;
+    const original = diff.getOriginalEditor();
+    const modified = diff.getModifiedEditor();
+    if (original.hasTextFocus()) return original;
+    if (modified.hasTextFocus()) return modified;
+    return modified;
+  }
+  return editor.value;
+}
+
 function toggleFindWidget() {
   if (props.voiceReadBlocksFind) return;
-  const e = editor.value;
+  const e = getFindTargetEditor();
   if (!e) return;
   const findCtrl = e.getContribution(FIND_CONTROLLER_ID) as {
     getState?: () => { isRevealed: boolean };
@@ -2193,6 +2207,17 @@ function toggleFindWidget() {
 }
 
 function isFindWidgetRevealed(): boolean {
+  if (smartFormatReviewActive.value) {
+    const diff = smartFormatDiffEditor.value;
+    if (!diff) return false;
+    for (const ed of [diff.getModifiedEditor(), diff.getOriginalEditor()]) {
+      const findCtrl = ed.getContribution(FIND_CONTROLLER_ID) as {
+        getState?: () => { isRevealed: boolean };
+      } | null;
+      if (findCtrl?.getState?.().isRevealed === true) return true;
+    }
+    return false;
+  }
   const e = editor.value;
   if (!e) return false;
   const findCtrl = e.getContribution(FIND_CONTROLLER_ID) as {
@@ -2203,18 +2228,28 @@ function isFindWidgetRevealed(): boolean {
 
 /** 全屏顶栏收起等场景：仅当查找栏已显示时关闭，不打开查找栏 */
 function closeFindWidgetIfRevealed() {
-  const e = editor.value;
-  if (!e) return;
-  const findCtrl = e.getContribution(FIND_CONTROLLER_ID) as {
-    getState?: () => { isRevealed: boolean };
-    closeFindWidget?: () => void;
-  } | null;
-  if (findCtrl?.getState?.().isRevealed !== true) return;
-  if (findCtrl.closeFindWidget) {
-    findCtrl.closeFindWidget();
+  const closeOn = (e: monaco.editor.ICodeEditor) => {
+    const findCtrl = e.getContribution(FIND_CONTROLLER_ID) as {
+      getState?: () => { isRevealed: boolean };
+      closeFindWidget?: () => void;
+    } | null;
+    if (findCtrl?.getState?.().isRevealed !== true) return;
+    if (findCtrl.closeFindWidget) {
+      findCtrl.closeFindWidget();
+      return;
+    }
+    e.getAction("closeFindWidget")?.run();
+  };
+  if (smartFormatReviewActive.value) {
+    const diff = smartFormatDiffEditor.value;
+    if (!diff) return;
+    closeOn(diff.getModifiedEditor());
+    closeOn(diff.getOriginalEditor());
     return;
   }
-  e.getAction("closeFindWidget")?.run();
+  const e = editor.value;
+  if (!e) return;
+  closeOn(e);
 }
 
 type FindControllerStartOpts = {
@@ -2235,7 +2270,7 @@ function openFindWithSearchString(raw: string) {
 
 async function openFindWithSearchStringAsync(raw: string) {
   if (props.voiceReadBlocksFind) return;
-  const e = editor.value;
+  const e = getFindTargetEditor();
   const term = raw.trim();
   if (!e || !term) return;
 
@@ -2289,6 +2324,10 @@ async function openFindWithSearchStringAsync(raw: string) {
 }
 
 function focusEditor() {
+  if (smartFormatReviewActive.value) {
+    getFindTargetEditor()?.focus();
+    return;
+  }
   editor.value?.focus();
 }
 
@@ -2602,7 +2641,16 @@ defineExpose({
   setPendingEbookInternalLinkSidecar,
   shiftPendingEbookSidecarForDeletedDisplayLines,
   getEbookLeadingLinkLabelsByDisplayLine,
-  getReaderEditorDomNode: () => editor.value?.getDomNode() ?? null,
+  getReaderEditorDomNode: () => {
+    if (smartFormatReviewActive.value) {
+      return (
+        diffHostEl.value ??
+        smartFormatDiffEditor.value?.getModifiedEditor().getDomNode() ??
+        null
+      );
+    }
+    return editor.value?.getDomNode() ?? null;
+  },
   jumpToAnnotationRange,
   getAnnotationDisplayQuote,
   getAnnotationHitsByLine,

@@ -23,6 +23,9 @@
 
 改进：
 
+- AI 智能排版
+  - 明确禁止结构助词「的/地/得」的语法互替，减轻 Diff 噪声 [#44](https://github.com/ssnangua/ColorTxt/issues/44)
+  - Diff 预览支持 `Ctrl+F` 查找；点「放弃」时增加确认弹框，避免误操作
 - 语音朗读
   - 小米 MiMo 按 API 密钥前缀自动选择网关（`sk-` 走按量付费，`tp-` 走 Token Plan 中国集群） [#41](https://github.com/ssnangua/ColorTxt/issues/41)
   - AI 识别说话人时会带上少量上下文，能一定程度上增加一些准确性 [#39](https://github.com/ssnangua/ColorTxt/issues/39)
