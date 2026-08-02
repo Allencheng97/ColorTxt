@@ -194,11 +194,22 @@ const editorEditContextMenuItems = computed(() => {
     separator?: boolean;
     disabled?: boolean;
     iconHtml?: string;
-  }> = [
+  }> = [];
+  if (!props.readerEditMode) {
+    items.push({
+      id: "copy",
+      label: "复制",
+      disabled: !editorEditContextMenuHasSelection.value,
+    });
+    items.push({ id: "sep-select-all", separator: true });
+    items.push({ id: "selectAll", label: "全选" });
+    return items;
+  }
+  items.push(
     { id: "cut", label: "剪切" },
     { id: "copy", label: "复制" },
     { id: "paste", label: "粘贴" },
-  ];
+  );
   if (
     props.aiFeaturesEnabled &&
     props.canUseAiSmartFormat &&
@@ -2152,15 +2163,21 @@ function onEditorEditContextMenuSelect(id: string) {
   closeEditorEditContextMenu();
   if (smartFormatReviewActive.value) return;
   const e = editor.value;
-  if (!e || smartFormatRunning.value) return;
-  if (id === "cut") {
-    e.focus();
-    e.trigger("keyboard", "editor.action.clipboardCutAction", null);
-    return;
-  }
+  if (!e) return;
   if (id === "copy") {
     e.focus();
     e.trigger("keyboard", "editor.action.clipboardCopyAction", null);
+    return;
+  }
+  if (id === "selectAll") {
+    e.focus();
+    e.trigger("keyboard", "editor.action.selectAll", null);
+    return;
+  }
+  if (!props.readerEditMode || smartFormatRunning.value) return;
+  if (id === "cut") {
+    e.focus();
+    e.trigger("keyboard", "editor.action.clipboardCutAction", null);
     return;
   }
   if (id === "paste") {
@@ -2833,23 +2850,18 @@ onMounted(() => {
         mouseEv.event.stopPropagation();
         return;
       }
-      if (props.readerEditMode) {
-        if (smartFormatRunning.value) {
-          mouseEv.event.preventDefault();
-          mouseEv.event.stopPropagation();
-          return;
-        }
+      if (props.readerEditMode && smartFormatRunning.value) {
         mouseEv.event.preventDefault();
         mouseEv.event.stopPropagation();
-        const sel = e.getSelection();
-        editorEditContextMenuHasSelection.value = Boolean(
-          sel && !sel.isEmpty(),
-        );
-        editorEditContextMenuX.value = mouseEv.event.browserEvent.clientX;
-        editorEditContextMenuY.value = mouseEv.event.browserEvent.clientY;
-        editorEditContextMenuOpen.value = true;
         return;
       }
+      mouseEv.event.preventDefault();
+      mouseEv.event.stopPropagation();
+      const sel = e.getSelection();
+      editorEditContextMenuHasSelection.value = Boolean(sel && !sel.isEmpty());
+      editorEditContextMenuX.value = mouseEv.event.browserEvent.clientX;
+      editorEditContextMenuY.value = mouseEv.event.browserEvent.clientY;
+      editorEditContextMenuOpen.value = true;
     });
     saveCommandDisposable = e.addAction({
       id: "colortxt.readerEdit.save",
@@ -3156,7 +3168,7 @@ watch(smartFormatReviewActive, (active) => {
       :x="editorEditContextMenuX"
       :y="editorEditContextMenuY"
       :items="editorEditContextMenuItems"
-      :min-width="200"
+      :min-width="readerEditMode ? 200 : 96"
       @close="closeEditorEditContextMenu"
       @select="onEditorEditContextMenuSelect"
     />
@@ -3165,7 +3177,7 @@ watch(smartFormatReviewActive, (active) => {
       :x="diffReviewContextMenuX"
       :y="diffReviewContextMenuY"
       :items="diffReviewContextMenuItems"
-      :min-width="200"
+      :min-width="96"
       @close="closeDiffReviewContextMenu"
       @select="onDiffReviewContextMenuSelect"
     />
