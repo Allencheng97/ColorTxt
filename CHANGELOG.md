@@ -23,9 +23,15 @@
 
 改进：
 
+- 原生可编辑控件（输入框 / 文本域）支持右键菜单（剪切 / 复制 / 粘贴等）
 - AI 智能排版
   - 明确禁止结构助词「的/地/得」的语法互替，减轻 Diff 噪声 [#44](https://github.com/ssnangua/ColorTxt/issues/44)
   - Diff 预览支持 `Ctrl+F` 查找；点「放弃」时增加确认弹框，避免误操作
+- 编辑替换规则：
+  - 「替换规则 / 替换为」支持内联高亮与单字段全屏 Monaco
+  - 「替换范围 / 排除范围」聚焦时显示输入建议，选择后追加到末尾
+    - 找书窗口输入建议：当前书名 / 当前书源
+    - 主界面输入建议：当前书名（有打开文件时）
 - 语音朗读
   - 小米 MiMo 按 API 密钥前缀自动选择网关（`sk-` 走按量付费，`tp-` 走 Token Plan 中国集群） [#41](https://github.com/ssnangua/ColorTxt/issues/41)
   - AI 识别说话人时会带上少量上下文，能一定程度上增加一些准确性 [#39](https://github.com/ssnangua/ColorTxt/issues/39)

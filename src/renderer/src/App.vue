@@ -89,6 +89,8 @@ import { isEbookFilePath, isMarkdownFilePath, isPlainTextBookPath } from "./eboo
 import { useAppVoiceRead } from "./composables/useAppVoiceRead";
 import { useAppTimedScroll } from "./composables/useAppTimedScroll";
 import { useTxtStreamPipeline } from "./composables/useTxtStreamPipeline";
+import { basenameFromPath } from "./services/fileListService";
+import { bookTitleForExport } from "./utils/readerAnnotationExport";
 import { fileHistoryKey } from "./stores/recentHistoryStore";
 import {
   clampLineationLastColorsToCount,
@@ -333,13 +335,23 @@ const chapterRuleErrorText = ref("");
 const chapterRuleState = ref(getChapterMatchRules());
 /** 主窗口文本替换规则（localStorage，与找书分键） */
 const cachedReplaceRules = ref<ReplaceRule[]>([]);
-const textReplaceActive = computed(
-  () =>
-    filterEnabledReplaceRules(cachedReplaceRules.value, "", "", "content")
+/** 替换范围匹配 / 建议用的「书名」= 当前打开文件名去掉常见后缀（如 foo.epub.md → foo） */
+const replaceRuleScopeBookName = computed(() => {
+  const p = currentFile.value?.trim();
+  if (!p) return "";
+  const base = basenameFromPath(p);
+  const title = bookTitleForExport(base);
+  return title === "未命名" ? base : title;
+});
+const textReplaceActive = computed(() => {
+  const name = replaceRuleScopeBookName.value;
+  return (
+    filterEnabledReplaceRules(cachedReplaceRules.value, name, "", "content")
       .length > 0 ||
-    filterEnabledReplaceRules(cachedReplaceRules.value, "", "", "title")
-      .length > 0,
-);
+    filterEnabledReplaceRules(cachedReplaceRules.value, name, "", "title")
+      .length > 0
+  );
+});
 
 function refreshReplaceRulesCache() {
   cachedReplaceRules.value = listReplaceRulesLocal("app");
@@ -965,6 +977,7 @@ const stream = useTxtStreamPipeline({
   textConvertLetter,
   textConvertDigit,
   replaceRules: cachedReplaceRules,
+  replaceRuleBookName: replaceRuleScopeBookName,
   chapterMinCharCount,
   currentFileIsMarkdown,
   afterFullTextInstalled: () => afterStreamFullTextInstalled(),
@@ -3823,6 +3836,7 @@ useAppShellThemeWatch({
       :chapter-rules="chapterRuleState.rules"
       :chapter-rule-error-text="chapterRuleErrorText"
       :reader-edit-mode="readerEditMode"
+      :replace-rule-scope-book-name="replaceRuleScopeBookName"
       :editing-bookmark-line="editingBookmarkLine"
       :can-bookmark="canBookmark"
       :add-bookmark-dialog-preview="addBookmarkDialogPreview"

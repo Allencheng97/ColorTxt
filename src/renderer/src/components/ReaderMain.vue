@@ -125,6 +125,7 @@ import type {
 import { useReaderAnnotations } from "../composables/useReaderAnnotations";
 import { annotationMarkerCssRules } from "../reader/readerAnnotationDecor";
 import { floorReadingPercentFromScrollRatio } from "../utils/format";
+import { bookTitleForExport } from "../utils/readerAnnotationExport";
 import {
   hasEscBeforeModalLayers,
   hasModalOnStack,
@@ -998,10 +999,17 @@ async function applyEditFormatTextConvertDigits(
 async function applyEditFormatTextReplace(
   rules: readonly ReplaceRule[],
 ): Promise<boolean> {
+  const path =
+    props.physicalReaderPath?.trim() || props.readerFilePath?.trim() || "";
+  const base = path
+    ? path.replace(/\\/g, "/").split("/").pop() || path
+    : "";
+  const title = base ? bookTitleForExport(base) : "";
+  const bookName = title && title !== "未命名" ? title : base;
   return applyEditFormat((plain) => ({
     text: applyReplaceRulesToText(
       plain,
-      filterEnabledReplaceRules([...rules], "", "", "content"),
+      filterEnabledReplaceRules([...rules], bookName, "", "content"),
     ),
   }));
 }
