@@ -559,6 +559,7 @@ const {
   onReaderEditDirtyChange,
   onToggleReaderEdit,
   onSaveReaderChapter,
+  onApplyPartialPhysicalEdit,
   loadChapterAtDisplayIndex,
   isChapterLoading,
   refreshCurrentChapterDisplay,
@@ -566,6 +567,7 @@ const {
   clearReaderEditFlags,
   contentIndexFor,
   viewportDisplayLineToPhysicalLine,
+  getPhysicalLineContent,
 } = useFindBookChapterSession({
   readerRef,
   detail: () => props.detail,
@@ -2030,12 +2032,14 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
             :reader-edit-show-line-numbers="readerEditShowLineNumbers"
             :reader-edit-minimap="readerEditMinimap"
             :ebook-display-line-to-physical="viewportDisplayLineToPhysicalLine"
+            :get-physical-line-content="getPhysicalLineContent"
             :monaco-font-family="monacoFontFamily"
             @viewport-top-line-change="readerUi.onViewportTopLineChange"
             @viewport-end-line-change="onFindBookViewportEndLineChange"
             @viewport-visual-progress-change="readerUi.onViewportVisualProgressChange"
             @reader-edit-dirty-change="onReaderEditDirtyChange"
             @reader-edit-save-request="onSaveReaderChapter"
+            @apply-partial-physical-edit="onApplyPartialPhysicalEdit"
           />
           <VoiceReadToolbar
             :visible="isVoiceReadActive"
