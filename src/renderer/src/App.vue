@@ -2026,6 +2026,12 @@ async function syncChaptersAfterViewportSettled() {
   }
 }
 
+/** 行间距恢复后：activeChapterIdx 常不变，需强制重居中章节列表 */
+function onLineSpacingViewportRestored() {
+  if (suppressChapterListAutoScroll.value) return;
+  void readerSidebarRef.value?.centerActiveChapterInList?.(false);
+}
+
 const {
   jumpToChapter,
   jumpToPrevChapter,
@@ -3229,6 +3235,7 @@ async function applySettings(payload: SettingsApplyPayload) {
   const nextReaderHorizontalInsetPx = clampReaderHorizontalInsetPx(
     payload.readerHorizontalInsetPx,
   );
+  const lineSpacingChanged = readerLineSpacingPx.value !== nextLineSpacingPx;
   readerFontSize.value = nextFontSize;
   readerLineHeightMultiple.value = nextLineHeightMultiple;
   readerLineSpacingPx.value = nextLineSpacingPx;
@@ -3236,7 +3243,16 @@ async function applySettings(payload: SettingsApplyPayload) {
   readerHorizontalInsetPx.value = nextReaderHorizontalInsetPx;
   readerRef.value?.setFontSize(nextFontSize);
   readerRef.value?.setLineHeightMultiple(nextLineHeightMultiple);
-  readerRef.value?.setLineSpacingPx(nextLineSpacingPx);
+  if (lineSpacingChanged) {
+    // 抑制高度变化中间态换章滚动；恢复视口后强制居中（idx 常不变不会触发 watch）
+    await withChapterListScrollSuppressed(async () => {
+      await readerRef.value?.setLineSpacingPx?.(nextLineSpacingPx);
+      await nextTick();
+      await readerSidebarRef.value?.centerActiveChapterInList?.(false);
+    });
+  } else {
+    await readerRef.value?.setLineSpacingPx?.(nextLineSpacingPx);
+  }
   readerRef.value?.setLetterSpacingPx(nextLetterSpacingPx);
   aiSkillOverrides.value = mergeAiSkillOverrides(payload.aiSkillOverrides);
   aiCustomSkills.value = mergeAiCustomSkills(payload.aiCustomSkills ?? []);
@@ -3757,6 +3773,7 @@ useAppShellThemeWatch({
           @smart-format-review-apply="applySmartFormatReview()"
           @smart-format-review-discard="discardSmartFormatReview()"
           @probe-line-change="onProbeLineChange"
+          @line-spacing-viewport-restored="onLineSpacingViewportRestored"
           @viewport-top-line-change="onViewportTopLineChange"
           @viewport-end-line-change="onViewportEndLineChange"
           @viewport-visual-progress-change="onViewportVisualProgressChange"

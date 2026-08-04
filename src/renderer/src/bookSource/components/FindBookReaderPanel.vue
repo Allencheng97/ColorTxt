@@ -535,6 +535,10 @@ async function scrollChapterListToCurrent(options?: {
   });
 }
 
+function onFindBookLineSpacingViewportRestored() {
+  void scrollChapterListToCurrent({ force: true, smooth: false });
+}
+
 /** 进入编辑前退出朗读 / 停止定时滚动（voice/timed 创建后回填） */
 let exitVoiceRead = () => {};
 let stopTimedScroll = () => {};
@@ -2047,6 +2051,7 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
             @viewport-top-line-change="readerUi.onViewportTopLineChange"
             @viewport-end-line-change="onFindBookViewportEndLineChange"
             @viewport-visual-progress-change="readerUi.onViewportVisualProgressChange"
+            @line-spacing-viewport-restored="onFindBookLineSpacingViewportRestored"
             @reader-edit-dirty-change="onReaderEditDirtyChange"
             @reader-edit-save-request="onSaveReaderChapter"
             @apply-partial-physical-edit="onApplyPartialPhysicalEdit"
