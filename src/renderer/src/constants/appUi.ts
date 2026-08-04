@@ -224,6 +224,45 @@ export const maxFullscreenReaderWidthPercent = 100;
 /** 全屏时是否在左下角显示系统时间 */
 export const defaultFullscreenShowSystemTime = true;
 
+/**
+ * 阅读区正文左右边距（px）：收窄 Monaco 宿主，换行随变窄；
+ * 不修改 Monaco 布局算法。全屏下滚动条仍可由现有 CSS 钉在视口右侧。
+ * 实际应用值会按阅读窗格宽度压缩，保证正文宿主不少于
+ * {@link minReaderBodyWidthWithHorizontalInsetPx}。
+ */
+export const defaultReaderHorizontalInsetPx = 0;
+export const minReaderHorizontalInsetPx = 0;
+export const maxReaderHorizontalInsetPx = 160;
+export const readerHorizontalInsetPxStep = 1;
+/** 有左右边距时正文区最小宽；与侧栏拖拽时的阅读区最小宽一致 */
+export const minReaderBodyWidthWithHorizontalInsetPx = SIDEBAR_MIN_READER_WIDTH;
+
+export function clampReaderHorizontalInsetPx(px: number): number {
+  if (!Number.isFinite(px)) return defaultReaderHorizontalInsetPx;
+  return Math.max(
+    minReaderHorizontalInsetPx,
+    Math.min(maxReaderHorizontalInsetPx, Math.round(px)),
+  );
+}
+
+/**
+ * 按阅读窗格宽度压缩左右边距，避免两侧留白把正文挤没。
+ * 单侧实际边距 ≤ min(设定值, floor((窗格宽 − 正文最小宽) / 2))。
+ */
+export function effectiveReaderHorizontalInsetPx(
+  desiredPx: number,
+  readerPaneWidthPx: number,
+): number {
+  const desired = clampReaderHorizontalInsetPx(desiredPx);
+  if (desired <= 0) return 0;
+  const pane = Math.max(0, readerPaneWidthPx);
+  const maxPerSide = Math.max(
+    0,
+    Math.floor((pane - minReaderBodyWidthWithHorizontalInsetPx) / 2),
+  );
+  return Math.min(desired, maxPerSide);
+}
+
 export const minFontSize = 10;
 export const maxFontSize = 100;
 

@@ -139,6 +139,8 @@ import {
   clampLineSpacingPx,
   defaultLetterSpacingPx,
   clampLetterSpacingPx,
+  defaultReaderHorizontalInsetPx,
+  clampReaderHorizontalInsetPx,
   defaultReaderPaletteDark,
   defaultReaderPaletteLight,
   defaultReaderTheme,
@@ -575,6 +577,7 @@ const readerFontSize = ref(defaultReaderFontSize);
 const readerLineHeightMultiple = ref(defaultReaderLineHeightMultiple);
 const readerLineSpacingPx = ref(defaultLineSpacingPx);
 const readerLetterSpacingPx = ref(defaultLetterSpacingPx);
+const readerHorizontalInsetPx = ref(defaultReaderHorizontalInsetPx);
 const monacoFontFamily = ref(READER_EDITOR_DEFAULT_FONT_FAMILY);
 /** 阅读器字体弹框：钉在外层的「其他字体」 */
 const pinnedOtherFonts = ref<string[]>([]);
@@ -1052,6 +1055,7 @@ const persistence = useAppPersistence({
   readerLineHeightMultiple,
   readerLineSpacingPx,
   readerLetterSpacingPx,
+  readerHorizontalInsetPx,
   monacoFontFamily,
   pinnedOtherFonts,
   chapterRuleState,
@@ -3132,10 +3136,14 @@ async function applySettings(payload: SettingsApplyPayload) {
   );
   const nextLineSpacingPx = clampLineSpacingPx(payload.lineSpacingPx);
   const nextLetterSpacingPx = clampLetterSpacingPx(payload.letterSpacingPx);
+  const nextReaderHorizontalInsetPx = clampReaderHorizontalInsetPx(
+    payload.readerHorizontalInsetPx,
+  );
   readerFontSize.value = nextFontSize;
   readerLineHeightMultiple.value = nextLineHeightMultiple;
   readerLineSpacingPx.value = nextLineSpacingPx;
   readerLetterSpacingPx.value = nextLetterSpacingPx;
+  readerHorizontalInsetPx.value = nextReaderHorizontalInsetPx;
   readerRef.value?.setFontSize(nextFontSize);
   readerRef.value?.setLineHeightMultiple(nextLineHeightMultiple);
   readerRef.value?.setLineSpacingPx(nextLineSpacingPx);
@@ -3608,6 +3616,7 @@ useAppShellThemeWatch({
           :monaco-cjk-wrap-optimize="monacoCjkWrapOptimize"
           :line-spacing-px="readerLineSpacingPx"
           :letter-spacing-px="readerLetterSpacingPx"
+          :horizontal-inset-px="readerHorizontalInsetPx"
           :monaco-smooth-scrolling="monacoSmoothScrolling"
           :mouse-wheel-scroll-sensitivity="mouseWheelScrollSensitivity"
           :fast-scroll-sensitivity="fastScrollSensitivity"
@@ -3846,6 +3855,7 @@ useAppShellThemeWatch({
       :reader-line-height-multiple="readerLineHeightMultiple"
       :reader-line-spacing-px="readerLineSpacingPx"
       :reader-letter-spacing-px="readerLetterSpacingPx"
+      :reader-horizontal-inset-px="readerHorizontalInsetPx"
       :compress-blank-keep-one-blank="compressBlankKeepOneBlank"
       :monaco-smooth-scrolling="monacoSmoothScrolling"
       :monaco-cjk-wrap-optimize="monacoCjkWrapOptimize"

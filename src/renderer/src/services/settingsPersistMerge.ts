@@ -29,6 +29,7 @@ export const WINDOW_LOCAL_MAIN_SETTING_KEYS: ReadonlySet<string> = new Set([
   "lineHeightMultiple",
   "lineSpacingPx",
   "letterSpacingPx",
+  "readerHorizontalInsetPx",
   "fontFamily",
   "pinnedOtherFonts",
   "monacoCustomHighlight",

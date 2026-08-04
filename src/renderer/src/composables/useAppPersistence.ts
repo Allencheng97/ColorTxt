@@ -107,6 +107,7 @@ import {
   clampLineHeightMultipleForFontSize,
   clampLineSpacingPx,
   clampLetterSpacingPx,
+  clampReaderHorizontalInsetPx,
   maxFontSize,
   maxChapterMinCharCount,
   maxRecentFilesHistoryLimit,
@@ -225,6 +226,7 @@ export function useAppPersistence(deps: {
   readerLineHeightMultiple: Ref<number>;
   readerLineSpacingPx: Ref<number>;
   readerLetterSpacingPx: Ref<number>;
+  readerHorizontalInsetPx: Ref<number>;
   monacoFontFamily: Ref<string>;
   pinnedOtherFonts: Ref<string[]>;
   chapterRuleState: Ref<{ rules: ChapterMatchRule[] }>;
@@ -349,6 +351,7 @@ export function useAppPersistence(deps: {
       lineHeightMultiple: deps.readerLineHeightMultiple.value,
       lineSpacingPx: deps.readerLineSpacingPx.value,
       letterSpacingPx: deps.readerLetterSpacingPx.value,
+      readerHorizontalInsetPx: deps.readerHorizontalInsetPx.value,
       fontFamily: deps.monacoFontFamily.value,
       pinnedOtherFonts: [...deps.pinnedOtherFonts.value],
       monacoCustomHighlight: deps.monacoCustomHighlight.value,
@@ -1166,6 +1169,12 @@ export function useAppPersistence(deps: {
       if (typeof data.letterSpacingPx === "number") {
         deps.readerLetterSpacingPx.value = clampLetterSpacingPx(
           data.letterSpacingPx,
+        );
+      }
+
+      if (typeof data.readerHorizontalInsetPx === "number") {
+        deps.readerHorizontalInsetPx.value = clampReaderHorizontalInsetPx(
+          data.readerHorizontalInsetPx,
         );
       }
 

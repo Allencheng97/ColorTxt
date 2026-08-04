@@ -51,7 +51,8 @@
 | <img src="./src/renderer/src/assets/indent.svg" width="18" height="18" alt=""> | 行首缩进 | 在行首添加全角缩进 |
 | <img src="./src/renderer/src/assets/ebook.svg" width="18" height="18" alt=""> | 文件列表 | 拖放添加文件 / 目录（会递归读取子目录），支持分类 / 排序 / 过滤 |
 | <img src="./src/renderer/src/assets/find.svg" width="18" height="18" alt=""> | 全文搜索 | 检索所有匹配项并给出结果列表（区别于阅读区的逐个查找） |
-| <img src="./src/renderer/src/assets/font_family.svg" width="18" height="18" alt=""> | 字体 / 字号 / 行高 | 内置 `京華老宋体`，也可以选择系统中安装的任意字体 |
+| <img src="./src/renderer/src/assets/font_family.svg" width="18" height="18" alt=""> | 字体 | 可设置字体 / 字号 / 行高；内置 `京華老宋体`，也可以选择系统中安装的任意字体 |
+|  | 排版 | 可设置字间距 / 行间距 / 左右边距 |
 | <img src="./src/renderer/src/assets/dark.svg" width="18" height="18" alt=""> | 主题切换 | 内置明亮 / 暗黑两种主题 |
 | <img src="./src/renderer/src/assets/enter_fullscreen.svg" width="18" height="18" alt=""> | 全屏阅读 | **沉浸式阅读体验**，阅读区域宽度可自由调整 |
 |  | 粘性标题栏 | 章节标题会常驻顶部，看到哪里一目了然 |
@@ -276,4 +277,4 @@ ColorTxt/
 - 基于 [@node-rs/jieba](https://github.com/napi-rs/node-rs/tree/main/packages/jieba) 实现中文分词，以支持词云生成
 - 基于 [OpenCC](https://github.com/byvoid/opencc) 实现简繁互转
 - 划线/笔记功能的交互，参考了 [微信读书网页版](https://weread.qq.com/)
-- 书源解析逻辑参考：[legado-E（阅读Sigma）源码](https://github.com/Luoyacheng/legado-E) | [Legado_Max 帮助文档](https://github.com/youfengknight/Legado_Max/tree/main/app/src/main/assets/web/help/md) | [Legado 书源规则说明](https://mgz0227.github.io/The-tutorial-of-Legado/Rule/source.html) | [破冰的源教程](https://www.yuque.com/legado/yuan/pe61gy)
+- 书源解析逻辑参考：[legado-E（阅读Sigma）](https://github.com/Luoyacheng/legado-E)

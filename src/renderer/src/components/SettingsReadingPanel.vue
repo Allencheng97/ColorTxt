@@ -21,6 +21,9 @@ import {
   maxMouseWheelScrollSensitivity,
   minFastScrollSensitivity,
   maxFastScrollSensitivity,
+  minReaderHorizontalInsetPx,
+  maxReaderHorizontalInsetPx,
+  readerHorizontalInsetPxStep,
 } from "../constants/appUi";
 import {
   TIMED_SCROLL_RANGE_OPTIONS,
@@ -40,6 +43,7 @@ const props = defineProps<{
   draftLineHeightMultiple: number;
   draftLineSpacingPx: number;
   draftLetterSpacingPx: number;
+  draftReaderHorizontalInsetPx: number;
   draftMonacoSmoothScrolling: boolean;
   draftMonacoCjkWrapOptimize: boolean;
   draftMouseWheelScrollSensitivity: number;
@@ -64,6 +68,7 @@ defineEmits<{
   "update:draftLineHeightMultiple": [v: number];
   "update:draftLineSpacingPx": [v: number];
   "update:draftLetterSpacingPx": [v: number];
+  "update:draftReaderHorizontalInsetPx": [v: number];
   "update:draftMonacoSmoothScrolling": [v: boolean];
   "update:draftMonacoCjkWrapOptimize": [v: boolean];
   "update:draftMouseWheelScrollSensitivity": [v: number];
@@ -158,6 +163,43 @@ const draftMaxLineHeightMultiple = computed(() =>
 
       <div class="settingsRow">
         <div class="settingsRowMain">
+          <span class="settingsLabel short"
+            >左右边距（{{ draftReaderHorizontalInsetPx }} px）</span
+          >
+          <RangeSlider
+            :model-value="draftReaderHorizontalInsetPx"
+            :min="minReaderHorizontalInsetPx"
+            :max="maxReaderHorizontalInsetPx"
+            :step="readerHorizontalInsetPxStep"
+            :show-percent="false"
+            aria-label="阅读区左右边距"
+            @update:model-value="
+              $emit('update:draftReaderHorizontalInsetPx', $event)
+            "
+          />
+        </div>
+      </div>
+    </div>
+
+    <div class="settingsBody settingsBody--scroll">
+      <div class="settingsRow">
+        <div class="settingsRowMain">
+          <span class="settingsLabel">启用中文换行优化</span>
+          <SwitchToggle
+            :model-value="draftMonacoCjkWrapOptimize"
+            aria-label="启用中文换行优化"
+            @update:model-value="
+              $emit('update:draftMonacoCjkWrapOptimize', $event)
+            "
+          />
+        </div>
+        <p class="settingsHint">
+          优化「简单换行策略」下的中文换行效果，不作用于「高级换行策略」。
+        </p>
+      </div>
+
+      <div class="settingsRow">
+        <div class="settingsRowMain">
           <span class="settingsLabel">压缩空行时保留一个空行</span>
           <SwitchToggle
             :model-value="draftCompressBlankKeepOneBlank"
@@ -218,22 +260,6 @@ const draftMaxLineHeightMultiple = computed(() =>
         </div>
         <p class="settingsHint">
           在阅读区底部显示「上一章 / 下一章」快捷跳转；仅一章或无章节时不显示。
-        </p>
-      </div>
-
-      <div class="settingsRow">
-        <div class="settingsRowMain">
-          <span class="settingsLabel">启用中文换行优化</span>
-          <SwitchToggle
-            :model-value="draftMonacoCjkWrapOptimize"
-            aria-label="启用中文换行优化"
-            @update:model-value="
-              $emit('update:draftMonacoCjkWrapOptimize', $event)
-            "
-          />
-        </div>
-        <p class="settingsHint">
-          优化「简单换行策略」下的中文换行效果，不作用于「高级换行策略」。
         </p>
       </div>
     </div>

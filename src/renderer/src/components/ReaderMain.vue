@@ -117,6 +117,8 @@ import {
   defaultReaderLineHeightMultiple,
   defaultLineSpacingPx,
   defaultLetterSpacingPx,
+  defaultReaderHorizontalInsetPx,
+  effectiveReaderHorizontalInsetPx,
   defaultReaderPaletteDark,
   defaultReaderPaletteLight,
   defaultReaderPaletteColorEnabled,
@@ -158,6 +160,8 @@ import { icons } from "../icons";
 const HL_FLOAT_Z_INDEX = READER_HL_FLOAT_ROOT_Z_INDEX;
 
 const editorEl = ref<HTMLDivElement | null>(null);
+const editorShellEl = ref<HTMLDivElement | null>(null);
+const contentRootEl = ref<HTMLElement | null>(null);
 const diffHostEl = ref<HTMLDivElement | null>(null);
 
 const editorEditContextMenuOpen = ref(false);
@@ -351,6 +355,8 @@ const props = withDefaults(
     lineSpacingPx?: number;
     /** Monaco 字间距（px） */
     letterSpacingPx?: number;
+    /** 正文左右边距（px）；收窄编辑器宿主，不改 Monaco 布局算法 */
+    horizontalInsetPx?: number;
     /** Monaco 平滑滚动（滚轮、revealLine、setScrollTop 等） */
     monacoSmoothScrolling?: boolean;
     /** Monaco 滚轮滚动倍率 */
@@ -434,6 +440,7 @@ const props = withDefaults(
     monacoCjkWrapOptimize: defaultMonacoCjkWrapOptimize,
     lineSpacingPx: defaultLineSpacingPx,
     letterSpacingPx: defaultLetterSpacingPx,
+    horizontalInsetPx: defaultReaderHorizontalInsetPx,
     monacoSmoothScrolling: defaultMonacoSmoothScrolling,
     mouseWheelScrollSensitivity: defaultMouseWheelScrollSensitivity,
     fastScrollSensitivity: defaultFastScrollSensitivity,
@@ -506,6 +513,101 @@ const smartFormatRunning = ref(false);
 const smartFormatReviewActive = computed(
   () => props.smartFormatReviewSession != null,
 );
+
+const horizontalInsetDesired = computed(
+  () => Math.max(0, props.horizontalInsetPx ?? 0),
+);
+
+/** 按窗格宽度压缩后的实际单侧边距（保证正文宿主 ≥ 阅读区最小宽） */
+const appliedHorizontalInsetPx = ref(0);
+
+const horizontalInsetActive = computed(
+  () => appliedHorizontalInsetPx.value > 0,
+);
+
+/** 窗口模式：把竖条 fixed 到窗格右缘时用的视口坐标 */
+const windowInsetChromePinVars = ref<Record<string, string>>({});
+
+const horizontalInsetWindowPin = computed(
+  () => horizontalInsetActive.value && !props.readerFullscreen,
+);
+
+const horizontalInsetStyle = computed(() => {
+  if (!horizontalInsetActive.value) return undefined;
+  return {
+    "--reader-h-inset": `${appliedHorizontalInsetPx.value}px`,
+    ...windowInsetChromePinVars.value,
+  };
+});
+
+function syncAppliedHorizontalInset() {
+  const paneW = contentRootEl.value?.clientWidth ?? 0;
+  const next = effectiveReaderHorizontalInsetPx(
+    horizontalInsetDesired.value,
+    paneW,
+  );
+  const changed = next !== appliedHorizontalInsetPx.value;
+  appliedHorizontalInsetPx.value = next;
+  return changed;
+}
+
+function syncWindowInsetChromePin() {
+  if (!horizontalInsetWindowPin.value) {
+    windowInsetChromePinVars.value = {};
+    return;
+  }
+  const pane = contentRootEl.value;
+  if (!pane) {
+    windowInsetChromePinVars.value = {};
+    return;
+  }
+  const paneRect = pane.getBoundingClientRect();
+  const host =
+    editor.value?.getDomNode() ??
+    editorEl.value ??
+    pane;
+  const hostRect = host.getBoundingClientRect();
+  windowInsetChromePinVars.value = {
+    "--reader-sb-top": `${Math.round(hostRect.top)}px`,
+    "--reader-sb-height": `${Math.round(hostRect.height)}px`,
+    "--reader-sb-right": `${Math.max(0, Math.round(window.innerWidth - paneRect.right))}px`,
+  };
+}
+
+function syncHorizontalInsetLayout() {
+  const insetChanged = syncAppliedHorizontalInset();
+  syncWindowInsetChromePin();
+  if (insetChanged) {
+    requestAnimationFrame(() => {
+      editor.value?.layout();
+      smartFormatDiffEditor.value?.layout();
+      syncWindowInsetChromePin();
+    });
+  }
+}
+
+let horizontalInsetLayoutRo: ResizeObserver | null = null;
+
+function teardownHorizontalInsetLayout() {
+  horizontalInsetLayoutRo?.disconnect();
+  horizontalInsetLayoutRo = null;
+  window.removeEventListener("resize", syncHorizontalInsetLayout);
+}
+
+function setupHorizontalInsetLayout() {
+  teardownHorizontalInsetLayout();
+  syncHorizontalInsetLayout();
+  // 设定边距 > 0 时持续观察：窄窗会压到 0，拉宽后仍需恢复
+  if (horizontalInsetDesired.value <= 0) return;
+  const pane = contentRootEl.value;
+  if (!pane) return;
+  horizontalInsetLayoutRo = new ResizeObserver(() => {
+    syncHorizontalInsetLayout();
+  });
+  horizontalInsetLayoutRo.observe(pane);
+  if (editorEl.value) horizontalInsetLayoutRo.observe(editorEl.value);
+  window.addEventListener("resize", syncHorizontalInsetLayout);
+}
 
 const readerAnn = useReaderAnnotations({
   editor,
@@ -1206,6 +1308,15 @@ watch(
   () => props.letterSpacingPx,
   (px) => {
     setLetterSpacingPx(px);
+  },
+);
+
+watch(
+  () => [props.horizontalInsetPx, props.readerFullscreen] as const,
+  () => {
+    void nextTick(() => {
+      setupHorizontalInsetLayout();
+    });
   },
 );
 
@@ -2461,6 +2572,45 @@ function delegateEditorWheelFromBrowserEvent(ev: WheelEvent) {
   ed.delegateScrollFromMouseWheelEvent?.(ev);
 }
 
+/**
+ * 左右留白落在 `.editorShell` 的 padding 上，滚轮/点击不会进 Monaco；
+ * 与全屏「阅读区外两侧空白」同样委托给正文滚动。
+ */
+function eventOverHorizontalInsetGutter(ev: MouseEvent | WheelEvent): boolean {
+  if (!horizontalInsetActive.value) return false;
+  if (smartFormatReviewActive.value) return false;
+  const host = editorEl.value;
+  const shell = editorShellEl.value;
+  if (!host || !shell) return false;
+  const t = ev.target;
+  if (t instanceof Node) {
+    if (host.contains(t)) return false;
+    if (diffHostEl.value?.contains(t)) return false;
+  }
+  const hostRect = host.getBoundingClientRect();
+  const shellRect = shell.getBoundingClientRect();
+  if (ev.clientY < hostRect.top || ev.clientY > hostRect.bottom) return false;
+  return (
+    (ev.clientX >= shellRect.left && ev.clientX < hostRect.left) ||
+    (ev.clientX > hostRect.right && ev.clientX <= shellRect.right)
+  );
+}
+
+function onHorizontalInsetGutterWheel(ev: WheelEvent) {
+  if (!eventOverHorizontalInsetGutter(ev)) return;
+  if (props.voiceReadScrollLocked) return;
+  // 须先委托：Monaco 若见 defaultPrevented 会直接 return
+  delegateEditorWheelFromBrowserEvent(ev);
+  ev.preventDefault();
+}
+
+function onHorizontalInsetGutterMouseDown(ev: MouseEvent) {
+  if (ev.button !== 0) return;
+  if (!eventOverHorizontalInsetGutter(ev)) return;
+  ev.preventDefault();
+  editor.value?.focus();
+}
+
 function scrollByLineStep(direction: -1 | 1) {
   const e = editor.value;
   if (!e) return;
@@ -3027,10 +3177,12 @@ onMounted(() => {
     syncStickyScrollToStreamState();
     syncMinimapCursorLineDecoration();
     syncChapterMinimapSectionHeaderDecorations();
+    setupHorizontalInsetLayout();
   }
 });
 
 onBeforeUnmount(() => {
+  teardownHorizontalInsetLayout();
   if (stickyChapterScrollRefreshRaf != null) {
     cancelAnimationFrame(stickyChapterScrollRefreshRaf);
     stickyChapterScrollRefreshRaf = null;
@@ -3135,6 +3287,7 @@ onMounted(() => {
       closeHighlightFloatUi();
     }
   });
+  setupHorizontalInsetLayout();
 });
 
 watch(smartFormatReviewActive, (active) => {
@@ -3167,15 +3320,22 @@ watch(smartFormatReviewActive, (active) => {
 
 <template>
   <main
+    ref="contentRootEl"
     class="content"
     :class="{
       'content--readerEdit': readerEditMode,
       'content--readerEditMinimap': readerEditMode && readerEditMinimap,
+      'content--hInset': horizontalInsetActive,
+      'content--hInsetWindowPin': horizontalInsetWindowPin,
     }"
+    :style="horizontalInsetStyle"
   >
     <div
+      ref="editorShellEl"
       class="editorShell"
       :class="{ 'editorShell--smartFormatReview': smartFormatReviewActive }"
+      @wheel="onHorizontalInsetGutterWheel"
+      @mousedown="onHorizontalInsetGutterMouseDown"
     >
       <SmartFormatReviewBar
         v-if="smartFormatReviewActive"
@@ -3291,6 +3451,47 @@ watch(smartFormatReviewActive, (active) => {
   min-height: 0;
   display: flex;
   flex-direction: column;
+}
+
+/** 左右边距：收窄 Monaco 宿主，换行随 automaticLayout 变窄 */
+.content.content--hInset .editorShell {
+  padding-left: var(--reader-h-inset);
+  padding-right: var(--reader-h-inset);
+  box-sizing: border-box;
+}
+
+/*
+ * 窗口模式：竖条/概览尺/小地图 fixed 到阅读窗格右缘（全屏仍走 appShell 的 right:0）。
+ * 勿用负 right 伸出：会被 Monaco overflow-guard 裁掉导致「滚动条消失」。
+ */
+.content.content--hInsetWindowPin {
+  --txtr-window-scrollbar-size: 14px;
+}
+
+.content.content--hInsetWindowPin
+  .editorHost:not(.editorHost--diff)
+  :deep(.monaco-editor .monaco-scrollable-element > .scrollbar.vertical),
+.content.content--hInsetWindowPin
+  .editorHost:not(.editorHost--diff)
+  :deep(.monaco-editor .decorationsOverviewRuler) {
+  position: fixed !important;
+  left: auto !important;
+  right: var(--reader-sb-right, 0px) !important;
+  top: var(--reader-sb-top, 0px) !important;
+  height: var(--reader-sb-height, 100%) !important;
+}
+
+.content.content--hInsetWindowPin.content--readerEditMinimap
+  .editorHost:not(.editorHost--diff)
+  :deep(.monaco-editor .minimap) {
+  position: fixed !important;
+  left: auto !important;
+  right: calc(
+    var(--reader-sb-right, 0px) + var(--txtr-window-scrollbar-size)
+  ) !important;
+  top: var(--reader-sb-top, 0px) !important;
+  height: var(--reader-sb-height, 100%) !important;
+  z-index: 9;
 }
 
 .editorShell--smartFormatReview .editorHost--diff {

@@ -200,6 +200,7 @@ const {
   readerLineHeightMultiple,
   readerLineSpacingPx,
   readerLetterSpacingPx,
+  readerHorizontalInsetPx,
   monacoFontFamily,
   pinnedOtherFonts,
   monacoCustomHighlight,
@@ -2012,6 +2013,7 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
             :monaco-cjk-wrap-optimize="monacoCjkWrapOptimize"
             :line-spacing-px="readerLineSpacingPx"
             :letter-spacing-px="readerLetterSpacingPx"
+            :horizontal-inset-px="readerHorizontalInsetPx"
             :monaco-smooth-scrolling="monacoSmoothScrolling"
             :mouse-wheel-scroll-sensitivity="mouseWheelScrollSensitivity"
             :fast-scroll-sensitivity="fastScrollSensitivity"

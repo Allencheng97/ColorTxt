@@ -31,6 +31,7 @@ const UI_READER_KEYS = [
   "lineHeightMultiple",
   "lineSpacingPx",
   "letterSpacingPx",
+  "readerHorizontalInsetPx",
   "fontFamily",
   "pinnedOtherFonts",
   "compressBlankLines",
