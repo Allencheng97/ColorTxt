@@ -15,6 +15,7 @@ import {
 } from "@shared/bookSource/replaceRuleApply";
 import { listReplaceRulesLocal } from "../replaceRuleLocalStore";
 import { formatPhysicalPlainTextForReader } from "../../reader/readerDisplayPipeline";
+import type { ChapterTitleBlankMode } from "../../constants/appUi";
 import type { ReaderViewportRestoreAnchor } from "../../reader/readerViewportAnchor";
 import { applyTextDisplayConverts } from "../../services/textConvertApply";
 import { appConfirm } from "../../services/appDialog";
@@ -49,7 +50,7 @@ export type FindBookChapterSessionDeps = {
   textConvertDigit: Ref<TextConvertWidthMode>;
   compressBlankLines: Ref<boolean>;
   compressBlankKeepOneBlank: Ref<boolean>;
-  insertChapterTitleBlankLines: Ref<boolean>;
+  chapterTitleBlankMode: Ref<ChapterTitleBlankMode>;
   leadIndentFullWidth: Ref<boolean>;
   chapterMinCharCount: Ref<number>;
   effectiveCacheDir: Ref<string>;
@@ -254,7 +255,7 @@ export function useFindBookChapterSession(deps: FindBookChapterSessionDeps) {
     const formatted = formatPhysicalPlainTextForReader(text, {
       compressBlankLines: deps.compressBlankLines.value,
       compressBlankKeepOneBlank: deps.compressBlankKeepOneBlank.value,
-      insertChapterTitleBlankLines: deps.insertChapterTitleBlankLines.value,
+      chapterTitleBlankMode: deps.chapterTitleBlankMode.value,
       leadIndentFullWidth: deps.leadIndentFullWidth.value,
       minCharCount: deps.chapterMinCharCount.value,
       skipBlanksBeforeFirstChapterTitle: true,

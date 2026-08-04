@@ -1,4 +1,9 @@
 import {
+  chapterTitleBlankCounts,
+  defaultChapterTitleBlankMode,
+  type ChapterTitleBlankMode,
+} from "../constants/appUi";
+import {
   applyLeadIndentFullWidth,
   detectChapterTitle,
   filterChaptersByMinCharCount,
@@ -33,11 +38,10 @@ export type ReaderDisplayFormatOptions = {
   compressBlankLines: boolean;
   compressBlankKeepOneBlank: boolean;
   /**
-   * 压缩空行时章节标题留白：
-   * - 关闭：标题前插入 1 个空行（若开「保留一个空行」则标题后也保留 1 行）
-   * - 开启：标题前 2 个空行、后 1 个空行
+   * 压缩空行时章节标题留白（`before1` / `before1After1` / `before2After1`）。
+   * 与「每行下方保留一个空行」独立：后者只作用于非标题正文行。
    */
-  insertChapterTitleBlankLines: boolean;
+  chapterTitleBlankMode: ChapterTitleBlankMode;
   leadIndentFullWidth: boolean;
   /** 与侧栏章节列表一致：不足最少字数的标题行不插入章节上下空行 */
   minCharCount?: number;
@@ -456,9 +460,11 @@ export function formatPhysicalLinesForReader(
   }
 
   const keepOneBlank = options.compressBlankKeepOneBlank;
-  const insertChapterTitleBlanks = options.insertChapterTitleBlankLines;
-  /** 关闭：前 1；开启「章节标题前后保留空行」：前 2 */
-  const blanksAbove = insertChapterTitleBlanks ? 2 : 1;
+  const titleBlanks = chapterTitleBlankCounts(
+    options.chapterTitleBlankMode ?? defaultChapterTitleBlankMode,
+  );
+  const blanksAbove = titleBlanks.before;
+  const blanksBelow = titleBlanks.after;
   const out: string[] = [];
   const displayLineToPhysicalLine: number[] = [];
 
@@ -539,9 +545,7 @@ export function formatPhysicalLinesForReader(
       }
       const titleDisplayLine = pushDisplay(shown, physicalLine, linkContext);
       chapterTitleDisplayLineByPhysical.set(physicalLine, titleDisplayLine);
-      if (insertChapterTitleBlanks) {
-        pushDisplay("", physicalLine);
-      } else if (keepOneBlank) {
+      for (let i = 0; i < blanksBelow; i += 1) {
         pushDisplay("", physicalLine);
       }
     } else {
@@ -683,9 +687,11 @@ export async function formatPhysicalLinesForReaderAsync(
   }
 
   const keepOneBlank = options.compressBlankKeepOneBlank;
-  const insertChapterTitleBlanks = options.insertChapterTitleBlankLines;
-  /** 关闭：前 1；开启「章节标题前后保留空行」：前 2 */
-  const blanksAbove = insertChapterTitleBlanks ? 2 : 1;
+  const titleBlanks = chapterTitleBlankCounts(
+    options.chapterTitleBlankMode ?? defaultChapterTitleBlankMode,
+  );
+  const blanksAbove = titleBlanks.before;
+  const blanksBelow = titleBlanks.after;
   const out: string[] = [];
   const displayLineToPhysicalLine: number[] = [];
 
@@ -771,9 +777,7 @@ export async function formatPhysicalLinesForReaderAsync(
       }
       const titleDisplayLine = pushDisplay(shown, physicalLine, linkContext);
       chapterTitleDisplayLineByPhysical.set(physicalLine, titleDisplayLine);
-      if (insertChapterTitleBlanks) {
-        pushDisplay("", physicalLine);
-      } else if (keepOneBlank) {
+      for (let j = 0; j < blanksBelow; j += 1) {
         pushDisplay("", physicalLine);
       }
     } else {

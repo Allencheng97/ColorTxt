@@ -16,6 +16,7 @@ import {
   shiftChapterTitleDisplayLineMap,
 } from "../reader/lineMapping";
 import { formatPhysicalLinesForReaderAsync } from "../reader/readerDisplayPipeline";
+import type { ChapterTitleBlankMode } from "../constants/appUi";
 import { visibleReaderLineFromPhysicalRaw } from "../ebook/ebookTitleMatch";
 import { stripMdInternalLinksFromPhysicalLinesAsync } from "../markdown/markdownInternalLinks";
 import { yieldToUi } from "../ebook/yieldToUi";
@@ -45,7 +46,7 @@ export function useTxtStreamPipeline(deps: {
   readerEditMode: Ref<boolean>;
   compressBlankLines: Ref<boolean>;
   compressBlankKeepOneBlank: Ref<boolean>;
-  insertChapterTitleBlankLines: Ref<boolean>;
+  chapterTitleBlankMode: Ref<ChapterTitleBlankMode>;
   leadIndentFullWidth: Ref<boolean>;
   textConvertZh: Ref<TextConvertZhMode>;
   textConvertLetter: Ref<TextConvertWidthMode>;
@@ -304,7 +305,7 @@ export function useTxtStreamPipeline(deps: {
       {
         compressBlankLines: deps.compressBlankLines.value,
         compressBlankKeepOneBlank: deps.compressBlankKeepOneBlank.value,
-        insertChapterTitleBlankLines: deps.insertChapterTitleBlankLines.value,
+        chapterTitleBlankMode: deps.chapterTitleBlankMode.value,
         leadIndentFullWidth: deps.leadIndentFullWidth.value,
         minCharCount: deps.chapterMinCharCount.value,
         isMarkdown: deps.currentFileIsMarkdown.value,

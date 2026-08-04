@@ -111,7 +111,7 @@ import {
 import {
   applyReaderSurfaceToDocument,
   defaultCompressBlankKeepOneBlank,
-  defaultInsertChapterTitleBlankLines,
+  defaultChapterTitleBlankMode,
   defaultCompressBlankLines,
   defaultChapterMinCharCount,
   defaultFullscreenReaderWidthPercent,
@@ -174,6 +174,7 @@ import {
   minLineHeightMultiple,
   SIDEBAR_ACTIVITY_BAR_WIDTH,
   APP_DISPLAY_NAME,
+  type ChapterTitleBlankMode,
   type ReaderSurfaceColorEnabled,
   type ReaderSurfacePalette,
 } from "./constants/appUi";
@@ -569,8 +570,10 @@ const monacoCustomHighlight = ref(defaultMonacoCustomHighlight);
 const compressBlankLines = ref(defaultCompressBlankLines);
 /** 压缩空行时是否在每行（含章节标题）下方保留一行空行 */
 const compressBlankKeepOneBlank = ref(defaultCompressBlankKeepOneBlank);
-/** 压缩空行时章节标题留白增强（关：前 1；开：前 2、后 1） */
-const insertChapterTitleBlankLines = ref(defaultInsertChapterTitleBlankLines);
+/** 压缩空行时章节标题前后空行模式 */
+const chapterTitleBlankMode = ref<ChapterTitleBlankMode>(
+  defaultChapterTitleBlankMode,
+);
 /** 与「内容上色」同时生效：Monarch 成对引号/括号是否跨行 */
 const txtrDelimitedMatchCrossLine = ref(defaultTxtrDelimitedMatchCrossLine);
 /** 为 true 时正文行统一行首两个全角空格（章节标题行与空行除外） */
@@ -999,7 +1002,7 @@ const stream = useTxtStreamPipeline({
   readerEditMode,
   compressBlankLines,
   compressBlankKeepOneBlank,
-  insertChapterTitleBlankLines,
+  chapterTitleBlankMode,
   leadIndentFullWidth,
   textConvertZh,
   textConvertLetter,
@@ -1060,7 +1063,7 @@ const persistence = useAppPersistence({
   monacoCustomHighlight,
   compressBlankLines,
   compressBlankKeepOneBlank,
-  insertChapterTitleBlankLines,
+  chapterTitleBlankMode,
   txtrDelimitedMatchCrossLine,
   leadIndentFullWidth,
   textConvertZh,
@@ -2443,14 +2446,14 @@ function onFormatEditCompressBlankLines() {
   if (aiSmartFormatReviewSession.value) {
     readerRef.value?.applySmartFormatReviewCompressBlankLines?.(
       compressBlankKeepOneBlank.value,
-      insertChapterTitleBlankLines.value,
+      chapterTitleBlankMode.value,
     );
     return;
   }
   void runEditFormatWithChapterSync(() =>
     readerRef.value?.applyEditFormatCompressBlankLines?.(
       compressBlankKeepOneBlank.value,
-      insertChapterTitleBlankLines.value,
+      chapterTitleBlankMode.value,
     ),
   );
 }
@@ -2500,7 +2503,7 @@ const smartFormatCtl = useAiSmartFormat({
   aiFeaturesEnabled,
   aiSkillOverrides,
   compressBlankKeepOneBlank,
-  insertChapterTitleBlankLines,
+  chapterTitleBlankMode,
   runEditFormatWithChapterSync,
   onReaderEditDirty: () => {
     onReaderEditContentChange();
@@ -3148,7 +3151,7 @@ onBeforeUnmount(() => {
 
 async function applySettings(payload: SettingsApplyPayload) {
   const prevCompressBlankKeepOneBlank = compressBlankKeepOneBlank.value;
-  const prevInsertChapterTitleBlankLines = insertChapterTitleBlankLines.value;
+  const prevChapterTitleBlankMode = chapterTitleBlankMode.value;
   const prevChapterMinCharCount = chapterMinCharCount.value;
   monacoSmoothScrolling.value = payload.monacoSmoothScrolling;
   monacoCjkWrapOptimize.value = payload.monacoCjkWrapOptimize;
@@ -3168,7 +3171,7 @@ async function applySettings(payload: SettingsApplyPayload) {
   editAutoRefreshChapterList.value = payload.editAutoRefreshChapterList;
   aiSmartFormat.value = { ...payload.aiSmartFormat };
   compressBlankKeepOneBlank.value = payload.compressBlankKeepOneBlank;
-  insertChapterTitleBlankLines.value = payload.insertChapterTitleBlankLines;
+  chapterTitleBlankMode.value = payload.chapterTitleBlankMode;
   txtrDelimitedMatchCrossLine.value = payload.txtrDelimitedMatchCrossLine;
   restoreSessionOnStartup.value = payload.restoreSessionOnStartup;
   syncCurrentFile.value = payload.syncCurrentFile;
@@ -3298,8 +3301,7 @@ async function applySettings(payload: SettingsApplyPayload) {
 
   if (
     (prevCompressBlankKeepOneBlank !== compressBlankKeepOneBlank.value ||
-      prevInsertChapterTitleBlankLines !==
-        insertChapterTitleBlankLines.value) &&
+      prevChapterTitleBlankMode !== chapterTitleBlankMode.value) &&
     compressBlankLines.value &&
     currentFile.value &&
     !readerEditMode.value
@@ -3313,7 +3315,7 @@ async function applySettings(payload: SettingsApplyPayload) {
       const ok = await stream.applyReaderDisplayFromPhysicalLines(anchor);
       if (!ok) {
         compressBlankKeepOneBlank.value = prevCompressBlankKeepOneBlank;
-        insertChapterTitleBlankLines.value = prevInsertChapterTitleBlankLines;
+        chapterTitleBlankMode.value = prevChapterTitleBlankMode;
         persistSettings();
         return;
       }
@@ -3977,7 +3979,7 @@ useAppShellThemeWatch({
       :reader-line-spacing-px="readerLineSpacingPx"
       :reader-letter-spacing-px="readerLetterSpacingPx"
       :reader-horizontal-inset-px="readerHorizontalInsetPx"
-      :insert-chapter-title-blank-lines="insertChapterTitleBlankLines"
+      :chapter-title-blank-mode="chapterTitleBlankMode"
       :compress-blank-keep-one-blank="compressBlankKeepOneBlank"
       :monaco-smooth-scrolling="monacoSmoothScrolling"
       :monaco-cjk-wrap-optimize="monacoCjkWrapOptimize"

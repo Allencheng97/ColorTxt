@@ -3,7 +3,10 @@ import RangeSlider from "./RangeSlider.vue";
 import SwitchToggle from "./SwitchToggle.vue";
 import NumericInput from "./NumericInput.vue";
 import RadioGroup from "./RadioGroup.vue";
+import AppCustomSelect, { type CustomSelectItem } from "./AppCustomSelect.vue";
 import {
+  CHAPTER_TITLE_BLANK_MODE_OPTIONS,
+  chapterTitleBlankModeLabel,
   lineHeightMultipleStep,
   lineSpacingPxStep,
   letterSpacingPxStep,
@@ -24,6 +27,7 @@ import {
   minReaderHorizontalInsetPx,
   maxReaderHorizontalInsetPx,
   readerHorizontalInsetPxStep,
+  type ChapterTitleBlankMode,
 } from "../constants/appUi";
 import {
   TIMED_SCROLL_RANGE_OPTIONS,
@@ -51,7 +55,7 @@ const props = defineProps<{
   draftFastScrollSensitivity: number;
   draftStickyChapterTitleEnabled: boolean;
   draftChapterNavToolbarEnabled: boolean;
-  draftInsertChapterTitleBlankLines: boolean;
+  draftChapterTitleBlankMode: ChapterTitleBlankMode;
   draftCompressBlankKeepOneBlank: boolean;
   draftTxtrDelimitedMatchCrossLine: boolean;
   draftFullscreenReaderWidthPercent: number;
@@ -77,7 +81,7 @@ defineEmits<{
   "update:draftFastScrollSensitivity": [v: number];
   "update:draftStickyChapterTitleEnabled": [v: boolean];
   "update:draftChapterNavToolbarEnabled": [v: boolean];
-  "update:draftInsertChapterTitleBlankLines": [v: boolean];
+  "update:draftChapterTitleBlankMode": [v: ChapterTitleBlankMode];
   "update:draftCompressBlankKeepOneBlank": [v: boolean];
   "update:draftTxtrDelimitedMatchCrossLine": [v: boolean];
   "update:draftFullscreenReaderWidthPercent": [v: number];
@@ -93,6 +97,15 @@ defineEmits<{
 const draftMaxLineHeightMultiple = computed(() =>
   maxLineHeightMultipleForFontSize(props.draftFontSize),
 );
+
+const chapterTitleBlankSelectItems = computed<CustomSelectItem[]>(() =>
+  CHAPTER_TITLE_BLANK_MODE_OPTIONS.map((o) => ({
+    kind: "item" as const,
+    id: o.value,
+    label: o.label,
+  })),
+);
+const selectListsEmpty: CustomSelectItem[] = [];
 </script>
 
 <template>
@@ -454,19 +467,25 @@ const draftMaxLineHeightMultiple = computed(() =>
       </h3>
 
       <div class="settingsRow">
-        <div class="settingsRowMain">
+        <div class="settingsRowMain settingsRowMain--baseline">
           <span class="settingsLabel">章节标题前后保留空行</span>
-          <SwitchToggle
-            :model-value="draftInsertChapterTitleBlankLines"
-            aria-label="压缩空行时章节标题前后保留空行"
+          <AppCustomSelect
+            class="settingsSelect settingsSelect--chapterTitleBlank"
+            :model-value="draftChapterTitleBlankMode"
+            :display-label="chapterTitleBlankModeLabel(draftChapterTitleBlankMode)"
+            :fixed-top-items="selectListsEmpty"
+            :scroll-items="chapterTitleBlankSelectItems"
+            :fixed-bottom-items="selectListsEmpty"
+            :scroll-max-height="160"
+            ariaLabel="压缩空行时章节标题前后保留空行"
             @update:model-value="
-              $emit('update:draftInsertChapterTitleBlankLines', $event)
+              $emit(
+                'update:draftChapterTitleBlankMode',
+                $event as ChapterTitleBlankMode,
+              )
             "
           />
         </div>
-        <p class="settingsHint">
-          关闭：前面保留一个空行；<br />打开：前面保留两个空行、后面保留一个空行。
-        </p>
       </div>
 
       <div class="settingsRow">
@@ -525,6 +544,17 @@ const draftMaxLineHeightMultiple = computed(() =>
 
 .settingsRowMain--baseline {
   align-items: baseline;
+}
+
+.settingsSelect {
+  flex: 0 1 220px;
+  min-width: 160px;
+  max-width: 280px;
+}
+
+.settingsSelect--chapterTitleBlank {
+  flex: 0 1 260px;
+  max-width: 300px;
 }
 
 .settingsLabel {

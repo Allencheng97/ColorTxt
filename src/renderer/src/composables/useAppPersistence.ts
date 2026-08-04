@@ -121,11 +121,13 @@ import {
   fileListKey,
   fileMetaKey,
   persistKey,
+  parseChapterTitleBlankMode,
   recentFilesKey,
   sessionKey,
   skipSettingsPersistenceSessionKey,
   skipUnloadPersistenceSessionKey,
   APP_DISPLAY_NAME,
+  type ChapterTitleBlankMode,
   type ReaderSurfacePalette,
 } from "../constants/appUi";
 import { EBOOK_CONVERT_DEFAULT_SUBDIR } from "@shared/ebookConvertPaths";
@@ -214,7 +216,7 @@ export function useAppPersistence(deps: {
   monacoCustomHighlight: Ref<boolean>;
   compressBlankLines: Ref<boolean>;
   compressBlankKeepOneBlank: Ref<boolean>;
-  insertChapterTitleBlankLines: Ref<boolean>;
+  chapterTitleBlankMode: Ref<ChapterTitleBlankMode>;
   /** 与「内容上色」同时生效：成对引号/括号是否跨行 */
   txtrDelimitedMatchCrossLine: Ref<boolean>;
   leadIndentFullWidth: Ref<boolean>;
@@ -358,7 +360,7 @@ export function useAppPersistence(deps: {
       monacoCustomHighlight: deps.monacoCustomHighlight.value,
       compressBlankLines: deps.compressBlankLines.value,
       compressBlankKeepOneBlank: deps.compressBlankKeepOneBlank.value,
-      insertChapterTitleBlankLines: deps.insertChapterTitleBlankLines.value,
+      chapterTitleBlankMode: deps.chapterTitleBlankMode.value,
       txtrDelimitedMatchCrossLine: deps.txtrDelimitedMatchCrossLine.value,
       leadIndentFullWidth: deps.leadIndentFullWidth.value,
       textConvertZh: deps.textConvertZh.value,
@@ -1118,9 +1120,10 @@ export function useAppPersistence(deps: {
         deps.compressBlankKeepOneBlank.value = data.compressBlankKeepOneBlank;
       }
 
-      if (typeof data.insertChapterTitleBlankLines === "boolean") {
-        deps.insertChapterTitleBlankLines.value =
-          data.insertChapterTitleBlankLines;
+      if (data.chapterTitleBlankMode !== undefined) {
+        deps.chapterTitleBlankMode.value = parseChapterTitleBlankMode(
+          data.chapterTitleBlankMode,
+        );
       }
 
       if (typeof data.txtrDelimitedMatchCrossLine === "boolean") {

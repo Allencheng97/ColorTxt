@@ -105,6 +105,7 @@ import VoiceReadResumeGuide from "./VoiceReadResumeGuide.vue";
 import "./readerMainMonaco.css";
 import {
   defaultChapterMinCharCount,
+  defaultChapterTitleBlankMode,
   defaultCompressBlankLines,
   defaultLeadIndentFullWidth,
   defaultMonacoAdvancedWrapping,
@@ -126,6 +127,7 @@ import {
   defaultReaderPaletteDark,
   defaultReaderPaletteLight,
   defaultReaderPaletteColorEnabled,
+  type ChapterTitleBlankMode,
   type ReaderSurfaceColorEnabled,
   type ReaderSurfacePalette,
 } from "../constants/appUi";
@@ -1056,7 +1058,7 @@ function readerFormatOptions(
   return {
     compressBlankLines: false,
     compressBlankKeepOneBlank: false,
-    insertChapterTitleBlankLines: false,
+    chapterTitleBlankMode: defaultChapterTitleBlankMode,
     leadIndentFullWidth: false,
     minCharCount: ctx.chapterMinCharCount,
     isMarkdown: ctx.isMarkdown,
@@ -1112,7 +1114,7 @@ async function applyEditFormatAsync(
 
 async function applyEditFormatCompressBlankLines(
   keepOneBlank: boolean,
-  insertChapterTitleBlankLines = false,
+  chapterTitleBlankMode: ChapterTitleBlankMode = defaultChapterTitleBlankMode,
 ): Promise<boolean> {
   return applyEditFormat((plain) =>
     formatPhysicalPlainTextForReader(
@@ -1120,7 +1122,7 @@ async function applyEditFormatCompressBlankLines(
       readerFormatOptions({
         compressBlankLines: true,
         compressBlankKeepOneBlank: keepOneBlank,
-        insertChapterTitleBlankLines,
+        chapterTitleBlankMode,
       }),
     ),
   );
@@ -1199,14 +1201,14 @@ function applySmartFormatReviewFormat(
 
 function applySmartFormatReviewCompressBlankLines(
   keepOneBlank: boolean,
-  insertChapterTitleBlankLines = false,
+  chapterTitleBlankMode: ChapterTitleBlankMode = defaultChapterTitleBlankMode,
 ): boolean {
   return applySmartFormatReviewFormat((plain) =>
     compressBlankLinesInText(
       plain,
       smartFormatPostProcessContext(),
       keepOneBlank,
-      insertChapterTitleBlankLines,
+      chapterTitleBlankMode,
     ),
   );
 }
@@ -1240,14 +1242,14 @@ function applyEditFormatCompressBlankLinesInRange(
   startLine: number,
   endLine: number,
   keepOneBlank: boolean,
-  insertChapterTitleBlankLines = false,
+  chapterTitleBlankMode: ChapterTitleBlankMode = defaultChapterTitleBlankMode,
 ): boolean {
   return applyEditFormatInLineRange(startLine, endLine, (plain) =>
     compressBlankLinesInText(
       plain,
       smartFormatPostProcessContext(),
       keepOneBlank,
-      insertChapterTitleBlankLines,
+      chapterTitleBlankMode,
     ),
   );
 }

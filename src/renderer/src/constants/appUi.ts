@@ -114,10 +114,65 @@ export const defaultMonacoCustomHighlight = true;
 export const defaultTxtrDelimitedMatchCrossLine = true;
 /** 为 true 时在加载文件流中丢弃空行（仅空格/缩进也视为空行） */
 export const defaultCompressBlankLines = false;
-/** 压缩空行时章节标题前后空行（关：前 1；开：前 2、后 1） */
-export const defaultInsertChapterTitleBlankLines = false;
-/** 压缩空行时是否在每行（含章节标题）下方保留一行空行 */
+/** 压缩空行时是否在每行（含非标题正文）下方保留一行空行 */
 export const defaultCompressBlankKeepOneBlank = false;
+
+/** 压缩空行时章节标题前后空行模式 */
+export type ChapterTitleBlankMode =
+  | "before1"
+  | "before1After1"
+  | "before2After1";
+
+export const defaultChapterTitleBlankMode: ChapterTitleBlankMode = "before1";
+
+export const CHAPTER_TITLE_BLANK_MODE_OPTIONS: readonly {
+  value: ChapterTitleBlankMode;
+  label: string;
+}[] = [
+  { value: "before1", label: "前面 1 空行" },
+  { value: "before1After1", label: "前面 1 空行，后面 1 空行" },
+  { value: "before2After1", label: "前面 2 空行，后面 1 空行" },
+];
+
+export function isChapterTitleBlankMode(
+  v: unknown,
+): v is ChapterTitleBlankMode {
+  return (
+    v === "before1" || v === "before1After1" || v === "before2After1"
+  );
+}
+
+export function parseChapterTitleBlankMode(
+  v: unknown,
+): ChapterTitleBlankMode {
+  return isChapterTitleBlankMode(v) ? v : defaultChapterTitleBlankMode;
+}
+
+export function chapterTitleBlankModeLabel(
+  mode: ChapterTitleBlankMode,
+): string {
+  return (
+    CHAPTER_TITLE_BLANK_MODE_OPTIONS.find((o) => o.value === mode)?.label ??
+    CHAPTER_TITLE_BLANK_MODE_OPTIONS[0]!.label
+  );
+}
+
+/** 章节标题前/后插入的空行数（仅压缩空行路径） */
+export function chapterTitleBlankCounts(mode: ChapterTitleBlankMode): {
+  before: number;
+  after: number;
+} {
+  switch (mode) {
+    case "before1After1":
+      return { before: 1, after: 1 };
+    case "before2After1":
+      return { before: 2, after: 1 };
+    case "before1":
+    default:
+      return { before: 1, after: 0 };
+  }
+}
+
 /** 为 true 时正文行统一行首两个全角空格（章节标题行与空行除外） */
 export const defaultLeadIndentFullWidth = false;
 export {

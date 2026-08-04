@@ -13,6 +13,7 @@ import type { VoiceReadSettings } from "../constants/voiceRead";
 import type { TimedScrollSettings } from "../constants/timedScroll";
 import type { PomodoroSettings } from "../constants/pomodoro";
 import type { VoiceReadProfile } from "@shared/voiceReadProfiles";
+import type { ChapterTitleBlankMode } from "../constants/appUi";
 import type { CharacterRosterEntry } from "@shared/characterTypes";
 import { bookmarkNoteInputRefKey } from "../injectionKeys";
 import type { FileBookmarkItem } from "../stores/fileMetaStore";
@@ -56,7 +57,7 @@ const props = defineProps<{
   readerEditMinimap: boolean;
   editAutoRefreshChapterList: boolean;
   aiSmartFormat: import("@shared/aiSmartFormatTypes").AiSmartFormatSettings;
-  insertChapterTitleBlankLines: boolean;
+  chapterTitleBlankMode: ChapterTitleBlankMode;
   compressBlankKeepOneBlank: boolean;
   monacoCustomHighlight: boolean;
   txtrDelimitedMatchCrossLine: boolean;
@@ -283,7 +284,7 @@ onBeforeUnmount(() => {
     :reader-edit-minimap="readerEditMinimap"
     :edit-auto-refresh-chapter-list="editAutoRefreshChapterList"
     :ai-smart-format="aiSmartFormat"
-    :insert-chapter-title-blank-lines="insertChapterTitleBlankLines"
+    :chapter-title-blank-mode="chapterTitleBlankMode"
     :compress-blank-keep-one-blank="compressBlankKeepOneBlank"
     :monaco-custom-highlight="monacoCustomHighlight"
     :txtr-delimited-match-cross-line="txtrDelimitedMatchCrossLine"

@@ -36,7 +36,7 @@ const UI_READER_KEYS = [
   "pinnedOtherFonts",
   "compressBlankLines",
   "compressBlankKeepOneBlank",
-  "insertChapterTitleBlankLines",
+  "chapterTitleBlankMode",
   "leadIndentFullWidth",
   "textConvertZh",
   "textConvertLetter",

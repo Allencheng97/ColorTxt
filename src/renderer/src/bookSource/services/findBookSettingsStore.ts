@@ -1,7 +1,7 @@
 import {
   clampLineHeightMultipleForFontSize,
   defaultCompressBlankKeepOneBlank,
-  defaultInsertChapterTitleBlankLines,
+  parseChapterTitleBlankMode,
   defaultCompressBlankLines,
   defaultChapterNavToolbarEnabled,
   defaultFullscreenReaderWidthPercent,
@@ -32,6 +32,7 @@ import {
   normalizeLineHeightMultiple,
   persistKey,
   SIDEBAR_ACTIVITY_BAR_WIDTH,
+  type ChapterTitleBlankMode,
 } from "../../constants/appUi";
 import {
   defaultTimedScrollIntervalMs,
@@ -143,7 +144,7 @@ export type SharedReaderSettingsSnapshot = {
   txtrDelimitedMatchCrossLine: boolean;
   compressBlankLines: boolean;
   compressBlankKeepOneBlank: boolean;
-  insertChapterTitleBlankLines: boolean;
+  chapterTitleBlankMode: ChapterTitleBlankMode;
   leadIndentFullWidth: boolean;
   textConvertZh: TextConvertZhMode;
   textConvertLetter: TextConvertWidthMode;
@@ -210,10 +211,9 @@ export function sharedReaderSettingsFromMainData(
       typeof data.compressBlankKeepOneBlank === "boolean"
         ? data.compressBlankKeepOneBlank
         : defaultCompressBlankKeepOneBlank,
-    insertChapterTitleBlankLines:
-      typeof data.insertChapterTitleBlankLines === "boolean"
-        ? data.insertChapterTitleBlankLines
-        : defaultInsertChapterTitleBlankLines,
+    chapterTitleBlankMode: parseChapterTitleBlankMode(
+      data.chapterTitleBlankMode,
+    ),
     leadIndentFullWidth:
       typeof data.leadIndentFullWidth === "boolean"
         ? data.leadIndentFullWidth
@@ -289,7 +289,7 @@ export function snapshotSharedReaderSettingsForMain(
     txtrDelimitedMatchCrossLine: state.txtrDelimitedMatchCrossLine,
     compressBlankLines: state.compressBlankLines,
     compressBlankKeepOneBlank: state.compressBlankKeepOneBlank,
-    insertChapterTitleBlankLines: state.insertChapterTitleBlankLines,
+    chapterTitleBlankMode: state.chapterTitleBlankMode,
     leadIndentFullWidth: state.leadIndentFullWidth,
     textConvertZh: state.textConvertZh,
     textConvertLetter: state.textConvertLetter,

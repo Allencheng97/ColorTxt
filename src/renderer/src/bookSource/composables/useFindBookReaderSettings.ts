@@ -353,7 +353,7 @@ function createFindBookReaderSettingsStore() {
     txtrDelimitedMatchCrossLine: fb.txtrDelimitedMatchCrossLine,
     compressBlankLines: fb.compressBlankLines,
     compressBlankKeepOneBlank: fb.compressBlankKeepOneBlank,
-    insertChapterTitleBlankLines: fb.insertChapterTitleBlankLines,
+    chapterTitleBlankMode: fb.chapterTitleBlankMode,
     leadIndentFullWidth: fb.leadIndentFullWidth,
     textConvertZh: fb.textConvertZh,
     textConvertLetter: fb.textConvertLetter,

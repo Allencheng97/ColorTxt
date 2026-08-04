@@ -207,7 +207,7 @@ const {
   txtrDelimitedMatchCrossLine,
   compressBlankLines,
   compressBlankKeepOneBlank,
-  insertChapterTitleBlankLines,
+  chapterTitleBlankMode,
   leadIndentFullWidth,
   textConvertZh,
   textConvertLetter,
@@ -588,7 +588,7 @@ const {
   textConvertDigit,
   compressBlankLines,
   compressBlankKeepOneBlank,
-  insertChapterTitleBlankLines,
+  chapterTitleBlankMode,
   leadIndentFullWidth,
   chapterMinCharCount,
   effectiveCacheDir,
@@ -995,7 +995,7 @@ async function toggleCompressBlankLines() {
   if (readerEditMode.value) {
     void readerRef.value?.applyEditFormatCompressBlankLines?.(
       compressBlankKeepOneBlank.value,
-      insertChapterTitleBlankLines.value,
+      chapterTitleBlankMode.value,
     );
     return;
   }
@@ -1038,7 +1038,7 @@ async function setTextConvertDigitRead(mode: typeof textConvertDigit.value) {
 function onFormatEditCompressBlankLines() {
   void readerRef.value?.applyEditFormatCompressBlankLines?.(
     compressBlankKeepOneBlank.value,
-    insertChapterTitleBlankLines.value,
+    chapterTitleBlankMode.value,
   );
 }
 
@@ -1527,7 +1527,7 @@ watch(
 watch(
   [
     compressBlankKeepOneBlank,
-    insertChapterTitleBlankLines,
+    chapterTitleBlankMode,
     txtrDelimitedMatchCrossLine,
   ],
   () => {

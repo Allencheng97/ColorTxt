@@ -34,7 +34,7 @@ import {
   clampLineHeightMultipleForFontSize,
   defaultChapterMinCharCount,
   defaultCompressBlankKeepOneBlank,
-  defaultInsertChapterTitleBlankLines,
+  defaultChapterTitleBlankMode,
   defaultFullscreenReaderWidthPercent,
   defaultFullscreenShowSystemTime,
   defaultMonacoCjkWrapOptimize,
@@ -65,6 +65,7 @@ import {
   persistKey,
   skipUnloadPersistenceSessionKey,
   APP_DISPLAY_NAME,
+  type ChapterTitleBlankMode,
 } from "../constants/appUi";
 import {
   defaultTimedScrollIntervalMs,
@@ -143,7 +144,7 @@ export type SettingsApplyPayload = {
   lineSpacingPx: number;
   letterSpacingPx: number;
   readerHorizontalInsetPx: number;
-  insertChapterTitleBlankLines: boolean;
+  chapterTitleBlankMode: ChapterTitleBlankMode;
   compressBlankKeepOneBlank: boolean;
   txtrDelimitedMatchCrossLine: boolean;
   timedScroll: TimedScrollSettings;
@@ -189,7 +190,7 @@ const props = defineProps<{
   readerEditMinimap: boolean;
   editAutoRefreshChapterList: boolean;
   aiSmartFormat: AiSmartFormatSettings;
-  insertChapterTitleBlankLines: boolean;
+  chapterTitleBlankMode: ChapterTitleBlankMode;
   compressBlankKeepOneBlank: boolean;
   monacoCustomHighlight: boolean;
   txtrDelimitedMatchCrossLine: boolean;
@@ -261,8 +262,8 @@ const draftEditAutoRefreshChapterList = ref(defaultEditAutoRefreshChapterList);
 const draftAiSmartFormat = ref<AiSmartFormatSettings>({
   ...defaultAiSmartFormatSettings,
 });
-const draftInsertChapterTitleBlankLines = ref(
-  defaultInsertChapterTitleBlankLines,
+const draftChapterTitleBlankMode = ref(
+  defaultChapterTitleBlankMode,
 );
 const draftCompressBlankKeepOneBlank = ref(false);
 const draftTxtrDelimitedMatchCrossLine = ref(
@@ -340,8 +341,8 @@ function syncDraftFromProps() {
   draftReaderEditMinimap.value = props.readerEditMinimap;
   draftEditAutoRefreshChapterList.value = props.editAutoRefreshChapterList;
   draftAiSmartFormat.value = mergeAiSmartFormatSettings(props.aiSmartFormat);
-  draftInsertChapterTitleBlankLines.value =
-    props.insertChapterTitleBlankLines;
+  draftChapterTitleBlankMode.value =
+    props.chapterTitleBlankMode;
   draftCompressBlankKeepOneBlank.value = props.compressBlankKeepOneBlank;
   draftTxtrDelimitedMatchCrossLine.value = props.txtrDelimitedMatchCrossLine;
   const timedScrollMerged = mergeTimedScrollSettings(props.timedScrollSettings);
@@ -482,8 +483,8 @@ function resetReadingDraft() {
   draftFastScrollSensitivity.value = defaultFastScrollSensitivity;
   draftStickyChapterTitleEnabled.value = defaultStickyChapterTitleEnabled;
   draftChapterNavToolbarEnabled.value = defaultChapterNavToolbarEnabled;
-  draftInsertChapterTitleBlankLines.value =
-    defaultInsertChapterTitleBlankLines;
+  draftChapterTitleBlankMode.value =
+    defaultChapterTitleBlankMode;
   draftCompressBlankKeepOneBlank.value = defaultCompressBlankKeepOneBlank;
   draftTxtrDelimitedMatchCrossLine.value = defaultTxtrDelimitedMatchCrossLine;
   draftFullscreenReaderWidthPercent.value = defaultFullscreenReaderWidthPercent;
@@ -712,7 +713,7 @@ async function onConfirm() {
     readerHorizontalInsetPx: clampReaderHorizontalInsetPx(
       draftReaderHorizontalInsetPx.value,
     ),
-    insertChapterTitleBlankLines: draftInsertChapterTitleBlankLines.value,
+    chapterTitleBlankMode: draftChapterTitleBlankMode.value,
     compressBlankKeepOneBlank: draftCompressBlankKeepOneBlank.value,
     txtrDelimitedMatchCrossLine: draftTxtrDelimitedMatchCrossLine.value,
     timedScroll: mergeTimedScrollSettings({
@@ -872,8 +873,8 @@ async function onClearCache() {
               v-model:draft-chapter-nav-toolbar-enabled="
                 draftChapterNavToolbarEnabled
               "
-              v-model:draft-insert-chapter-title-blank-lines="
-                draftInsertChapterTitleBlankLines
+              v-model:draft-chapter-title-blank-mode="
+                draftChapterTitleBlankMode
               "
               v-model:draft-compress-blank-keep-one-blank="
                 draftCompressBlankKeepOneBlank

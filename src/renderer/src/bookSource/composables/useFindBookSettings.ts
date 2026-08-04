@@ -43,7 +43,7 @@ function createFindBookSettingsStore() {
   const txtrDelimitedMatchCrossLine = ref(initial.txtrDelimitedMatchCrossLine);
   const compressBlankLines = ref(initial.compressBlankLines);
   const compressBlankKeepOneBlank = ref(initial.compressBlankKeepOneBlank);
-  const insertChapterTitleBlankLines = ref(initial.insertChapterTitleBlankLines);
+  const chapterTitleBlankMode = ref(initial.chapterTitleBlankMode);
   const leadIndentFullWidth = ref(initial.leadIndentFullWidth);
   const textConvertZh = ref(initial.textConvertZh);
   const textConvertLetter = ref(initial.textConvertLetter);
@@ -96,7 +96,7 @@ function createFindBookSettingsStore() {
       txtrDelimitedMatchCrossLine: txtrDelimitedMatchCrossLine.value,
       compressBlankLines: compressBlankLines.value,
       compressBlankKeepOneBlank: compressBlankKeepOneBlank.value,
-      insertChapterTitleBlankLines: insertChapterTitleBlankLines.value,
+      chapterTitleBlankMode: chapterTitleBlankMode.value,
       leadIndentFullWidth: leadIndentFullWidth.value,
       textConvertZh: textConvertZh.value,
       textConvertLetter: textConvertLetter.value,
@@ -165,7 +165,7 @@ function createFindBookSettingsStore() {
     txtrDelimitedMatchCrossLine.value = shared.txtrDelimitedMatchCrossLine;
     compressBlankLines.value = shared.compressBlankLines;
     compressBlankKeepOneBlank.value = shared.compressBlankKeepOneBlank;
-    insertChapterTitleBlankLines.value = shared.insertChapterTitleBlankLines;
+    chapterTitleBlankMode.value = shared.chapterTitleBlankMode;
     leadIndentFullWidth.value = shared.leadIndentFullWidth;
     textConvertZh.value = shared.textConvertZh;
     textConvertLetter.value = shared.textConvertLetter;
@@ -212,7 +212,7 @@ function createFindBookSettingsStore() {
     txtrDelimitedMatchCrossLine,
     compressBlankLines,
     compressBlankKeepOneBlank,
-    insertChapterTitleBlankLines,
+    chapterTitleBlankMode,
     leadIndentFullWidth,
     textConvertZh,
     textConvertLetter,
