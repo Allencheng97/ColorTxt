@@ -127,7 +127,7 @@ export const defaultShowChapterCounts = true;
 /** 章节列表与底栏总字数是否显示具体数值（关闭时 ≥1 万用「万字」简写） */
 export const defaultChapterCharCountExact = false;
 /** 少于该字数的片段不作为章节（作用于章节列表/导航） */
-export const defaultChapterMinCharCount = 1;
+export const defaultChapterMinCharCount = 0;
 export const minChapterMinCharCount = 0;
 export const maxChapterMinCharCount = 100000;
 export const defaultReaderFontSize = 24;
