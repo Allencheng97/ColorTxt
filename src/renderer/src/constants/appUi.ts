@@ -136,6 +136,11 @@ export const defaultRestoreSessionOnStartup = true;
 /** 是否监控当前打开文件并在磁盘变更后自动重新加载（默认关闭） */
 export const defaultSyncCurrentFile = false;
 export const defaultMonacoAdvancedWrapping = false;
+/**
+ * 简单换行下将 ——/…… 等按全角估算（Vite 包装 Monaco isFullWidthCharacter）。
+ * 开启高级换行时运行时自动停用。
+ */
+export const defaultMonacoCjkWrapOptimize = true;
 /** Monaco 阅读区：滚轮/跳转等是否使用平滑滚动动画 */
 export const defaultMonacoSmoothScrolling = true;
 /** Monaco `mouseWheelScrollSensitivity`：滚轮 delta 倍率 */

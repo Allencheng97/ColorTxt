@@ -118,6 +118,7 @@ import {
   defaultTextConvertLetterMode,
   defaultTextConvertZhMode,
   defaultMonacoAdvancedWrapping,
+  defaultMonacoCjkWrapOptimize,
   defaultMonacoCustomHighlight,
   defaultMonacoSmoothScrolling,
   defaultMouseWheelScrollSensitivity,
@@ -588,6 +589,8 @@ const recentFilesHistoryLimit = ref(defaultRecentFilesHistoryLimit);
 const chapterMinCharCount = ref(defaultChapterMinCharCount);
 /** Monaco wrappingStrategy：advanced 换行更优、更重 */
 const monacoAdvancedWrapping = ref(defaultMonacoAdvancedWrapping);
+/** 简单换行下中文标点全角估算（高级换行开启时运行时停用） */
+const monacoCjkWrapOptimize = ref(defaultMonacoCjkWrapOptimize);
 /** Monaco 阅读区平滑滚动（设置可关） */
 const monacoSmoothScrolling = ref(defaultMonacoSmoothScrolling);
 const mouseWheelScrollSensitivity = ref(defaultMouseWheelScrollSensitivity);
@@ -1049,6 +1052,7 @@ const persistence = useAppPersistence({
   recentFilesHistoryLimit,
   chapterMinCharCount,
   monacoAdvancedWrapping,
+  monacoCjkWrapOptimize,
   monacoSmoothScrolling,
   mouseWheelScrollSensitivity,
   fastScrollSensitivity,
@@ -3038,6 +3042,7 @@ async function applySettings(payload: SettingsApplyPayload) {
   const prevCompressBlankKeepOneBlank = compressBlankKeepOneBlank.value;
   const prevChapterMinCharCount = chapterMinCharCount.value;
   monacoSmoothScrolling.value = payload.monacoSmoothScrolling;
+  monacoCjkWrapOptimize.value = payload.monacoCjkWrapOptimize;
   mouseWheelScrollSensitivity.value = clampMouseWheelScrollSensitivity(
     payload.mouseWheelScrollSensitivity,
   );
@@ -3582,6 +3587,7 @@ useAppShellThemeWatch({
           :lead-indent-full-width="leadIndentFullWidth"
           :chapter-min-char-count="chapterMinCharCount"
           :monaco-advanced-wrapping="monacoAdvancedWrapping"
+          :monaco-cjk-wrap-optimize="monacoCjkWrapOptimize"
           :monaco-smooth-scrolling="monacoSmoothScrolling"
           :mouse-wheel-scroll-sensitivity="mouseWheelScrollSensitivity"
           :fast-scroll-sensitivity="fastScrollSensitivity"
@@ -3820,6 +3826,7 @@ useAppShellThemeWatch({
       :reader-line-height-multiple="readerLineHeightMultiple"
       :compress-blank-keep-one-blank="compressBlankKeepOneBlank"
       :monaco-smooth-scrolling="monacoSmoothScrolling"
+      :monaco-cjk-wrap-optimize="monacoCjkWrapOptimize"
       :mouse-wheel-scroll-sensitivity="mouseWheelScrollSensitivity"
       :fast-scroll-sensitivity="fastScrollSensitivity"
       :sticky-chapter-title-enabled="stickyChapterTitleEnabled"

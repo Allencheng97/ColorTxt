@@ -45,6 +45,7 @@ function createFindBookSettingsStore() {
   const textConvertLetter = ref(initial.textConvertLetter);
   const textConvertDigit = ref(initial.textConvertDigit);
   const monacoAdvancedWrapping = ref(initial.monacoAdvancedWrapping);
+  const monacoCjkWrapOptimize = ref(initial.monacoCjkWrapOptimize);
   const monacoSmoothScrolling = ref(initial.monacoSmoothScrolling);
   const mouseWheelScrollSensitivity = ref(initial.mouseWheelScrollSensitivity);
   const fastScrollSensitivity = ref(initial.fastScrollSensitivity);
@@ -93,6 +94,7 @@ function createFindBookSettingsStore() {
       textConvertLetter: textConvertLetter.value,
       textConvertDigit: textConvertDigit.value,
       monacoAdvancedWrapping: monacoAdvancedWrapping.value,
+      monacoCjkWrapOptimize: monacoCjkWrapOptimize.value,
       monacoSmoothScrolling: monacoSmoothScrolling.value,
       mouseWheelScrollSensitivity: mouseWheelScrollSensitivity.value,
       fastScrollSensitivity: fastScrollSensitivity.value,
@@ -157,6 +159,7 @@ function createFindBookSettingsStore() {
     textConvertLetter.value = shared.textConvertLetter;
     textConvertDigit.value = shared.textConvertDigit;
     monacoAdvancedWrapping.value = shared.monacoAdvancedWrapping;
+    monacoCjkWrapOptimize.value = shared.monacoCjkWrapOptimize;
     monacoSmoothScrolling.value = shared.monacoSmoothScrolling;
     mouseWheelScrollSensitivity.value = shared.mouseWheelScrollSensitivity;
     fastScrollSensitivity.value = shared.fastScrollSensitivity;
@@ -199,6 +202,7 @@ function createFindBookSettingsStore() {
     textConvertLetter,
     textConvertDigit,
     monacoAdvancedWrapping,
+    monacoCjkWrapOptimize,
     monacoSmoothScrolling,
     mouseWheelScrollSensitivity,
     fastScrollSensitivity,

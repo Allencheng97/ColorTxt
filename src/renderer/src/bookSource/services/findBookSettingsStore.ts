@@ -8,6 +8,7 @@ import {
   defaultShowSidebar,
   defaultLeadIndentFullWidth,
   defaultMonacoAdvancedWrapping,
+  defaultMonacoCjkWrapOptimize,
   defaultMonacoCustomHighlight,
   defaultMonacoSmoothScrolling,
   defaultMouseWheelScrollSensitivity,
@@ -137,6 +138,7 @@ export type SharedReaderSettingsSnapshot = {
   textConvertLetter: TextConvertWidthMode;
   textConvertDigit: TextConvertWidthMode;
   monacoAdvancedWrapping: boolean;
+  monacoCjkWrapOptimize: boolean;
   monacoSmoothScrolling: boolean;
   mouseWheelScrollSensitivity: number;
   fastScrollSensitivity: number;
@@ -198,6 +200,10 @@ export function sharedReaderSettingsFromMainData(
       typeof data.monacoAdvancedWrapping === "boolean"
         ? data.monacoAdvancedWrapping
         : defaultMonacoAdvancedWrapping,
+    monacoCjkWrapOptimize:
+      typeof data.monacoCjkWrapOptimize === "boolean"
+        ? data.monacoCjkWrapOptimize
+        : defaultMonacoCjkWrapOptimize,
     monacoSmoothScrolling:
       typeof data.monacoSmoothScrolling === "boolean"
         ? data.monacoSmoothScrolling
@@ -258,6 +264,7 @@ export function snapshotSharedReaderSettingsForMain(
     textConvertLetter: state.textConvertLetter,
     textConvertDigit: state.textConvertDigit,
     monacoAdvancedWrapping: state.monacoAdvancedWrapping,
+    monacoCjkWrapOptimize: state.monacoCjkWrapOptimize,
     monacoSmoothScrolling: state.monacoSmoothScrolling,
     mouseWheelScrollSensitivity: state.mouseWheelScrollSensitivity,
     fastScrollSensitivity: state.fastScrollSensitivity,

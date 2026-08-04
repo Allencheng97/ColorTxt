@@ -33,6 +33,7 @@ const props = defineProps<{
   draftFontSize: number;
   draftLineHeightMultiple: number;
   draftMonacoSmoothScrolling: boolean;
+  draftMonacoCjkWrapOptimize: boolean;
   draftMouseWheelScrollSensitivity: number;
   draftFastScrollSensitivity: number;
   draftStickyChapterTitleEnabled: boolean;
@@ -54,6 +55,7 @@ defineEmits<{
   "update:draftFontSize": [v: number];
   "update:draftLineHeightMultiple": [v: number];
   "update:draftMonacoSmoothScrolling": [v: boolean];
+  "update:draftMonacoCjkWrapOptimize": [v: boolean];
   "update:draftMouseWheelScrollSensitivity": [v: number];
   "update:draftFastScrollSensitivity": [v: number];
   "update:draftStickyChapterTitleEnabled": [v: boolean];
@@ -172,6 +174,22 @@ const draftMaxLineHeightMultiple = computed(() =>
         </div>
         <p class="settingsHint">
           在阅读区底部显示「上一章 / 下一章」快捷跳转；仅一章或无章节时不显示。
+        </p>
+      </div>
+
+      <div class="settingsRow">
+        <div class="settingsRowMain">
+          <span class="settingsLabel">启用中文换行优化</span>
+          <SwitchToggle
+            :model-value="draftMonacoCjkWrapOptimize"
+            aria-label="启用中文换行优化"
+            @update:model-value="
+              $emit('update:draftMonacoCjkWrapOptimize', $event)
+            "
+          />
+        </div>
+        <p class="settingsHint">
+          优化「简单换行策略」下的中文换行效果，不作用于「高级换行策略」。
         </p>
       </div>
     </div>

@@ -90,6 +90,8 @@ export type PersistedSettingsData = {
   chapterMinCharCount?: number;
   /** Monaco 换行是否使用 advanced 策略（性能开销更大） */
   monacoAdvancedWrapping?: boolean;
+  /** 简单换行下中文标点全角估算；高级换行开启时运行时停用 */
+  monacoCjkWrapOptimize?: boolean;
   /** Monaco 阅读区平滑滚动（滚轮、程序性 setScrollTop/revealLine 等） */
   monacoSmoothScrolling?: boolean;
   /** Monaco 滚轮滚动倍率（`mouseWheelScrollSensitivity`） */
@@ -358,6 +360,9 @@ export function loadPersistedSettingsData(
   }
   if (typeof obj.monacoAdvancedWrapping === "boolean") {
     data.monacoAdvancedWrapping = obj.monacoAdvancedWrapping;
+  }
+  if (typeof obj.monacoCjkWrapOptimize === "boolean") {
+    data.monacoCjkWrapOptimize = obj.monacoCjkWrapOptimize;
   }
   if (typeof obj.monacoSmoothScrolling === "boolean") {
     data.monacoSmoothScrolling = obj.monacoSmoothScrolling;

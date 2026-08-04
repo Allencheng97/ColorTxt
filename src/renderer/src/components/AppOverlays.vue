@@ -43,6 +43,7 @@ const props = defineProps<{
   readerFontSize: number;
   readerLineHeightMultiple: number;
   monacoSmoothScrolling: boolean;
+  monacoCjkWrapOptimize: boolean;
   mouseWheelScrollSensitivity: number;
   fastScrollSensitivity: number;
   stickyChapterTitleEnabled: boolean;
@@ -265,6 +266,7 @@ onBeforeUnmount(() => {
     :reader-font-size="readerFontSize"
     :reader-line-height-multiple="readerLineHeightMultiple"
     :monaco-smooth-scrolling="monacoSmoothScrolling"
+    :monaco-cjk-wrap-optimize="monacoCjkWrapOptimize"
     :mouse-wheel-scroll-sensitivity="mouseWheelScrollSensitivity"
     :fast-scroll-sensitivity="fastScrollSensitivity"
     :sticky-chapter-title-enabled="stickyChapterTitleEnabled"

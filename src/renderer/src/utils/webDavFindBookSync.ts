@@ -40,6 +40,7 @@ const UI_READER_KEYS = [
   "monacoCustomHighlight",
   "txtrDelimitedMatchCrossLine",
   "monacoAdvancedWrapping",
+  "monacoCjkWrapOptimize",
   "monacoSmoothScrolling",
   "mouseWheelScrollSensitivity",
   "fastScrollSensitivity",

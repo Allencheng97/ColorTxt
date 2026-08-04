@@ -21,6 +21,7 @@ import {
   defaultCompressBlankKeepOneBlank,
   defaultFullscreenReaderWidthPercent,
   defaultFullscreenShowSystemTime,
+  defaultMonacoCjkWrapOptimize,
   defaultMonacoSmoothScrolling,
   defaultMouseWheelScrollSensitivity,
   defaultFastScrollSensitivity,
@@ -133,6 +134,7 @@ const draftWebDavRemoteDir = ref("ColorTxt");
 const draftFontSize = ref(defaultReaderFontSize);
 const draftLineHeightMultiple = ref(defaultReaderLineHeightMultiple);
 const draftMonacoSmoothScrolling = ref(defaultMonacoSmoothScrolling);
+const draftMonacoCjkWrapOptimize = ref(defaultMonacoCjkWrapOptimize);
 const draftMouseWheelScrollSensitivity = ref(
   defaultMouseWheelScrollSensitivity,
 );
@@ -200,6 +202,7 @@ function syncSharedReaderDraftFromStore() {
     fb.readerLineHeightMultiple.value,
   );
   draftMonacoSmoothScrolling.value = fb.monacoSmoothScrolling.value;
+  draftMonacoCjkWrapOptimize.value = fb.monacoCjkWrapOptimize.value;
   draftMouseWheelScrollSensitivity.value = clampMouseWheelScrollSensitivity(
     fb.mouseWheelScrollSensitivity.value,
   );
@@ -281,6 +284,7 @@ function resetReadingDraft() {
   draftFontSize.value = defaultReaderFontSize;
   draftLineHeightMultiple.value = defaultReaderLineHeightMultiple;
   draftMonacoSmoothScrolling.value = defaultMonacoSmoothScrolling;
+  draftMonacoCjkWrapOptimize.value = defaultMonacoCjkWrapOptimize;
   draftMouseWheelScrollSensitivity.value = defaultMouseWheelScrollSensitivity;
   draftFastScrollSensitivity.value = defaultFastScrollSensitivity;
   draftStickyChapterTitleEnabled.value = defaultStickyChapterTitleEnabled;
@@ -437,6 +441,7 @@ async function onConfirm() {
     draftLineHeightMultiple.value,
   );
   fb.monacoSmoothScrolling.value = draftMonacoSmoothScrolling.value;
+  fb.monacoCjkWrapOptimize.value = draftMonacoCjkWrapOptimize.value;
   fb.mouseWheelScrollSensitivity.value = clampMouseWheelScrollSensitivity(
     draftMouseWheelScrollSensitivity.value,
   );
@@ -562,6 +567,7 @@ watch(draftFontSize, (size) => {
               v-model:draft-font-size="draftFontSize"
               v-model:draft-line-height-multiple="draftLineHeightMultiple"
               v-model:draft-monaco-smooth-scrolling="draftMonacoSmoothScrolling"
+              v-model:draft-monaco-cjk-wrap-optimize="draftMonacoCjkWrapOptimize"
               v-model:draft-mouse-wheel-scroll-sensitivity="
                 draftMouseWheelScrollSensitivity
               "

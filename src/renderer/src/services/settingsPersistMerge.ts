@@ -38,6 +38,7 @@ export const WINDOW_LOCAL_MAIN_SETTING_KEYS: ReadonlySet<string> = new Set([
   "textConvertLetter",
   "textConvertDigit",
   "monacoAdvancedWrapping",
+  "monacoCjkWrapOptimize",
   "monacoSmoothScrolling",
   "mouseWheelScrollSensitivity",
   "fastScrollSensitivity",

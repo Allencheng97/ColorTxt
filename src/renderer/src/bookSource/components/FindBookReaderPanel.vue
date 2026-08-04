@@ -209,6 +209,7 @@ const {
   textConvertLetter,
   textConvertDigit,
   monacoAdvancedWrapping,
+  monacoCjkWrapOptimize,
   monacoSmoothScrolling,
   mouseWheelScrollSensitivity,
   fastScrollSensitivity,
@@ -2002,6 +2003,7 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
             :lead-indent-full-width="leadIndentFullWidth"
             :chapter-min-char-count="chapterMinCharCount"
             :monaco-advanced-wrapping="monacoAdvancedWrapping"
+            :monaco-cjk-wrap-optimize="monacoCjkWrapOptimize"
             :monaco-smooth-scrolling="monacoSmoothScrolling"
             :mouse-wheel-scroll-sensitivity="mouseWheelScrollSensitivity"
             :fast-scroll-sensitivity="fastScrollSensitivity"

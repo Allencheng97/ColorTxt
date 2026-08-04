@@ -55,6 +55,127 @@ const monacoEditorPlugin =
 /** 与 vite-plugin-monaco-editor 默认 publicPath 一致 */
 const MONACO_EDITOR_WORKERS_PUBLIC_PATH = "monacoeditorwork";
 
+const monacoStringsJsPath = resolve(
+  __electronViteConfigDir,
+  "node_modules/monaco-editor/esm/vs/base/common/strings.js",
+);
+const cjkWrapStringsPath = resolve(
+  __electronViteConfigDir,
+  "src/renderer/src/monaco/cjkWrapStrings.ts",
+);
+
+const cjkWrapOptimizePath = resolve(
+  __electronViteConfigDir,
+  "src/renderer/src/monaco/cjkWrapOptimize.ts",
+).replace(/\\/g, "/");
+
+/** 拦截 Monaco strings.js，注入可开关的中文全角标点判断（仅 renderer） */
+function monacoCjkWrapStringsPlugin() {
+  const normalizedStringsPath = monacoStringsJsPath.replace(/\\/g, "/");
+  const normalizedWrapPath = cjkWrapStringsPath.replace(/\\/g, "/");
+  return {
+    name: "monaco-cjk-wrap-strings",
+    enforce: "pre" as const,
+    resolveId(id: string, importer: string | undefined) {
+      const bareId = id.split("?")[0] ?? "";
+      let candidate = bareId.replace(/\\/g, "/");
+      if (
+        (bareId.startsWith(".") || bareId.startsWith("/")) &&
+        importer
+      ) {
+        candidate = resolve(dirname(importer), bareId).replace(/\\/g, "/");
+      }
+      const isMonacoStrings =
+        candidate === normalizedStringsPath ||
+        candidate.endsWith("/monaco-editor/esm/vs/base/common/strings.js");
+      if (!isMonacoStrings) return null;
+      const importerNorm = (importer ?? "").replace(/\\/g, "/");
+      if (
+        importerNorm.includes("/monaco/cjkWrapStrings") ||
+        importerNorm === normalizedWrapPath
+      ) {
+        return null;
+      }
+      return cjkWrapStringsPath;
+    },
+  };
+}
+
+/**
+ * 简单换行优化（仅 renderer）：
+ * - canBreak：近似 CSS word-break:break-all
+ * - computeCharWidth：省略号/破折号强制全角列宽
+ * - fontMeasurements：用「汉」测全角宽（避免 \uff4d ｍ 缺字回退估窄）
+ */
+function monacoCjkWrapBreakAllPlugin() {
+  const lineBreaksPath =
+    "/monaco-editor/esm/vs/editor/common/viewModel/monospaceLineBreaksComputer.js";
+  const fontMeasurePath =
+    "/monaco-editor/esm/vs/editor/browser/config/fontMeasurements.js";
+  const canBreakHead =
+    /function canBreak\(prevCharCode, prevCharCodeClass, charCode, charCodeClass, isKeepAll\) \{\r?\n/;
+  const optimizeImport = `import { isCjkWrapOptimizeEnabled, isCjkWrapOptimizeFullWidthCodePoint } from ${JSON.stringify(cjkWrapOptimizePath)};\n`;
+  return {
+    name: "monaco-cjk-wrap-break-all",
+    enforce: "pre" as const,
+    transform(code: string, id: string) {
+      const norm = (id.split("?")[0] ?? "").replace(/\\/g, "/");
+      if (norm.includes(fontMeasurePath)) {
+        // 全角样字：汉（与正文 CJK 同字体），避免 \uff4d 回退导致 typicalFullwidth 偏小
+        const next = code.replace(
+          "this._createRequest('\\uff4d', 0 /* CharWidthRequestType.Regular */, all, null)",
+          "this._createRequest('\u6C49', 0 /* CharWidthRequestType.Regular */, all, null)",
+        );
+        if (next === code) {
+          const next2 = code.replace(
+            'this._createRequest("\\uff4d", 0 /* CharWidthRequestType.Regular */, all, null)',
+            'this._createRequest("\u6C49", 0 /* CharWidthRequestType.Regular */, all, null)',
+          );
+          return next2 === code ? null : { code: next2, map: null };
+        }
+        return { code: next, map: null };
+      }
+      if (!norm.includes(lineBreaksPath)) return null;
+      let patched = code;
+      let changed = false;
+      if (canBreakHead.test(patched)) {
+        patched = patched.replace(
+          canBreakHead,
+          `function canBreak(prevCharCode, prevCharCodeClass, charCode, charCodeClass, isKeepAll) {
+    if (isCjkWrapOptimizeEnabled()) {
+        // CSS word-break: break-all — allow break before any non-space character
+        return charCode !== 32 /* CharCode.Space */;
+    }
+`,
+        );
+        changed = true;
+      }
+      // 直接在算宽时强制省略号/破折号为全角（不单依赖 isFullWidthCharacter 包装）
+      const computeWidthNeedle =
+        "function computeCharWidth(charCode, visibleColumn, tabSize, columnsForFullWidthChar) {\n    if (charCode === 9 /* CharCode.Tab */) {\n        return (tabSize - (visibleColumn % tabSize));\n    }\n    if (isFullWidthCharacter(charCode)) {\n        return columnsForFullWidthChar;\n    }";
+      const computeWidthReplacement = `function computeCharWidth(charCode, visibleColumn, tabSize, columnsForFullWidthChar) {
+    if (charCode === 9 /* CharCode.Tab */) {
+        return (tabSize - (visibleColumn % tabSize));
+    }
+    if (isCjkWrapOptimizeEnabled() && isCjkWrapOptimizeFullWidthCodePoint(charCode)) {
+        return columnsForFullWidthChar;
+    }
+    if (isFullWidthCharacter(charCode)) {
+        return columnsForFullWidthChar;
+    }`;
+      if (patched.includes(computeWidthNeedle)) {
+        patched = patched.replace(computeWidthNeedle, computeWidthReplacement);
+        changed = true;
+      }
+      if (!changed) return null;
+      if (!patched.includes(cjkWrapOptimizePath.replace(/\\/g, "/")) && !patched.includes(cjkWrapOptimizePath)) {
+        patched = optimizeImport + patched;
+      }
+      return { code: patched, map: null };
+    },
+  };
+}
+
 export default defineConfig({
   main: {
     resolve: {
@@ -138,6 +259,8 @@ export default defineConfig({
       __GITHUB_REPO_URL__: GITHUB_REPO_URL_JSON,
     },
     plugins: [
+      monacoCjkWrapStringsPlugin(),
+      monacoCjkWrapBreakAllPlugin(),
       {
         name: "inject-app-display-name-in-html",
         transformIndexHtml(html: string) {
@@ -167,6 +290,11 @@ export default defineConfig({
     ],
     optimizeDeps: {
       include: ["markmap-lib", "markmap-view", "d3-cloud", "d3-scale"],
+      /**
+       * 必须排除：否则 esbuild 预构建会绕过本文件的 Monaco CJK 换行 transform/resolve，
+       * 开发模式下去掉「中文换行优化」补丁（生产 Rollup 构建不受影响）。
+       */
+      exclude: ["monaco-editor"],
     },
     build: {
       outDir: resolve(__electronViteConfigDir, "dist/renderer"),

@@ -229,6 +229,7 @@ export function useAppPersistence(deps: {
   recentFilesHistoryLimit: Ref<number>;
   chapterMinCharCount: Ref<number>;
   monacoAdvancedWrapping: Ref<boolean>;
+  monacoCjkWrapOptimize: Ref<boolean>;
   monacoSmoothScrolling: Ref<boolean>;
   mouseWheelScrollSensitivity: Ref<number>;
   fastScrollSensitivity: Ref<number>;
@@ -360,6 +361,7 @@ export function useAppPersistence(deps: {
       recentFilesHistoryLimit: recentLimit(),
       chapterMinCharCount: deps.chapterMinCharCount.value,
       monacoAdvancedWrapping: deps.monacoAdvancedWrapping.value,
+      monacoCjkWrapOptimize: deps.monacoCjkWrapOptimize.value,
       monacoSmoothScrolling: deps.monacoSmoothScrolling.value,
       mouseWheelScrollSensitivity: deps.mouseWheelScrollSensitivity.value,
       fastScrollSensitivity: deps.fastScrollSensitivity.value,
@@ -1198,6 +1200,9 @@ export function useAppPersistence(deps: {
     if (applyReaderUiPrefs) {
       if (typeof data.monacoAdvancedWrapping === "boolean") {
         deps.monacoAdvancedWrapping.value = data.monacoAdvancedWrapping;
+      }
+      if (typeof data.monacoCjkWrapOptimize === "boolean") {
+        deps.monacoCjkWrapOptimize.value = data.monacoCjkWrapOptimize;
       }
       if (typeof data.monacoSmoothScrolling === "boolean") {
         deps.monacoSmoothScrolling.value = data.monacoSmoothScrolling;

@@ -355,6 +355,7 @@ function createFindBookReaderSettingsStore() {
     textConvertLetter: fb.textConvertLetter,
     textConvertDigit: fb.textConvertDigit,
     monacoAdvancedWrapping: fb.monacoAdvancedWrapping,
+    monacoCjkWrapOptimize: fb.monacoCjkWrapOptimize,
     monacoSmoothScrolling: fb.monacoSmoothScrolling,
     mouseWheelScrollSensitivity: fb.mouseWheelScrollSensitivity,
     fastScrollSensitivity: fb.fastScrollSensitivity,

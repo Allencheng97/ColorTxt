@@ -36,6 +36,7 @@ import {
   defaultCompressBlankKeepOneBlank,
   defaultFullscreenReaderWidthPercent,
   defaultFullscreenShowSystemTime,
+  defaultMonacoCjkWrapOptimize,
   defaultMonacoSmoothScrolling,
   defaultMouseWheelScrollSensitivity,
   defaultFastScrollSensitivity,
@@ -120,6 +121,7 @@ export type SettingsApplyPayload = {
   fullscreenReaderWidthPercent: number;
   fullscreenShowSystemTime: boolean;
   monacoSmoothScrolling: boolean;
+  monacoCjkWrapOptimize: boolean;
   mouseWheelScrollSensitivity: number;
   fastScrollSensitivity: number;
   stickyChapterTitleEnabled: boolean;
@@ -163,6 +165,7 @@ const props = defineProps<{
   readerFontSize: number;
   readerLineHeightMultiple: number;
   monacoSmoothScrolling: boolean;
+  monacoCjkWrapOptimize: boolean;
   mouseWheelScrollSensitivity: number;
   fastScrollSensitivity: number;
   stickyChapterTitleEnabled: boolean;
@@ -226,6 +229,7 @@ const draftFullscreenShowSystemTime = ref(defaultFullscreenShowSystemTime);
 const draftFontSize = ref(14);
 const draftLineHeightMultiple = ref(1.5);
 const draftMonacoSmoothScrolling = ref(true);
+const draftMonacoCjkWrapOptimize = ref(defaultMonacoCjkWrapOptimize);
 const draftMouseWheelScrollSensitivity = ref(
   defaultMouseWheelScrollSensitivity,
 );
@@ -296,6 +300,7 @@ function syncDraftFromProps() {
     props.readerLineHeightMultiple,
   );
   draftMonacoSmoothScrolling.value = props.monacoSmoothScrolling;
+  draftMonacoCjkWrapOptimize.value = props.monacoCjkWrapOptimize;
   draftMouseWheelScrollSensitivity.value = clampMouseWheelScrollSensitivity(
     props.mouseWheelScrollSensitivity,
   );
@@ -441,6 +446,7 @@ function resetReadingDraft() {
     defaultReaderLineHeightMultiple,
   );
   draftMonacoSmoothScrolling.value = defaultMonacoSmoothScrolling;
+  draftMonacoCjkWrapOptimize.value = defaultMonacoCjkWrapOptimize;
   draftMouseWheelScrollSensitivity.value = defaultMouseWheelScrollSensitivity;
   draftFastScrollSensitivity.value = defaultFastScrollSensitivity;
   draftStickyChapterTitleEnabled.value = defaultStickyChapterTitleEnabled;
@@ -652,6 +658,7 @@ async function onConfirm() {
     fullscreenReaderWidthPercent: draftFullscreenReaderWidthPercent.value,
     fullscreenShowSystemTime: draftFullscreenShowSystemTime.value,
     monacoSmoothScrolling: draftMonacoSmoothScrolling.value,
+    monacoCjkWrapOptimize: draftMonacoCjkWrapOptimize.value,
     mouseWheelScrollSensitivity: clampMouseWheelScrollSensitivity(
       draftMouseWheelScrollSensitivity.value,
     ),
@@ -810,6 +817,7 @@ async function onClearCache() {
               v-model:draft-font-size="draftFontSize"
               v-model:draft-line-height-multiple="draftLineHeightMultiple"
               v-model:draft-monaco-smooth-scrolling="draftMonacoSmoothScrolling"
+              v-model:draft-monaco-cjk-wrap-optimize="draftMonacoCjkWrapOptimize"
               v-model:draft-mouse-wheel-scroll-sensitivity="
                 draftMouseWheelScrollSensitivity
               "

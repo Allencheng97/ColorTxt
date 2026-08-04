@@ -44,6 +44,10 @@ import {
   buildReaderOverviewRulerBorder,
 } from "../monaco/readerEditorOptions";
 import {
+  isCjkWrapOptimizeEnabled,
+  setCjkWrapOptimizeEnabled,
+} from "../monaco/cjkWrapOptimize";
+import {
   createTxtrTextMonarchLanguage,
   type TxtrMonarchHighlightOptions,
 } from "../monaco/txtrTextMonarch";
@@ -97,6 +101,7 @@ import {
   defaultCompressBlankLines,
   defaultLeadIndentFullWidth,
   defaultMonacoAdvancedWrapping,
+  defaultMonacoCjkWrapOptimize,
   defaultMonacoCustomHighlight,
   defaultMonacoSmoothScrolling,
   defaultMouseWheelScrollSensitivity,
@@ -332,6 +337,10 @@ const props = withDefaults(
     compressBlankLines?: boolean;
     /** Monaco 高级换行策略（wrappingStrategy: advanced） */
     monacoAdvancedWrapping?: boolean;
+    /**
+     * 简单换行下将 ——/…… 等按全角估算；开启高级换行时运行时自动停用。
+     */
+    monacoCjkWrapOptimize?: boolean;
     /** Monaco 平滑滚动（滚轮、revealLine、setScrollTop 等） */
     monacoSmoothScrolling?: boolean;
     /** Monaco 滚轮滚动倍率 */
@@ -412,6 +421,7 @@ const props = withDefaults(
     txtrDelimitedMatchCrossLine: defaultTxtrDelimitedMatchCrossLine,
     compressBlankLines: defaultCompressBlankLines,
     monacoAdvancedWrapping: defaultMonacoAdvancedWrapping,
+    monacoCjkWrapOptimize: defaultMonacoCjkWrapOptimize,
     monacoSmoothScrolling: defaultMonacoSmoothScrolling,
     mouseWheelScrollSensitivity: defaultMouseWheelScrollSensitivity,
     fastScrollSensitivity: defaultFastScrollSensitivity,
@@ -1161,6 +1171,14 @@ watch(
   () => props.monacoAdvancedWrapping,
   (advanced) => {
     setWrappingStrategyAdvanced(advanced);
+    syncCjkWrapOptimizeFlag(true);
+  },
+);
+
+watch(
+  () => props.monacoCjkWrapOptimize,
+  () => {
+    syncCjkWrapOptimizeFlag(true);
   },
 );
 
@@ -1740,6 +1758,28 @@ function setWrappingStrategyAdvanced(advanced: boolean) {
   editor.value?.updateOptions({
     wrappingStrategy: advanced ? "advanced" : "simple",
   });
+}
+
+function effectiveCjkWrapOptimize(): boolean {
+  return props.monacoCjkWrapOptimize && !props.monacoAdvancedWrapping;
+}
+
+/** 切换中文换行优化后强制重建折行映射（仅改 flag 不会触发 setWrappingSettings） */
+function forceWrappingRecalc() {
+  const e = editor.value;
+  if (!e) return;
+  const current = e.getOption(monaco.editor.EditorOption.wordBreak);
+  const bounced = current === "keepAll" ? "normal" : "keepAll";
+  e.updateOptions({ wordBreak: bounced });
+  e.updateOptions({ wordBreak: current });
+}
+
+function syncCjkWrapOptimizeFlag(recalcIfChanged: boolean) {
+  const next = effectiveCjkWrapOptimize();
+  const prev = isCjkWrapOptimizeEnabled();
+  if (prev === next) return;
+  setCjkWrapOptimizeEnabled(next);
+  if (recalcIfChanged) forceWrappingRecalc();
 }
 
 function setFontFamily(fontFamily: string) {
@@ -2772,6 +2812,8 @@ onMounted(() => {
   model.value = m;
 
   ensureStickyChapterBarClickDisabled();
+
+  syncCjkWrapOptimizeFlag(false);
 
   editor.value = monaco.editor.create(editorEl.value!, {
     model: m,
