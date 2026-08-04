@@ -19,6 +19,7 @@ import type { ReaderViewportRestoreAnchor } from "../../reader/readerViewportAnc
 import { applyTextDisplayConverts } from "../../services/textConvertApply";
 import { appConfirm } from "../../services/appDialog";
 import { appToast } from "../../services/appToast";
+import { appLoading } from "../../services/appLoading";
 import {
   replaceTextInPhysicalLines,
   type AnnotationRange,
@@ -81,6 +82,8 @@ export function useFindBookChapterSession(deps: FindBookChapterSessionDeps) {
   const totalLineCount = ref(0);
   const readerEditMode = ref(false);
   const readerEditorDirty = ref(false);
+  /** 章节保存 / 局部编辑写缓存中 */
+  const readerChapterSaving = ref(false);
   /** 切章过程（含列表滚动等待）；与 IPC chapterLoading 合并为 chapterContentBusy */
   const loading = ref(false);
   /** 仅切到未缓存章节时为 true，控制侧栏 loading 图标与「加载中」提示 */
@@ -386,6 +389,7 @@ export function useFindBookChapterSession(deps: FindBookChapterSessionDeps) {
 
   async function onSaveReaderChapter() {
     if (!readerEditMode.value) return;
+    if (readerChapterSaving.value) return;
     const ch = deps.displayChapters.value[deps.currentDisplayIndex.value];
     const d = deps.detail();
     const it = deps.item();
@@ -394,24 +398,34 @@ export function useFindBookChapterSession(deps: FindBookChapterSessionDeps) {
       appToast("无法保存：缺少章节信息", { kind: "warning" });
       return;
     }
-    const text = deps.readerRef.value?.getAllText() ?? "";
-    const body = stripLeadingChapterTitleFromBody(text, lastChapterTitle.value);
-    const r = await window.colorTxt.bookSourceSaveChapterCache({
-      name: d.name || "",
-      bookUrl,
-      chapterUrl: ch.url,
-      content: body,
-      cacheDir: deps.effectiveCacheDir.value.trim() || undefined,
-    });
-    if (!r.ok) {
-      appToast(r.message || "保存到缓存失败", { kind: "warning" });
-      return;
+    readerChapterSaving.value = true;
+    try {
+      await appLoading.with("保存中", async () => {
+        const text = deps.readerRef.value?.getAllText() ?? "";
+        const body = stripLeadingChapterTitleFromBody(
+          text,
+          lastChapterTitle.value,
+        );
+        const r = await window.colorTxt.bookSourceSaveChapterCache({
+          name: d.name || "",
+          bookUrl,
+          chapterUrl: ch.url,
+          content: body,
+          cacheDir: deps.effectiveCacheDir.value.trim() || undefined,
+        });
+        if (!r.ok) {
+          appToast(r.message || "保存到缓存失败", { kind: "warning" });
+          return;
+        }
+        lastChapterBody.value = body;
+        deps.markChapterCached(ch.url);
+        deps.readerRef.value?.markReaderEditSaved?.();
+        readerEditorDirty.value = false;
+        appToast("已保存到缓存", { kind: "success", duration: 1200 });
+      });
+    } finally {
+      readerChapterSaving.value = false;
     }
-    lastChapterBody.value = body;
-    deps.markChapterCached(ch.url);
-    deps.readerRef.value?.markReaderEditSaved?.();
-    readerEditorDirty.value = false;
-    appToast("已保存到缓存", { kind: "success", duration: 1200 });
   }
 
   /**
@@ -423,6 +437,7 @@ export function useFindBookChapterSession(deps: FindBookChapterSessionDeps) {
     text: string;
   }) {
     if (readerEditMode.value) return;
+    if (readerChapterSaving.value) return;
     if (chapterContentBusy.value || deps.readerBootLoading.value) {
       appToast("请等待当前章节加载完成后再编辑。", { kind: "info" });
       return;
@@ -462,34 +477,41 @@ export function useFindBookChapterSession(deps: FindBookChapterSessionDeps) {
       nextBody = nextText;
     }
 
-    const r = await window.colorTxt.bookSourceSaveChapterCache({
-      name: d.name || "",
-      bookUrl,
-      chapterUrl: ch.url,
-      content: nextBody,
-      cacheDir: deps.effectiveCacheDir.value.trim() || undefined,
-    });
-    if (!r.ok) {
-      appToast(r.message || "保存到缓存失败", { kind: "warning" });
-      return;
+    readerChapterSaving.value = true;
+    try {
+      await appLoading.with("保存中", async () => {
+        const r = await window.colorTxt.bookSourceSaveChapterCache({
+          name: d.name || "",
+          bookUrl,
+          chapterUrl: ch.url,
+          content: nextBody,
+          cacheDir: deps.effectiveCacheDir.value.trim() || undefined,
+        });
+        if (!r.ok) {
+          appToast(r.message || "保存到缓存失败", { kind: "warning" });
+          return;
+        }
+
+        lastChapterTitle.value = nextTitle;
+        lastChapterBody.value = nextBody;
+        lastReaderPhysicalLines.value = nextLines;
+        deps.markChapterCached(ch.url);
+
+        const anchor = captureEditViewportAnchor();
+        await renderChapterText(lastChapterTitle.value, lastChapterBody.value, {
+          resetScroll: false,
+        });
+        deps.readerRef.value?.refreshChapterStickyScroll?.();
+        await settleReaderViewport();
+        await deps.readerRef.value?.restoreViewportToRestoreAnchor?.(
+          anchor,
+          lastDisplayLineToPhysicalLine.value ?? undefined,
+        );
+        appToast("已保存局部修改", { kind: "success", duration: 1200 });
+      });
+    } finally {
+      readerChapterSaving.value = false;
     }
-
-    lastChapterTitle.value = nextTitle;
-    lastChapterBody.value = nextBody;
-    lastReaderPhysicalLines.value = nextLines;
-    deps.markChapterCached(ch.url);
-
-    const anchor = captureEditViewportAnchor();
-    await renderChapterText(lastChapterTitle.value, lastChapterBody.value, {
-      resetScroll: false,
-    });
-    deps.readerRef.value?.refreshChapterStickyScroll?.();
-    await settleReaderViewport();
-    await deps.readerRef.value?.restoreViewportToRestoreAnchor?.(
-      anchor,
-      lastDisplayLineToPhysicalLine.value ?? undefined,
-    );
-    appToast("已保存局部修改", { kind: "success", duration: 1200 });
   }
 
   async function loadChapterAtDisplayIndex(
@@ -642,6 +664,7 @@ export function useFindBookChapterSession(deps: FindBookChapterSessionDeps) {
     totalLineCount,
     readerEditMode,
     readerEditorDirty,
+    readerChapterSaving,
     loading,
     showChapterLoadingUi,
     chapterLoading,

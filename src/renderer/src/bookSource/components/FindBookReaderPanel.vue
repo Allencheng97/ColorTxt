@@ -543,6 +543,7 @@ const {
   lastChapterBody,
   totalLineCount,
   readerEditMode,
+  readerChapterSaving,
   loading,
   showChapterLoadingUi,
   chapterLoading,
@@ -1843,6 +1844,7 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
           :find-shortcut-label="findShortcutLabel"
           :reader-edit-mode="readerEditMode"
           :can-enter-reader-edit-mode="canEnterReaderEditMode"
+          :reader-chapter-saving="readerChapterSaving"
           :text-replace-active="textReplaceActive"
           @change-theme="onChangeTheme"
           @toggle-sidebar="onToggleSidebar"
@@ -2331,11 +2333,13 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
   flex-shrink: 0;
 }
 .findBookReaderShell {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100%;
   min-height: 0;
 }
+
 .findBookReaderHeaderWrap {
   flex-shrink: 0;
 }

@@ -25,7 +25,9 @@ import ReaderMain from "./components/ReaderMain.vue";
 import AppDialogHost from "./components/AppDialogHost.vue";
 import AppCaptchaHost from "./components/AppCaptchaHost.vue";
 import AppToastHost from "./components/AppToastHost.vue";
+import AppLoadingHost from "./components/AppLoadingHost.vue";
 import AppOverlays from "./components/AppOverlays.vue";
+import LoadingDotsBounce from "./components/LoadingDotsBounce.vue";
 import WebDavSyncPanel from "./components/WebDavSyncPanel.vue";
 import FullscreenSystemClock from "./components/FullscreenSystemClock.vue";
 import PomodoroBreakOverlay from "./components/PomodoroBreakOverlay.vue";
@@ -219,6 +221,7 @@ import {
 import { useAiSmartFormat } from "./composables/useAiSmartFormat";
 import AiSmartFormatProgressModal from "./components/AiSmartFormatProgressModal.vue";
 import { appToast } from "./services/appToast";
+import { appLoading } from "./services/appLoading";
 import { appAlert, appConfirm } from "./services/appDialog";
 import { mergeShortcutBindings } from "./services/shortcutUtils";
 import {
@@ -539,7 +542,6 @@ const showReaderIdleHint = computed(() => !currentFile.value && !loading.value);
 const showReaderBusyHint = computed(
   () => loading.value && Boolean(currentFile.value),
 );
-const readerBusyHintText = computed(() => readerTxtLoadingHintText);
 /** 已打开文件且流式加载完成、正文行数与字数均为 0 时居中提示（仅只读；编辑模式不遮挡空白编辑区） */
 /** 字数 0 即视为无内容（Monaco 空模型仍可能计 1 行，勿与行数强绑定） */
 const showReaderEmptyHint = computed(
@@ -852,6 +854,8 @@ const readerEditMode = ref(false);
 const readerEditorDirty = ref(false);
 
 const readerSaveEncoding = ref("utf8");
+/** 编辑态 / 编码另存：整文件写盘中（禁用保存按钮，防重复点） */
+const readerFileSaving = ref(false);
 
 type ReaderEditCursorStatus = {
   line: number;
@@ -935,20 +939,28 @@ function textForReaderDiskSave(): string {
 async function saveReaderBufferWithIpcEncoding(
   ipcEncoding: string,
 ): Promise<boolean> {
+  if (readerFileSaving.value) return false;
   const normalized = normalizeIpcEncoding(ipcEncoding);
   const p = physicalReaderPath.value;
   if (!p || !window.colorTxt?.writeTextFile) return false;
-  const text = textForReaderDiskSave();
-  const r = await window.colorTxt.writeTextFile(p, text, normalized);
-  if (!r.ok) {
-    void appAlert(r.message ?? "保存失败");
-    return false;
+  readerFileSaving.value = true;
+  try {
+    return await appLoading.with("保存中", async () => {
+      const text = textForReaderDiskSave();
+      const r = await window.colorTxt.writeTextFile(p, text, normalized);
+      if (!r.ok) {
+        void appAlert(r.message ?? "保存失败");
+        return false;
+      }
+      readerSaveEncoding.value = normalized;
+      fileEncoding.value = formatTextEncodingLabel(normalized);
+      readerRef.value?.markReaderEditSaved?.();
+      readerEditorDirty.value = false;
+      return true;
+    });
+  } finally {
+    readerFileSaving.value = false;
   }
-  readerSaveEncoding.value = normalized;
-  fileEncoding.value = formatTextEncodingLabel(normalized);
-  readerRef.value?.markReaderEditSaved?.();
-  readerEditorDirty.value = false;
-  return true;
 }
 
 /** 切书、关文件、编辑↔只读、关窗、退出应用等场景共用 */
@@ -1784,21 +1796,23 @@ async function onRemoveMissingReadingDataFiles() {
     appToast("没有可清除的阅读数据", { kind: "info" });
     return;
   }
-  const missing: string[] = [];
-  for (const p of paths) {
-    try {
-      // file:stat 对 ENOENT 返回 isFile/isDirectory 均为 false，不抛错
-      const st = await window.colorTxt.stat(p);
-      if (!st.isFile) missing.push(p);
-    } catch {
-      missing.push(p);
+  await appLoading.with("检查中", async () => {
+    const missing: string[] = [];
+    for (const p of paths) {
+      try {
+        // file:stat 对 ENOENT 返回 isFile/isDirectory 均为 false，不抛错
+        const st = await window.colorTxt.stat(p);
+        if (!st.isFile) missing.push(p);
+      } catch {
+        missing.push(p);
+      }
     }
-  }
-  if (missing.length === 0) {
-    appToast("没有失效文件", { kind: "info" });
-    return;
-  }
-  await clearReadingDataForPaths(missing);
+    if (missing.length === 0) {
+      appToast("没有失效文件", { kind: "info" });
+      return;
+    }
+    await clearReadingDataForPaths(missing);
+  });
 }
 
 function openReadingDataPanel() {
@@ -2310,35 +2324,43 @@ async function onApplyPartialPhysicalEdit(payload: {
     appToast("无法应用局部编辑（选区映射失败）。", { kind: "danger" });
     return;
   }
-  const normalized = normalizeIpcEncoding(readerSaveEncoding.value);
-  const written = await window.colorTxt.writeTextFile(p, nextText, normalized);
-  if (!written.ok) {
-    void appAlert(written.message ?? "保存失败");
-    return;
-  }
-  readerSaveEncoding.value = normalized;
-  fileEncoding.value = formatTextEncodingLabel(normalized);
-  stream.commitPhysicalLinesFromPlainText(nextText);
-  const anchor =
-    captureViewportRestoreAnchor() ?? {
-      physicalLine: payload.range.startPhysicalLine,
-      wrappedLineIndex: 0,
-    };
-  await withChapterListScrollSuppressed(async () => {
-    const ok = await stream.applyReaderDisplayFromPhysicalLines(anchor);
-    if (!ok) {
-      appToast("已写入磁盘，但刷新阅读显示失败，请重新打开文件。", {
-        kind: "warning",
+  if (readerFileSaving.value) return;
+  readerFileSaving.value = true;
+  try {
+    await appLoading.with("保存中", async () => {
+      const normalized = normalizeIpcEncoding(readerSaveEncoding.value);
+      const written = await window.colorTxt.writeTextFile(p, nextText, normalized);
+      if (!written.ok) {
+        void appAlert(written.message ?? "保存失败");
+        return;
+      }
+      readerSaveEncoding.value = normalized;
+      fileEncoding.value = formatTextEncodingLabel(normalized);
+      stream.commitPhysicalLinesFromPlainText(nextText);
+      const anchor =
+        captureViewportRestoreAnchor() ?? {
+          physicalLine: payload.range.startPhysicalLine,
+          wrappedLineIndex: 0,
+        };
+      await withChapterListScrollSuppressed(async () => {
+        const ok = await stream.applyReaderDisplayFromPhysicalLines(anchor);
+        if (!ok) {
+          appToast("已写入磁盘，但刷新阅读显示失败，请重新打开文件。", {
+            kind: "warning",
+          });
+          return;
+        }
+        await syncChaptersAfterViewportSettled();
       });
-      return;
-    }
-    await syncChaptersAfterViewportSettled();
-  });
-  revalidateCurrentFileAnnotations();
-  refreshCurrentFileAnnotationDisplayTexts();
-  bumpAnnotationDisplayEpoch();
-  readerRef.value?.refreshReaderAnnotationDecorations?.();
-  appToast("已保存局部修改", { kind: "success" });
+      revalidateCurrentFileAnnotations();
+      refreshCurrentFileAnnotationDisplayTexts();
+      bumpAnnotationDisplayEpoch();
+      readerRef.value?.refreshReaderAnnotationDecorations?.();
+      appToast("已保存局部修改", { kind: "success" });
+    });
+  } finally {
+    readerFileSaving.value = false;
+  }
 }
 
 async function onToggleReaderEdit() {
@@ -3478,6 +3500,7 @@ useAppShellThemeWatch({
         :can-use-ai-smart-format="canUseAiSmartFormat"
         :ai-smart-format-running="aiSmartFormatRunning"
         :smart-format-review-active="aiSmartFormatReviewSession != null"
+        :reader-file-saving="readerFileSaving"
         @ai-smart-format-full="onAiSmartFormatFull"
         @voice-read-toggle="onVoiceReadToggle"
         @timed-scroll-toggle="toggleTimedScroll"
@@ -3779,7 +3802,9 @@ useAppShellThemeWatch({
           class="readerIdleHint"
           aria-live="polite"
         >
-          {{ readerBusyHintText }}
+          <span class="readerBusyHintLine">
+            {{ readerTxtLoadingHintText }}<LoadingDotsBounce />
+          </span>
         </div>
         <div
           v-if="showReaderEmptyHint"
@@ -3873,6 +3898,7 @@ useAppShellThemeWatch({
 
     <AppDialogHost />
     <AppCaptchaHost />
+    <AppLoadingHost />
     <AppToastHost />
     <AiSmartFormatProgressModal
       v-model="aiSmartFormatProgressOpen"

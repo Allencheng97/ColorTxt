@@ -46,7 +46,7 @@ export const readerEbookConvertingHintText = "转换中…";
 /** 彩读书包 ZIP 解析 / 解压阶段 */
 export const readerBookPackUnpackingHintText = "解包中…";
 /** 阅读区居中：正文流式读入且尚未写入任何行时 */
-export const readerTxtLoadingHintText = "加载中…";
+export const readerTxtLoadingHintText = "加载中";
 
 export const SIDEBAR_MIN_WIDTH = 250;
 export const SIDEBAR_MIN_READER_WIDTH = 300;
