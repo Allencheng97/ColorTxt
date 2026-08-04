@@ -132,6 +132,19 @@ export const minChapterMinCharCount = 0;
 export const maxChapterMinCharCount = 100000;
 export const defaultReaderFontSize = 24;
 export const defaultReaderLineHeightMultiple = 1.5;
+/** 每个物理行（model line）结束后的额外间距（px）；0 关闭 */
+export const defaultLineSpacingPx = 0;
+export const minLineSpacingPx = 0;
+export const maxLineSpacingPx = 100;
+export const lineSpacingPxStep = 1;
+
+export function clampLineSpacingPx(px: number): number {
+  if (!Number.isFinite(px)) return defaultLineSpacingPx;
+  return Math.max(
+    minLineSpacingPx,
+    Math.min(maxLineSpacingPx, Math.round(px)),
+  );
+}
 export const defaultRestoreSessionOnStartup = true;
 /** 是否监控当前打开文件并在磁盘变更后自动重新加载（默认关闭） */
 export const defaultSyncCurrentFile = false;

@@ -5,12 +5,15 @@ import NumericInput from "./NumericInput.vue";
 import RadioGroup from "./RadioGroup.vue";
 import {
   lineHeightMultipleStep,
+  lineSpacingPxStep,
   maxFontSize,
   maxFullscreenReaderWidthPercent,
   maxLineHeightMultipleForFontSize,
+  maxLineSpacingPx,
   minFontSize,
   minFullscreenReaderWidthPercent,
   minLineHeightMultiple,
+  minLineSpacingPx,
   minMouseWheelScrollSensitivity,
   maxMouseWheelScrollSensitivity,
   minFastScrollSensitivity,
@@ -32,6 +35,7 @@ import { computed } from "vue";
 const props = defineProps<{
   draftFontSize: number;
   draftLineHeightMultiple: number;
+  draftLineSpacingPx: number;
   draftMonacoSmoothScrolling: boolean;
   draftMonacoCjkWrapOptimize: boolean;
   draftMouseWheelScrollSensitivity: number;
@@ -54,6 +58,7 @@ const props = defineProps<{
 defineEmits<{
   "update:draftFontSize": [v: number];
   "update:draftLineHeightMultiple": [v: number];
+  "update:draftLineSpacingPx": [v: number];
   "update:draftMonacoSmoothScrolling": [v: boolean];
   "update:draftMonacoCjkWrapOptimize": [v: boolean];
   "update:draftMouseWheelScrollSensitivity": [v: number];
@@ -108,6 +113,23 @@ const draftMaxLineHeightMultiple = computed(() =>
             :show-percent="false"
             aria-label="行高倍数"
             @update:model-value="$emit('update:draftLineHeightMultiple', $event)"
+          />
+        </div>
+      </div>
+
+      <div class="settingsRow">
+        <div class="settingsRowMain">
+          <span class="settingsLabel short"
+            >行间距（{{ draftLineSpacingPx }} px）</span
+          >
+          <RangeSlider
+            :model-value="draftLineSpacingPx"
+            :min="minLineSpacingPx"
+            :max="maxLineSpacingPx"
+            :step="lineSpacingPxStep"
+            :show-percent="false"
+            aria-label="行间距"
+            @update:model-value="$emit('update:draftLineSpacingPx', $event)"
           />
         </div>
       </div>

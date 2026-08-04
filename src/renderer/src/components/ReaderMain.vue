@@ -48,6 +48,9 @@ import {
   setCjkWrapOptimizeEnabled,
 } from "../monaco/cjkWrapOptimize";
 import {
+  setLineSpacingPx as applyMonacoLineSpacingPx,
+} from "../monaco/lineSpacing";
+import {
   createTxtrTextMonarchLanguage,
   type TxtrMonarchHighlightOptions,
 } from "../monaco/txtrTextMonarch";
@@ -111,6 +114,7 @@ import {
   defaultReaderEditMinimap,
   defaultTxtrDelimitedMatchCrossLine,
   defaultReaderLineHeightMultiple,
+  defaultLineSpacingPx,
   defaultReaderPaletteDark,
   defaultReaderPaletteLight,
   defaultReaderPaletteColorEnabled,
@@ -341,6 +345,8 @@ const props = withDefaults(
      * 简单换行下将 ——/…… 等按全角估算；开启高级换行时运行时自动停用。
      */
     monacoCjkWrapOptimize?: boolean;
+    /** 每个物理行结束后的额外间距（px） */
+    lineSpacingPx?: number;
     /** Monaco 平滑滚动（滚轮、revealLine、setScrollTop 等） */
     monacoSmoothScrolling?: boolean;
     /** Monaco 滚轮滚动倍率 */
@@ -422,6 +428,7 @@ const props = withDefaults(
     compressBlankLines: defaultCompressBlankLines,
     monacoAdvancedWrapping: defaultMonacoAdvancedWrapping,
     monacoCjkWrapOptimize: defaultMonacoCjkWrapOptimize,
+    lineSpacingPx: defaultLineSpacingPx,
     monacoSmoothScrolling: defaultMonacoSmoothScrolling,
     mouseWheelScrollSensitivity: defaultMouseWheelScrollSensitivity,
     fastScrollSensitivity: defaultFastScrollSensitivity,
@@ -1183,6 +1190,13 @@ watch(
 );
 
 watch(
+  () => props.lineSpacingPx,
+  (px) => {
+    setLineSpacingPx(px);
+  },
+);
+
+watch(
   () => props.monacoSmoothScrolling,
   (on) => {
     editor.value?.updateOptions({ smoothScrolling: on });
@@ -1752,6 +1766,10 @@ function setLineHeightMultiple(multiple: number) {
   if (smartFormatReviewActive.value) {
     syncDiffEditorTypography();
   }
+}
+
+function setLineSpacingPx(px: number) {
+  applyMonacoLineSpacingPx(px);
 }
 
 function setWrappingStrategyAdvanced(advanced: boolean) {
@@ -2635,6 +2653,7 @@ defineExpose({
   setTheme,
   setFontSize,
   setLineHeightMultiple,
+  setLineSpacingPx,
   setFontFamily,
   setWrappingStrategyAdvanced,
   resetToTop,
@@ -2814,6 +2833,7 @@ onMounted(() => {
   ensureStickyChapterBarClickDisabled();
 
   syncCjkWrapOptimizeFlag(false);
+  applyMonacoLineSpacingPx(props.lineSpacingPx);
 
   editor.value = monaco.editor.create(editorEl.value!, {
     model: m,

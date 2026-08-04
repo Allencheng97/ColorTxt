@@ -77,6 +77,7 @@ export function useAppWindowBindings(deps: {
   currentTheme: Ref<string>;
   readerFontSize: Ref<number>;
   readerLineHeightMultiple: Ref<number>;
+  readerLineSpacingPx: Ref<number>;
   monacoFontFamily: Ref<string>;
   fileEncoding: Ref<string>;
   loading: Ref<boolean>;
@@ -141,6 +142,7 @@ export function useAppWindowBindings(deps: {
     deps.readerRef.value?.setLineHeightMultiple(
       deps.readerLineHeightMultiple.value,
     );
+    deps.readerRef.value?.setLineSpacingPx(deps.readerLineSpacingPx.value);
     deps.readerRef.value?.setFontFamily(deps.monacoFontFamily.value);
 
     const flushChapterListAfterFullscreenMs = 50;

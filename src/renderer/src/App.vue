@@ -135,6 +135,8 @@ import {
   defaultReaderOpenHint,
   defaultReaderFontSize,
   defaultReaderLineHeightMultiple,
+  defaultLineSpacingPx,
+  clampLineSpacingPx,
   defaultReaderPaletteDark,
   defaultReaderPaletteLight,
   defaultReaderTheme,
@@ -569,6 +571,7 @@ const textConvertLetter = ref<TextConvertWidthMode>(defaultTextConvertLetterMode
 const textConvertDigit = ref<TextConvertWidthMode>(defaultTextConvertDigitMode);
 const readerFontSize = ref(defaultReaderFontSize);
 const readerLineHeightMultiple = ref(defaultReaderLineHeightMultiple);
+const readerLineSpacingPx = ref(defaultLineSpacingPx);
 const monacoFontFamily = ref(READER_EDITOR_DEFAULT_FONT_FAMILY);
 /** 阅读器字体弹框：钉在外层的「其他字体」 */
 const pinnedOtherFonts = ref<string[]>([]);
@@ -1044,6 +1047,7 @@ const persistence = useAppPersistence({
   chapterCharCountExact,
   readerFontSize,
   readerLineHeightMultiple,
+  readerLineSpacingPx,
   monacoFontFamily,
   pinnedOtherFonts,
   chapterRuleState,
@@ -2883,6 +2887,7 @@ function applyReaderAppearanceFromSettings() {
   readerRef.value?.setTheme(currentTheme.value);
   readerRef.value?.setFontSize(readerFontSize.value);
   readerRef.value?.setLineHeightMultiple(readerLineHeightMultiple.value);
+  readerRef.value?.setLineSpacingPx(readerLineSpacingPx.value);
   readerRef.value?.setFontFamily(monacoFontFamily.value);
   readerRef.value?.setWrappingStrategyAdvanced(monacoAdvancedWrapping.value);
 }
@@ -3120,10 +3125,13 @@ async function applySettings(payload: SettingsApplyPayload) {
     nextFontSize,
     payload.lineHeightMultiple,
   );
+  const nextLineSpacingPx = clampLineSpacingPx(payload.lineSpacingPx);
   readerFontSize.value = nextFontSize;
   readerLineHeightMultiple.value = nextLineHeightMultiple;
+  readerLineSpacingPx.value = nextLineSpacingPx;
   readerRef.value?.setFontSize(nextFontSize);
   readerRef.value?.setLineHeightMultiple(nextLineHeightMultiple);
+  readerRef.value?.setLineSpacingPx(nextLineSpacingPx);
   aiSkillOverrides.value = mergeAiSkillOverrides(payload.aiSkillOverrides);
   aiCustomSkills.value = mergeAiCustomSkills(payload.aiCustomSkills ?? []);
   aiSkillsEnabled.value = mergeAiSkillsEnabled(
@@ -3220,6 +3228,7 @@ useAppWindowBindings({
   currentTheme,
   readerFontSize,
   readerLineHeightMultiple,
+  readerLineSpacingPx,
   monacoFontFamily,
   fileEncoding,
   loading,
@@ -3588,6 +3597,7 @@ useAppShellThemeWatch({
           :chapter-min-char-count="chapterMinCharCount"
           :monaco-advanced-wrapping="monacoAdvancedWrapping"
           :monaco-cjk-wrap-optimize="monacoCjkWrapOptimize"
+          :line-spacing-px="readerLineSpacingPx"
           :monaco-smooth-scrolling="monacoSmoothScrolling"
           :mouse-wheel-scroll-sensitivity="mouseWheelScrollSensitivity"
           :fast-scroll-sensitivity="fastScrollSensitivity"
@@ -3824,6 +3834,7 @@ useAppShellThemeWatch({
       :fullscreen-show-system-time="fullscreenShowSystemTime"
       :reader-font-size="readerFontSize"
       :reader-line-height-multiple="readerLineHeightMultiple"
+      :reader-line-spacing-px="readerLineSpacingPx"
       :compress-blank-keep-one-blank="compressBlankKeepOneBlank"
       :monaco-smooth-scrolling="monacoSmoothScrolling"
       :monaco-cjk-wrap-optimize="monacoCjkWrapOptimize"

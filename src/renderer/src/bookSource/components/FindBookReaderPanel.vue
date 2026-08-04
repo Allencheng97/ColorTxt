@@ -198,6 +198,7 @@ const {
   sidebarWidth,
   readerFontSize,
   readerLineHeightMultiple,
+  readerLineSpacingPx,
   monacoFontFamily,
   pinnedOtherFonts,
   monacoCustomHighlight,
@@ -1474,6 +1475,7 @@ function applyReaderAppearance() {
   readerRef.value?.setTheme(currentTheme.value);
   readerRef.value?.setFontSize(readerFontSize.value);
   readerRef.value?.setLineHeightMultiple(readerLineHeightMultiple.value);
+  readerRef.value?.setLineSpacingPx(readerLineSpacingPx.value);
   readerRef.value?.setFontFamily(monacoFontFamily.value);
 }
 
@@ -1494,6 +1496,7 @@ watch(
   [
     readerFontSize,
     readerLineHeightMultiple,
+    readerLineSpacingPx,
     monacoFontFamily,
     effectiveReaderSurfaceLight,
     effectiveReaderSurfaceDark,
@@ -2004,6 +2007,7 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
             :chapter-min-char-count="chapterMinCharCount"
             :monaco-advanced-wrapping="monacoAdvancedWrapping"
             :monaco-cjk-wrap-optimize="monacoCjkWrapOptimize"
+            :line-spacing-px="readerLineSpacingPx"
             :monaco-smooth-scrolling="monacoSmoothScrolling"
             :mouse-wheel-scroll-sensitivity="mouseWheelScrollSensitivity"
             :fast-scroll-sensitivity="fastScrollSensitivity"

@@ -69,6 +69,93 @@ const cjkWrapOptimizePath = resolve(
   "src/renderer/src/monaco/cjkWrapOptimize.ts",
 ).replace(/\\/g, "/");
 
+const lineSpacingPath = resolve(
+  __electronViteConfigDir,
+  "src/renderer/src/monaco/lineSpacing.ts",
+).replace(/\\/g, "/");
+
+/**
+ * 行间距（物理行后常数 px）：注入 LinesLayout 垂直累加 + ViewModel 桥接（仅 renderer）
+ */
+function monacoLineSpacingPlugin() {
+  const linesLayoutPath =
+    "/monaco-editor/esm/vs/editor/common/viewLayout/linesLayout.js";
+  const viewModelImplPath =
+    "/monaco-editor/esm/vs/editor/common/viewModel/viewModelImpl.js";
+  const lineSpacingImport = `import { lineSpacingGapsBeforeViewLine, lineSpacingTotalGaps, lineSpacingGapAfterViewLine, setLineSpacingBridgeForLayout, subscribeLineSpacingHeightInvalidation } from ${JSON.stringify(lineSpacingPath)};\n`;
+  return {
+    name: "monaco-line-spacing",
+    enforce: "pre" as const,
+    transform(code: string, id: string) {
+      const norm = (id.split("?")[0] ?? "").replace(/\\/g, "/");
+      if (norm.includes(linesLayoutPath)) {
+        let patched = code;
+        const totalNeedle =
+          "return linesHeight + whitespacesHeight + this._paddingTop + this._paddingBottom;";
+        const totalNext =
+          "return linesHeight + whitespacesHeight + this._paddingTop + this._paddingBottom + lineSpacingTotalGaps(this);";
+        if (!patched.includes(totalNeedle)) return null;
+        patched = patched.replace(totalNeedle, totalNext);
+
+        const offsetNeedle =
+          "return previousLinesHeight + previousWhitespacesHeight + this._paddingTop;\n    }\n    getLineHeightForLineNumber(lineNumber) {";
+        const offsetNext =
+          "return previousLinesHeight + previousWhitespacesHeight + this._paddingTop + lineSpacingGapsBeforeViewLine(this, lineNumber);\n    }\n    getLineHeightForLineNumber(lineNumber) {";
+        if (!patched.includes(offsetNeedle)) return null;
+        patched = patched.replace(offsetNeedle, offsetNext);
+
+        const afterNeedle =
+          "getVerticalOffsetAfterLineNumber(lineNumber, includeViewZones = false) {\n        lineNumber = lineNumber | 0;\n        const previousLinesHeight = this._lineHeightsManager.getAccumulatedLineHeightsIncludingLineNumber(lineNumber);\n        const previousWhitespacesHeight = this.getWhitespaceAccumulatedHeightBeforeLineNumber(lineNumber + (includeViewZones ? 1 : 0));\n        return previousLinesHeight + previousWhitespacesHeight + this._paddingTop;\n    }";
+        const afterNext =
+          "getVerticalOffsetAfterLineNumber(lineNumber, includeViewZones = false) {\n        lineNumber = lineNumber | 0;\n        const previousLinesHeight = this._lineHeightsManager.getAccumulatedLineHeightsIncludingLineNumber(lineNumber);\n        const previousWhitespacesHeight = this.getWhitespaceAccumulatedHeightBeforeLineNumber(lineNumber + (includeViewZones ? 1 : 0));\n        return previousLinesHeight + previousWhitespacesHeight + this._paddingTop + lineSpacingGapsBeforeViewLine(this, lineNumber) + lineSpacingGapAfterViewLine(this, lineNumber, this._lineCount);\n    }";
+        if (!patched.includes(afterNeedle)) return null;
+        patched = patched.replace(afterNeedle, afterNext);
+
+        const viewportNeedle =
+          "            // Count current line height in the vertical offsets\n            currentVerticalOffset += lineHeight;\n            linesOffsets[lineNumber - startLineNumber] = currentLineRelativeOffset;\n            // Next line starts immediately after this one\n            currentLineRelativeOffset += lineHeight;\n            while (currentWhitespaceAfterLineNumber === lineNumber) {";
+        const viewportNext =
+          "            // Count current line height in the vertical offsets\n            currentVerticalOffset += lineHeight;\n            linesOffsets[lineNumber - startLineNumber] = currentLineRelativeOffset;\n            // Next line starts immediately after this one\n            currentLineRelativeOffset += lineHeight;\n            {\n                const __lineSpacingGap = lineSpacingGapAfterViewLine(this, lineNumber, this._lineCount);\n                if (__lineSpacingGap) {\n                    currentVerticalOffset += __lineSpacingGap;\n                    currentLineRelativeOffset += __lineSpacingGap;\n                }\n            }\n            while (currentWhitespaceAfterLineNumber === lineNumber) {";
+        if (!patched.includes(viewportNeedle)) return null;
+        patched = patched.replace(viewportNeedle, viewportNext);
+
+        if (!patched.includes(lineSpacingPath)) {
+          patched = lineSpacingImport + patched;
+        }
+        return { code: patched, map: null };
+      }
+      if (norm.includes(viewModelImplPath)) {
+        const needle =
+          "        this.viewLayout = this._register(new ViewLayout(this._configuration, this.getLineCount(), this._getCustomLineHeights(), scheduleAtNextAnimationFrame));\n        this._register(this.viewLayout.onDidScroll((e) => {";
+        if (!code.includes(needle)) return null;
+        const injection = `        this.viewLayout = this._register(new ViewLayout(this._configuration, this.getLineCount(), this._getCustomLineHeights(), scheduleAtNextAnimationFrame));
+        {
+            const __linesLayout = this.viewLayout._linesLayout;
+            setLineSpacingBridgeForLayout(__linesLayout, (viewLineNumber) => {
+                if (typeof this._lines.getViewLineInfo === "function") {
+                    return this._lines.getViewLineInfo(viewLineNumber).modelLineNumber;
+                }
+                return viewLineNumber;
+            }, () => this.model.getLineCount());
+            const __unsubLineSpacing = subscribeLineSpacingHeightInvalidation(() => {
+                this.viewLayout.onHeightMaybeChanged();
+            });
+            this._register({ dispose: () => {
+                    __unsubLineSpacing();
+                    setLineSpacingBridgeForLayout(__linesLayout, null, null);
+                } });
+        }
+        this._register(this.viewLayout.onDidScroll((e) => {`;
+        let patched = code.replace(needle, injection);
+        if (!patched.includes(lineSpacingPath)) {
+          patched = lineSpacingImport + patched;
+        }
+        return { code: patched, map: null };
+      }
+      return null;
+    },
+  };
+}
+
 /** 拦截 Monaco strings.js，注入可开关的中文全角标点判断（仅 renderer） */
 function monacoCjkWrapStringsPlugin() {
   const normalizedStringsPath = monacoStringsJsPath.replace(/\\/g, "/");
@@ -261,6 +348,7 @@ export default defineConfig({
     plugins: [
       monacoCjkWrapStringsPlugin(),
       monacoCjkWrapBreakAllPlugin(),
+      monacoLineSpacingPlugin(),
       {
         name: "inject-app-display-name-in-html",
         transformIndexHtml(html: string) {
@@ -291,8 +379,8 @@ export default defineConfig({
     optimizeDeps: {
       include: ["markmap-lib", "markmap-view", "d3-cloud", "d3-scale"],
       /**
-       * 必须排除：否则 esbuild 预构建会绕过本文件的 Monaco CJK 换行 transform/resolve，
-       * 开发模式下去掉「中文换行优化」补丁（生产 Rollup 构建不受影响）。
+       * 必须排除：否则 esbuild 预构建会绕过本文件的 Monaco CJK 换行 / 行间距 transform/resolve，
+       * 开发模式下去掉补丁（生产 Rollup 构建不受影响）。
        */
       exclude: ["monaco-editor"],
     },

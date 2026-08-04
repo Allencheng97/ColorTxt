@@ -27,6 +27,7 @@ export function settingsPersistValuesEqual(a: unknown, b: unknown): boolean {
 export const WINDOW_LOCAL_MAIN_SETTING_KEYS: ReadonlySet<string> = new Set([
   "fontSize",
   "lineHeightMultiple",
+  "lineSpacingPx",
   "fontFamily",
   "pinnedOtherFonts",
   "monacoCustomHighlight",

@@ -42,6 +42,7 @@ const props = defineProps<{
   fullscreenShowSystemTime: boolean;
   readerFontSize: number;
   readerLineHeightMultiple: number;
+  readerLineSpacingPx: number;
   monacoSmoothScrolling: boolean;
   monacoCjkWrapOptimize: boolean;
   mouseWheelScrollSensitivity: number;
@@ -265,6 +266,7 @@ onBeforeUnmount(() => {
     :fullscreen-show-system-time="fullscreenShowSystemTime"
     :reader-font-size="readerFontSize"
     :reader-line-height-multiple="readerLineHeightMultiple"
+    :reader-line-spacing-px="readerLineSpacingPx"
     :monaco-smooth-scrolling="monacoSmoothScrolling"
     :monaco-cjk-wrap-optimize="monacoCjkWrapOptimize"
     :mouse-wheel-scroll-sensitivity="mouseWheelScrollSensitivity"

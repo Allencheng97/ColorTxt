@@ -29,6 +29,7 @@ const UI_READER_KEYS = [
   "theme",
   "fontSize",
   "lineHeightMultiple",
+  "lineSpacingPx",
   "fontFamily",
   "pinnedOtherFonts",
   "compressBlankLines",

@@ -31,6 +31,8 @@ import {
   defaultReaderEditShowLineNumbers,
   defaultReaderFontSize,
   defaultReaderLineHeightMultiple,
+  defaultLineSpacingPx,
+  clampLineSpacingPx,
   defaultStickyChapterTitleEnabled,
   defaultTxtrDelimitedMatchCrossLine,
   defaultChapterNavToolbarEnabled,
@@ -133,6 +135,7 @@ const draftWebDavPassword = ref("");
 const draftWebDavRemoteDir = ref("ColorTxt");
 const draftFontSize = ref(defaultReaderFontSize);
 const draftLineHeightMultiple = ref(defaultReaderLineHeightMultiple);
+const draftLineSpacingPx = ref(defaultLineSpacingPx);
 const draftMonacoSmoothScrolling = ref(defaultMonacoSmoothScrolling);
 const draftMonacoCjkWrapOptimize = ref(defaultMonacoCjkWrapOptimize);
 const draftMouseWheelScrollSensitivity = ref(
@@ -201,6 +204,7 @@ function syncSharedReaderDraftFromStore() {
     fb.readerFontSize.value,
     fb.readerLineHeightMultiple.value,
   );
+  draftLineSpacingPx.value = clampLineSpacingPx(fb.readerLineSpacingPx.value);
   draftMonacoSmoothScrolling.value = fb.monacoSmoothScrolling.value;
   draftMonacoCjkWrapOptimize.value = fb.monacoCjkWrapOptimize.value;
   draftMouseWheelScrollSensitivity.value = clampMouseWheelScrollSensitivity(
@@ -283,6 +287,7 @@ function resetWebDavDraft() {
 function resetReadingDraft() {
   draftFontSize.value = defaultReaderFontSize;
   draftLineHeightMultiple.value = defaultReaderLineHeightMultiple;
+  draftLineSpacingPx.value = defaultLineSpacingPx;
   draftMonacoSmoothScrolling.value = defaultMonacoSmoothScrolling;
   draftMonacoCjkWrapOptimize.value = defaultMonacoCjkWrapOptimize;
   draftMouseWheelScrollSensitivity.value = defaultMouseWheelScrollSensitivity;
@@ -440,6 +445,7 @@ async function onConfirm() {
     draftFontSize.value,
     draftLineHeightMultiple.value,
   );
+  fb.readerLineSpacingPx.value = clampLineSpacingPx(draftLineSpacingPx.value);
   fb.monacoSmoothScrolling.value = draftMonacoSmoothScrolling.value;
   fb.monacoCjkWrapOptimize.value = draftMonacoCjkWrapOptimize.value;
   fb.mouseWheelScrollSensitivity.value = clampMouseWheelScrollSensitivity(
@@ -566,6 +572,7 @@ watch(draftFontSize, (size) => {
               v-show="activeTab === 'reading'"
               v-model:draft-font-size="draftFontSize"
               v-model:draft-line-height-multiple="draftLineHeightMultiple"
+              v-model:draft-line-spacing-px="draftLineSpacingPx"
               v-model:draft-monaco-smooth-scrolling="draftMonacoSmoothScrolling"
               v-model:draft-monaco-cjk-wrap-optimize="draftMonacoCjkWrapOptimize"
               v-model:draft-mouse-wheel-scroll-sensitivity="
