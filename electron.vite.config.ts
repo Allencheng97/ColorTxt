@@ -190,20 +190,18 @@ function monacoCjkWrapStringsPlugin() {
 
 /**
  * 简单换行优化（仅 renderer）：
- * - canBreak：近似 CSS word-break:break-all
  * - computeCharWidth：省略号/破折号强制全角列宽
  * - fontMeasurements：用「汉」测全角宽（避免 \uff4d ｍ 缺字回退估窄）
+ * （不再改 canBreak：break-all 会把 ，。？ 等送到行首）
  */
-function monacoCjkWrapBreakAllPlugin() {
+function monacoCjkWrapOptimizePlugin() {
   const lineBreaksPath =
     "/monaco-editor/esm/vs/editor/common/viewModel/monospaceLineBreaksComputer.js";
   const fontMeasurePath =
     "/monaco-editor/esm/vs/editor/browser/config/fontMeasurements.js";
-  const canBreakHead =
-    /function canBreak\(prevCharCode, prevCharCodeClass, charCode, charCodeClass, isKeepAll\) \{\r?\n/;
   const optimizeImport = `import { isCjkWrapOptimizeEnabled, isCjkWrapOptimizeFullWidthCodePoint } from ${JSON.stringify(cjkWrapOptimizePath)};\n`;
   return {
-    name: "monaco-cjk-wrap-break-all",
+    name: "monaco-cjk-wrap-optimize",
     enforce: "pre" as const,
     transform(code: string, id: string) {
       const norm = (id.split("?")[0] ?? "").replace(/\\/g, "/");
@@ -225,18 +223,6 @@ function monacoCjkWrapBreakAllPlugin() {
       if (!norm.includes(lineBreaksPath)) return null;
       let patched = code;
       let changed = false;
-      if (canBreakHead.test(patched)) {
-        patched = patched.replace(
-          canBreakHead,
-          `function canBreak(prevCharCode, prevCharCodeClass, charCode, charCodeClass, isKeepAll) {
-    if (isCjkWrapOptimizeEnabled()) {
-        // CSS word-break: break-all — allow break before any non-space character
-        return charCode !== 32 /* CharCode.Space */;
-    }
-`,
-        );
-        changed = true;
-      }
       // 直接在算宽时强制省略号/破折号为全角（不单依赖 isFullWidthCharacter 包装）
       const computeWidthNeedle =
         "function computeCharWidth(charCode, visibleColumn, tabSize, columnsForFullWidthChar) {\n    if (charCode === 9 /* CharCode.Tab */) {\n        return (tabSize - (visibleColumn % tabSize));\n    }\n    if (isFullWidthCharacter(charCode)) {\n        return columnsForFullWidthChar;\n    }";
@@ -347,7 +333,7 @@ export default defineConfig({
     },
     plugins: [
       monacoCjkWrapStringsPlugin(),
-      monacoCjkWrapBreakAllPlugin(),
+      monacoCjkWrapOptimizePlugin(),
       monacoLineSpacingPlugin(),
       {
         name: "inject-app-display-name-in-html",

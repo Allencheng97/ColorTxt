@@ -123,7 +123,7 @@ export type ChapterTitleBlankMode =
   | "before1After1"
   | "before2After1";
 
-export const defaultChapterTitleBlankMode: ChapterTitleBlankMode = "before1";
+export const defaultChapterTitleBlankMode: ChapterTitleBlankMode = "before2After1";
 
 export const CHAPTER_TITLE_BLANK_MODE_OPTIONS: readonly {
   value: ChapterTitleBlankMode;

@@ -2,8 +2,8 @@
  * 简单换行（wrappingStrategy: simple）下的中文换行优化：
  * - 将 General Punctuation 等网文常用标点按全角列宽估算（包装 `isFullWidthCharacter` /
  *   `computeCharWidth`；`、。「」` 等本就在 CJK/全角区，无需补）
- * - 近似 CSS `word-break: break-all`（包装 `canBreak`）
  * - 全角样字改为「汉」（见 electron.vite Monaco transform）
+ * 不改 canBreak（曾用 break-all 会导致 ，。？ 等出现在行首）。
  * 高级换行开启时由 ReaderMain 关闭此开关。
  */
 
