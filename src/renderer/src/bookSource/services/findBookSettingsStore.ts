@@ -21,6 +21,8 @@ import {
   defaultReaderLineHeightMultiple,
   defaultLineSpacingPx,
   clampLineSpacingPx,
+  defaultLetterSpacingPx,
+  clampLetterSpacingPx,
   defaultStickyChapterTitleEnabled,
   defaultTxtrDelimitedMatchCrossLine,
   FIND_BOOK_SIDEBAR_MIN_WIDTH,
@@ -130,6 +132,7 @@ export type SharedReaderSettingsSnapshot = {
   readerFontSize: number;
   readerLineHeightMultiple: number;
   readerLineSpacingPx: number;
+  readerLetterSpacingPx: number;
   monacoFontFamily: string;
   pinnedOtherFonts: string[];
   monacoCustomHighlight: boolean;
@@ -171,6 +174,10 @@ export function sharedReaderSettingsFromMainData(
       typeof data.lineSpacingPx === "number"
         ? clampLineSpacingPx(data.lineSpacingPx)
         : defaultLineSpacingPx,
+    readerLetterSpacingPx:
+      typeof data.letterSpacingPx === "number"
+        ? clampLetterSpacingPx(data.letterSpacingPx)
+        : defaultLetterSpacingPx,
     monacoFontFamily:
       typeof data.fontFamily === "string" && data.fontFamily.trim()
         ? data.fontFamily.trim()
@@ -261,6 +268,7 @@ export function snapshotSharedReaderSettingsForMain(
     fontSize: state.readerFontSize,
     lineHeightMultiple: state.readerLineHeightMultiple,
     lineSpacingPx: state.readerLineSpacingPx,
+    letterSpacingPx: state.readerLetterSpacingPx,
     fontFamily: state.monacoFontFamily,
     pinnedOtherFonts: [...state.pinnedOtherFonts],
     monacoCustomHighlight: state.monacoCustomHighlight,

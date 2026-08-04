@@ -40,6 +40,7 @@ import {
   buildReaderEditorCreateOptions,
   buildReaderEditorFontSizeUpdate,
   buildReaderEditorLineHeightUpdate,
+  buildReaderEditorLetterSpacingUpdate,
   buildReaderMonacoModeEditorOptions,
   buildReaderOverviewRulerBorder,
 } from "../monaco/readerEditorOptions";
@@ -115,6 +116,7 @@ import {
   defaultTxtrDelimitedMatchCrossLine,
   defaultReaderLineHeightMultiple,
   defaultLineSpacingPx,
+  defaultLetterSpacingPx,
   defaultReaderPaletteDark,
   defaultReaderPaletteLight,
   defaultReaderPaletteColorEnabled,
@@ -347,6 +349,8 @@ const props = withDefaults(
     monacoCjkWrapOptimize?: boolean;
     /** 每个物理行结束后的额外间距（px） */
     lineSpacingPx?: number;
+    /** Monaco 字间距（px） */
+    letterSpacingPx?: number;
     /** Monaco 平滑滚动（滚轮、revealLine、setScrollTop 等） */
     monacoSmoothScrolling?: boolean;
     /** Monaco 滚轮滚动倍率 */
@@ -429,6 +433,7 @@ const props = withDefaults(
     monacoAdvancedWrapping: defaultMonacoAdvancedWrapping,
     monacoCjkWrapOptimize: defaultMonacoCjkWrapOptimize,
     lineSpacingPx: defaultLineSpacingPx,
+    letterSpacingPx: defaultLetterSpacingPx,
     monacoSmoothScrolling: defaultMonacoSmoothScrolling,
     mouseWheelScrollSensitivity: defaultMouseWheelScrollSensitivity,
     fastScrollSensitivity: defaultFastScrollSensitivity,
@@ -577,6 +582,7 @@ function getDiffEditorOptionsInput(): import("../monaco/readerEditorOptions").Re
   return {
     fontSize,
     lineHeightMultiple,
+    letterSpacingPx: props.letterSpacingPx,
     fontFamily: currentFontFamily,
     theme: readerMonacoThemeForAppTheme(lastAppThemeName),
     smoothScrolling: props.monacoSmoothScrolling,
@@ -1197,6 +1203,13 @@ watch(
 );
 
 watch(
+  () => props.letterSpacingPx,
+  (px) => {
+    setLetterSpacingPx(px);
+  },
+);
+
+watch(
   () => props.monacoSmoothScrolling,
   (on) => {
     editor.value?.updateOptions({ smoothScrolling: on });
@@ -1770,6 +1783,19 @@ function setLineHeightMultiple(multiple: number) {
 
 function setLineSpacingPx(px: number) {
   applyMonacoLineSpacingPx(px);
+}
+
+function setLetterSpacingPx(px: number) {
+  const e = editor.value;
+  if (!e) return;
+  e.updateOptions(
+    buildReaderEditorLetterSpacingUpdate({
+      letterSpacingPx: px,
+    }),
+  );
+  if (smartFormatReviewActive.value) {
+    syncDiffEditorTypography();
+  }
 }
 
 function setWrappingStrategyAdvanced(advanced: boolean) {
@@ -2654,6 +2680,7 @@ defineExpose({
   setFontSize,
   setLineHeightMultiple,
   setLineSpacingPx,
+  setLetterSpacingPx,
   setFontFamily,
   setWrappingStrategyAdvanced,
   resetToTop,
@@ -2842,6 +2869,7 @@ onMounted(() => {
     ...buildReaderEditorCreateOptions({
       fontSize: READER_EDITOR_DEFAULT_FONT_SIZE,
       lineHeightMultiple,
+      letterSpacingPx: props.letterSpacingPx,
       fontFamily: currentFontFamily,
       theme: readerMonacoThemeForAppTheme(lastAppThemeName),
       wrappingStrategyAdvanced: props.monacoAdvancedWrapping,

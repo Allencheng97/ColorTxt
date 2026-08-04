@@ -106,6 +106,7 @@ import {
   maxFullscreenReaderWidthPercent,
   clampLineHeightMultipleForFontSize,
   clampLineSpacingPx,
+  clampLetterSpacingPx,
   maxFontSize,
   maxChapterMinCharCount,
   maxRecentFilesHistoryLimit,
@@ -223,6 +224,7 @@ export function useAppPersistence(deps: {
   readerFontSize: Ref<number>;
   readerLineHeightMultiple: Ref<number>;
   readerLineSpacingPx: Ref<number>;
+  readerLetterSpacingPx: Ref<number>;
   monacoFontFamily: Ref<string>;
   pinnedOtherFonts: Ref<string[]>;
   chapterRuleState: Ref<{ rules: ChapterMatchRule[] }>;
@@ -346,6 +348,7 @@ export function useAppPersistence(deps: {
       fontSize: deps.readerFontSize.value,
       lineHeightMultiple: deps.readerLineHeightMultiple.value,
       lineSpacingPx: deps.readerLineSpacingPx.value,
+      letterSpacingPx: deps.readerLetterSpacingPx.value,
       fontFamily: deps.monacoFontFamily.value,
       pinnedOtherFonts: [...deps.pinnedOtherFonts.value],
       monacoCustomHighlight: deps.monacoCustomHighlight.value,
@@ -1158,6 +1161,12 @@ export function useAppPersistence(deps: {
 
       if (typeof data.lineSpacingPx === "number") {
         deps.readerLineSpacingPx.value = clampLineSpacingPx(data.lineSpacingPx);
+      }
+
+      if (typeof data.letterSpacingPx === "number") {
+        deps.readerLetterSpacingPx.value = clampLetterSpacingPx(
+          data.letterSpacingPx,
+        );
       }
 
       if (typeof data.fontFamily === "string" && data.fontFamily.trim()) {

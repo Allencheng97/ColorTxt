@@ -145,6 +145,24 @@ export function clampLineSpacingPx(px: number): number {
     Math.min(maxLineSpacingPx, Math.round(px)),
   );
 }
+
+/** Monaco `letterSpacing`（px）；官方夹紧 -5～20 */
+export const defaultLetterSpacingPx = 0;
+export const minLetterSpacingPx = -5;
+export const maxLetterSpacingPx = 20;
+export const letterSpacingPxStep = 0.5;
+
+export function normalizeLetterSpacingPx(px: number): number {
+  return Math.round(px * 2) / 2;
+}
+
+export function clampLetterSpacingPx(px: number): number {
+  if (!Number.isFinite(px)) return defaultLetterSpacingPx;
+  return normalizeLetterSpacingPx(
+    Math.max(minLetterSpacingPx, Math.min(maxLetterSpacingPx, px)),
+  );
+}
+
 export const defaultRestoreSessionOnStartup = true;
 /** 是否监控当前打开文件并在磁盘变更后自动重新加载（默认关闭） */
 export const defaultSyncCurrentFile = false;

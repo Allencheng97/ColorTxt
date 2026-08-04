@@ -163,6 +163,7 @@ export function useReaderSmartFormatDiff(deps: {
         fontSize: input.fontSize,
         lineHeightMultiple: input.lineHeightMultiple,
       }),
+      letterSpacing: input.letterSpacingPx ?? 0,
       fontFamily: input.fontFamily,
     };
     editor.getOriginalEditor().updateOptions(typography);

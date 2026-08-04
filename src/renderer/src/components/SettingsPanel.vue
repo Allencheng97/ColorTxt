@@ -52,6 +52,8 @@ import {
   defaultReaderLineHeightMultiple,
   defaultLineSpacingPx,
   clampLineSpacingPx,
+  defaultLetterSpacingPx,
+  clampLetterSpacingPx,
   defaultRecentFilesHistoryLimit,
   defaultRestoreSessionOnStartup,
   defaultSyncCurrentFile,
@@ -136,6 +138,7 @@ export type SettingsApplyPayload = {
   fontSize: number;
   lineHeightMultiple: number;
   lineSpacingPx: number;
+  letterSpacingPx: number;
   compressBlankKeepOneBlank: boolean;
   txtrDelimitedMatchCrossLine: boolean;
   timedScroll: TimedScrollSettings;
@@ -168,6 +171,7 @@ const props = defineProps<{
   readerFontSize: number;
   readerLineHeightMultiple: number;
   readerLineSpacingPx: number;
+  readerLetterSpacingPx: number;
   monacoSmoothScrolling: boolean;
   monacoCjkWrapOptimize: boolean;
   mouseWheelScrollSensitivity: number;
@@ -233,6 +237,7 @@ const draftFullscreenShowSystemTime = ref(defaultFullscreenShowSystemTime);
 const draftFontSize = ref(14);
 const draftLineHeightMultiple = ref(1.5);
 const draftLineSpacingPx = ref(defaultLineSpacingPx);
+const draftLetterSpacingPx = ref(defaultLetterSpacingPx);
 const draftMonacoSmoothScrolling = ref(true);
 const draftMonacoCjkWrapOptimize = ref(defaultMonacoCjkWrapOptimize);
 const draftMouseWheelScrollSensitivity = ref(
@@ -305,6 +310,7 @@ function syncDraftFromProps() {
     props.readerLineHeightMultiple,
   );
   draftLineSpacingPx.value = clampLineSpacingPx(props.readerLineSpacingPx);
+  draftLetterSpacingPx.value = clampLetterSpacingPx(props.readerLetterSpacingPx);
   draftMonacoSmoothScrolling.value = props.monacoSmoothScrolling;
   draftMonacoCjkWrapOptimize.value = props.monacoCjkWrapOptimize;
   draftMouseWheelScrollSensitivity.value = clampMouseWheelScrollSensitivity(
@@ -452,6 +458,7 @@ function resetReadingDraft() {
     defaultReaderLineHeightMultiple,
   );
   draftLineSpacingPx.value = defaultLineSpacingPx;
+  draftLetterSpacingPx.value = defaultLetterSpacingPx;
   draftMonacoSmoothScrolling.value = defaultMonacoSmoothScrolling;
   draftMonacoCjkWrapOptimize.value = defaultMonacoCjkWrapOptimize;
   draftMouseWheelScrollSensitivity.value = defaultMouseWheelScrollSensitivity;
@@ -682,6 +689,7 @@ async function onConfirm() {
     fontSize: draftFontSize.value,
     lineHeightMultiple: draftLineHeightMultiple.value,
     lineSpacingPx: clampLineSpacingPx(draftLineSpacingPx.value),
+    letterSpacingPx: clampLetterSpacingPx(draftLetterSpacingPx.value),
     compressBlankKeepOneBlank: draftCompressBlankKeepOneBlank.value,
     txtrDelimitedMatchCrossLine: draftTxtrDelimitedMatchCrossLine.value,
     timedScroll: mergeTimedScrollSettings({
@@ -825,6 +833,7 @@ async function onClearCache() {
               v-model:draft-font-size="draftFontSize"
               v-model:draft-line-height-multiple="draftLineHeightMultiple"
               v-model:draft-line-spacing-px="draftLineSpacingPx"
+              v-model:draft-letter-spacing-px="draftLetterSpacingPx"
               v-model:draft-monaco-smooth-scrolling="draftMonacoSmoothScrolling"
               v-model:draft-monaco-cjk-wrap-optimize="draftMonacoCjkWrapOptimize"
               v-model:draft-mouse-wheel-scroll-sensitivity="

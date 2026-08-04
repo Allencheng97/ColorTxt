@@ -345,6 +345,7 @@ function createFindBookReaderSettingsStore() {
     readerFontSize: fb.readerFontSize,
     readerLineHeightMultiple: fb.readerLineHeightMultiple,
     readerLineSpacingPx: fb.readerLineSpacingPx,
+    readerLetterSpacingPx: fb.readerLetterSpacingPx,
     monacoFontFamily: fb.monacoFontFamily,
     pinnedOtherFonts: fb.pinnedOtherFonts,
     monacoCustomHighlight: fb.monacoCustomHighlight,

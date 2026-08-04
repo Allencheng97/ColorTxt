@@ -64,6 +64,8 @@ export type PersistedSettingsData = {
   lineHeightMultiple?: number;
   /** 每个物理行结束后的额外间距（px） */
   lineSpacingPx?: number;
+  /** Monaco 字间距（px） */
+  letterSpacingPx?: number;
   fontFamily?: string;
   /** 阅读器字体弹框：钉在外层的「其他字体」名称列表 */
   pinnedOtherFonts?: string[];
@@ -306,6 +308,12 @@ export function loadPersistedSettingsData(
     Number.isFinite(obj.lineSpacingPx)
   ) {
     data.lineSpacingPx = obj.lineSpacingPx;
+  }
+  if (
+    typeof obj.letterSpacingPx === "number" &&
+    Number.isFinite(obj.letterSpacingPx)
+  ) {
+    data.letterSpacingPx = obj.letterSpacingPx;
   }
   if (typeof obj.fontFamily === "string" && obj.fontFamily.trim()) {
     data.fontFamily = obj.fontFamily;

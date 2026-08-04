@@ -137,6 +137,8 @@ import {
   defaultReaderLineHeightMultiple,
   defaultLineSpacingPx,
   clampLineSpacingPx,
+  defaultLetterSpacingPx,
+  clampLetterSpacingPx,
   defaultReaderPaletteDark,
   defaultReaderPaletteLight,
   defaultReaderTheme,
@@ -572,6 +574,7 @@ const textConvertDigit = ref<TextConvertWidthMode>(defaultTextConvertDigitMode);
 const readerFontSize = ref(defaultReaderFontSize);
 const readerLineHeightMultiple = ref(defaultReaderLineHeightMultiple);
 const readerLineSpacingPx = ref(defaultLineSpacingPx);
+const readerLetterSpacingPx = ref(defaultLetterSpacingPx);
 const monacoFontFamily = ref(READER_EDITOR_DEFAULT_FONT_FAMILY);
 /** 阅读器字体弹框：钉在外层的「其他字体」 */
 const pinnedOtherFonts = ref<string[]>([]);
@@ -1048,6 +1051,7 @@ const persistence = useAppPersistence({
   readerFontSize,
   readerLineHeightMultiple,
   readerLineSpacingPx,
+  readerLetterSpacingPx,
   monacoFontFamily,
   pinnedOtherFonts,
   chapterRuleState,
@@ -2888,6 +2892,7 @@ function applyReaderAppearanceFromSettings() {
   readerRef.value?.setFontSize(readerFontSize.value);
   readerRef.value?.setLineHeightMultiple(readerLineHeightMultiple.value);
   readerRef.value?.setLineSpacingPx(readerLineSpacingPx.value);
+  readerRef.value?.setLetterSpacingPx(readerLetterSpacingPx.value);
   readerRef.value?.setFontFamily(monacoFontFamily.value);
   readerRef.value?.setWrappingStrategyAdvanced(monacoAdvancedWrapping.value);
 }
@@ -3126,12 +3131,15 @@ async function applySettings(payload: SettingsApplyPayload) {
     payload.lineHeightMultiple,
   );
   const nextLineSpacingPx = clampLineSpacingPx(payload.lineSpacingPx);
+  const nextLetterSpacingPx = clampLetterSpacingPx(payload.letterSpacingPx);
   readerFontSize.value = nextFontSize;
   readerLineHeightMultiple.value = nextLineHeightMultiple;
   readerLineSpacingPx.value = nextLineSpacingPx;
+  readerLetterSpacingPx.value = nextLetterSpacingPx;
   readerRef.value?.setFontSize(nextFontSize);
   readerRef.value?.setLineHeightMultiple(nextLineHeightMultiple);
   readerRef.value?.setLineSpacingPx(nextLineSpacingPx);
+  readerRef.value?.setLetterSpacingPx(nextLetterSpacingPx);
   aiSkillOverrides.value = mergeAiSkillOverrides(payload.aiSkillOverrides);
   aiCustomSkills.value = mergeAiCustomSkills(payload.aiCustomSkills ?? []);
   aiSkillsEnabled.value = mergeAiSkillsEnabled(
@@ -3229,6 +3237,7 @@ useAppWindowBindings({
   readerFontSize,
   readerLineHeightMultiple,
   readerLineSpacingPx,
+  readerLetterSpacingPx,
   monacoFontFamily,
   fileEncoding,
   loading,
@@ -3598,6 +3607,7 @@ useAppShellThemeWatch({
           :monaco-advanced-wrapping="monacoAdvancedWrapping"
           :monaco-cjk-wrap-optimize="monacoCjkWrapOptimize"
           :line-spacing-px="readerLineSpacingPx"
+          :letter-spacing-px="readerLetterSpacingPx"
           :monaco-smooth-scrolling="monacoSmoothScrolling"
           :mouse-wheel-scroll-sensitivity="mouseWheelScrollSensitivity"
           :fast-scroll-sensitivity="fastScrollSensitivity"
@@ -3835,6 +3845,7 @@ useAppShellThemeWatch({
       :reader-font-size="readerFontSize"
       :reader-line-height-multiple="readerLineHeightMultiple"
       :reader-line-spacing-px="readerLineSpacingPx"
+      :reader-letter-spacing-px="readerLetterSpacingPx"
       :compress-blank-keep-one-blank="compressBlankKeepOneBlank"
       :monaco-smooth-scrolling="monacoSmoothScrolling"
       :monaco-cjk-wrap-optimize="monacoCjkWrapOptimize"

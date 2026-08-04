@@ -78,6 +78,7 @@ export function useAppWindowBindings(deps: {
   readerFontSize: Ref<number>;
   readerLineHeightMultiple: Ref<number>;
   readerLineSpacingPx: Ref<number>;
+  readerLetterSpacingPx: Ref<number>;
   monacoFontFamily: Ref<string>;
   fileEncoding: Ref<string>;
   loading: Ref<boolean>;
@@ -143,6 +144,7 @@ export function useAppWindowBindings(deps: {
       deps.readerLineHeightMultiple.value,
     );
     deps.readerRef.value?.setLineSpacingPx(deps.readerLineSpacingPx.value);
+    deps.readerRef.value?.setLetterSpacingPx(deps.readerLetterSpacingPx.value);
     deps.readerRef.value?.setFontFamily(deps.monacoFontFamily.value);
 
     const flushChapterListAfterFullscreenMs = 50;

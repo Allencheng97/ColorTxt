@@ -33,6 +33,8 @@ import {
   defaultReaderLineHeightMultiple,
   defaultLineSpacingPx,
   clampLineSpacingPx,
+  defaultLetterSpacingPx,
+  clampLetterSpacingPx,
   defaultStickyChapterTitleEnabled,
   defaultTxtrDelimitedMatchCrossLine,
   defaultChapterNavToolbarEnabled,
@@ -136,6 +138,7 @@ const draftWebDavRemoteDir = ref("ColorTxt");
 const draftFontSize = ref(defaultReaderFontSize);
 const draftLineHeightMultiple = ref(defaultReaderLineHeightMultiple);
 const draftLineSpacingPx = ref(defaultLineSpacingPx);
+const draftLetterSpacingPx = ref(defaultLetterSpacingPx);
 const draftMonacoSmoothScrolling = ref(defaultMonacoSmoothScrolling);
 const draftMonacoCjkWrapOptimize = ref(defaultMonacoCjkWrapOptimize);
 const draftMouseWheelScrollSensitivity = ref(
@@ -205,6 +208,9 @@ function syncSharedReaderDraftFromStore() {
     fb.readerLineHeightMultiple.value,
   );
   draftLineSpacingPx.value = clampLineSpacingPx(fb.readerLineSpacingPx.value);
+  draftLetterSpacingPx.value = clampLetterSpacingPx(
+    fb.readerLetterSpacingPx.value,
+  );
   draftMonacoSmoothScrolling.value = fb.monacoSmoothScrolling.value;
   draftMonacoCjkWrapOptimize.value = fb.monacoCjkWrapOptimize.value;
   draftMouseWheelScrollSensitivity.value = clampMouseWheelScrollSensitivity(
@@ -288,6 +294,7 @@ function resetReadingDraft() {
   draftFontSize.value = defaultReaderFontSize;
   draftLineHeightMultiple.value = defaultReaderLineHeightMultiple;
   draftLineSpacingPx.value = defaultLineSpacingPx;
+  draftLetterSpacingPx.value = defaultLetterSpacingPx;
   draftMonacoSmoothScrolling.value = defaultMonacoSmoothScrolling;
   draftMonacoCjkWrapOptimize.value = defaultMonacoCjkWrapOptimize;
   draftMouseWheelScrollSensitivity.value = defaultMouseWheelScrollSensitivity;
@@ -446,6 +453,9 @@ async function onConfirm() {
     draftLineHeightMultiple.value,
   );
   fb.readerLineSpacingPx.value = clampLineSpacingPx(draftLineSpacingPx.value);
+  fb.readerLetterSpacingPx.value = clampLetterSpacingPx(
+    draftLetterSpacingPx.value,
+  );
   fb.monacoSmoothScrolling.value = draftMonacoSmoothScrolling.value;
   fb.monacoCjkWrapOptimize.value = draftMonacoCjkWrapOptimize.value;
   fb.mouseWheelScrollSensitivity.value = clampMouseWheelScrollSensitivity(
@@ -573,6 +583,7 @@ watch(draftFontSize, (size) => {
               v-model:draft-font-size="draftFontSize"
               v-model:draft-line-height-multiple="draftLineHeightMultiple"
               v-model:draft-line-spacing-px="draftLineSpacingPx"
+              v-model:draft-letter-spacing-px="draftLetterSpacingPx"
               v-model:draft-monaco-smooth-scrolling="draftMonacoSmoothScrolling"
               v-model:draft-monaco-cjk-wrap-optimize="draftMonacoCjkWrapOptimize"
               v-model:draft-mouse-wheel-scroll-sensitivity="

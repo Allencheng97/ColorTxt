@@ -35,6 +35,7 @@ function createFindBookSettingsStore() {
   const readerFontSize = ref(initial.readerFontSize);
   const readerLineHeightMultiple = ref(initial.readerLineHeightMultiple);
   const readerLineSpacingPx = ref(initial.readerLineSpacingPx);
+  const readerLetterSpacingPx = ref(initial.readerLetterSpacingPx);
   const monacoFontFamily = ref(initial.monacoFontFamily);
   const pinnedOtherFonts = ref(initial.pinnedOtherFonts);
   const monacoCustomHighlight = ref(initial.monacoCustomHighlight);
@@ -85,6 +86,7 @@ function createFindBookSettingsStore() {
       readerFontSize: readerFontSize.value,
       readerLineHeightMultiple: readerLineHeightMultiple.value,
       readerLineSpacingPx: readerLineSpacingPx.value,
+      readerLetterSpacingPx: readerLetterSpacingPx.value,
       monacoFontFamily: monacoFontFamily.value,
       pinnedOtherFonts: pinnedOtherFonts.value,
       monacoCustomHighlight: monacoCustomHighlight.value,
@@ -151,6 +153,7 @@ function createFindBookSettingsStore() {
     readerFontSize.value = shared.readerFontSize;
     readerLineHeightMultiple.value = shared.readerLineHeightMultiple;
     readerLineSpacingPx.value = shared.readerLineSpacingPx;
+    readerLetterSpacingPx.value = shared.readerLetterSpacingPx;
     monacoFontFamily.value = shared.monacoFontFamily;
     pinnedOtherFonts.value = shared.pinnedOtherFonts;
     monacoCustomHighlight.value = shared.monacoCustomHighlight;
@@ -195,6 +198,7 @@ function createFindBookSettingsStore() {
     readerFontSize,
     readerLineHeightMultiple,
     readerLineSpacingPx,
+    readerLetterSpacingPx,
     monacoFontFamily,
     pinnedOtherFonts,
     monacoCustomHighlight,
