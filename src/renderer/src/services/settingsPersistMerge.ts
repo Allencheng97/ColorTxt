@@ -35,6 +35,7 @@ export const WINDOW_LOCAL_MAIN_SETTING_KEYS: ReadonlySet<string> = new Set([
   "monacoCustomHighlight",
   "compressBlankLines",
   "compressBlankKeepOneBlank",
+  "insertChapterTitleBlankLines",
   "txtrDelimitedMatchCrossLine",
   "leadIndentFullWidth",
   "textConvertZh",

@@ -17,12 +17,16 @@ export type CompressBlankFormatResult = {
 export function formatPlainTextCompressBlankLinesWithMap(
   text: string,
   keepOneBlank: boolean,
-  extra?: Pick<ReaderDisplayFormatOptions, "leadIndentFullWidth">,
+  extra?: Pick<
+    ReaderDisplayFormatOptions,
+    "leadIndentFullWidth" | "insertChapterTitleBlankLines"
+  >,
 ): CompressBlankFormatResult {
   const lines = normalizeNewlines(text).split("\n");
   const result = formatPhysicalLinesForReader(lines, {
     compressBlankLines: true,
     compressBlankKeepOneBlank: keepOneBlank,
+    insertChapterTitleBlankLines: extra?.insertChapterTitleBlankLines ?? false,
     leadIndentFullWidth: extra?.leadIndentFullWidth ?? false,
   });
   return {
@@ -43,6 +47,7 @@ export function formatPlainTextLeadIndentFullWidth(text: string): string {
   return formatPhysicalPlainTextForReader(text, {
     compressBlankLines: false,
     compressBlankKeepOneBlank: false,
+    insertChapterTitleBlankLines: false,
     leadIndentFullWidth: true,
   }).text;
 }

@@ -19,6 +19,7 @@ import {
 } from "../services/findBookSettingsStore";
 import {
   defaultCompressBlankKeepOneBlank,
+  defaultInsertChapterTitleBlankLines,
   defaultFullscreenReaderWidthPercent,
   defaultFullscreenShowSystemTime,
   defaultMonacoCjkWrapOptimize,
@@ -152,6 +153,9 @@ const draftStickyChapterTitleEnabled = ref(defaultStickyChapterTitleEnabled);
 const draftChapterNavToolbarEnabled = ref(defaultChapterNavToolbarEnabled);
 const draftReaderEditShowLineNumbers = ref(defaultReaderEditShowLineNumbers);
 const draftReaderEditMinimap = ref(defaultReaderEditMinimap);
+const draftInsertChapterTitleBlankLines = ref(
+  defaultInsertChapterTitleBlankLines,
+);
 const draftCompressBlankKeepOneBlank = ref(defaultCompressBlankKeepOneBlank);
 const draftTxtrDelimitedMatchCrossLine = ref(defaultTxtrDelimitedMatchCrossLine);
 const draftFullscreenReaderWidthPercent = ref(defaultFullscreenReaderWidthPercent);
@@ -229,6 +233,8 @@ function syncSharedReaderDraftFromStore() {
   draftChapterNavToolbarEnabled.value = fb.chapterNavToolbarEnabled.value;
   draftReaderEditShowLineNumbers.value = fb.readerEditShowLineNumbers.value;
   draftReaderEditMinimap.value = fb.readerEditMinimap.value;
+  draftInsertChapterTitleBlankLines.value =
+    fb.insertChapterTitleBlankLines.value;
   draftCompressBlankKeepOneBlank.value = fb.compressBlankKeepOneBlank.value;
   draftTxtrDelimitedMatchCrossLine.value = fb.txtrDelimitedMatchCrossLine.value;
   draftFullscreenReaderWidthPercent.value = fb.fullscreenReaderWidthPercent.value;
@@ -308,6 +314,8 @@ function resetReadingDraft() {
   draftFastScrollSensitivity.value = defaultFastScrollSensitivity;
   draftStickyChapterTitleEnabled.value = defaultStickyChapterTitleEnabled;
   draftChapterNavToolbarEnabled.value = defaultChapterNavToolbarEnabled;
+  draftInsertChapterTitleBlankLines.value =
+    defaultInsertChapterTitleBlankLines;
   draftCompressBlankKeepOneBlank.value = defaultCompressBlankKeepOneBlank;
   draftTxtrDelimitedMatchCrossLine.value = defaultTxtrDelimitedMatchCrossLine;
   draftFullscreenReaderWidthPercent.value = defaultFullscreenReaderWidthPercent;
@@ -478,6 +486,8 @@ async function onConfirm() {
   fb.chapterNavToolbarEnabled.value = draftChapterNavToolbarEnabled.value;
   fb.readerEditShowLineNumbers.value = draftReaderEditShowLineNumbers.value;
   fb.readerEditMinimap.value = draftReaderEditMinimap.value;
+  fb.insertChapterTitleBlankLines.value =
+    draftInsertChapterTitleBlankLines.value;
   fb.compressBlankKeepOneBlank.value = draftCompressBlankKeepOneBlank.value;
   fb.txtrDelimitedMatchCrossLine.value = draftTxtrDelimitedMatchCrossLine.value;
   fb.fullscreenReaderWidthPercent.value = draftFullscreenReaderWidthPercent.value;
@@ -605,6 +615,7 @@ watch(draftFontSize, (size) => {
               v-model:draft-fast-scroll-sensitivity="draftFastScrollSensitivity"
               v-model:draft-sticky-chapter-title-enabled="draftStickyChapterTitleEnabled"
               v-model:draft-chapter-nav-toolbar-enabled="draftChapterNavToolbarEnabled"
+              v-model:draft-insert-chapter-title-blank-lines="draftInsertChapterTitleBlankLines"
               v-model:draft-compress-blank-keep-one-blank="draftCompressBlankKeepOneBlank"
               v-model:draft-txtr-delimited-match-cross-line="draftTxtrDelimitedMatchCrossLine"
               v-model:draft-fullscreen-reader-width-percent="draftFullscreenReaderWidthPercent"

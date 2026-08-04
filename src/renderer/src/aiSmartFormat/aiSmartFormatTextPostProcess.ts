@@ -18,6 +18,7 @@ export function buildSmartFormatPostProcessOptions(
   return {
     compressBlankLines: false,
     compressBlankKeepOneBlank: false,
+    insertChapterTitleBlankLines: false,
     leadIndentFullWidth: false,
     minCharCount: ctx.chapterMinCharCount,
     isMarkdown: ctx.isMarkdown,
@@ -31,12 +32,14 @@ export function compressBlankLinesInText(
   plain: string,
   ctx: SmartFormatPostProcessContext,
   keepOneBlank: boolean,
+  insertChapterTitleBlankLines = false,
 ): string {
   return formatPhysicalPlainTextForReader(
     plain,
     buildSmartFormatPostProcessOptions(ctx, {
       compressBlankLines: true,
       compressBlankKeepOneBlank: keepOneBlank,
+      insertChapterTitleBlankLines,
     }),
   ).text;
 }
@@ -59,10 +62,16 @@ export function applySmartFormatPostProcessToText(
   >,
   ctx: SmartFormatPostProcessContext,
   keepOneBlank: boolean,
+  insertChapterTitleBlankLines = false,
 ): string {
   let result = text;
   if (settings.autoCompressBlank) {
-    result = compressBlankLinesInText(result, ctx, keepOneBlank);
+    result = compressBlankLinesInText(
+      result,
+      ctx,
+      keepOneBlank,
+      insertChapterTitleBlankLines,
+    );
   }
   if (settings.autoLeadIndent) {
     result = leadIndentFullWidthInText(result, ctx);

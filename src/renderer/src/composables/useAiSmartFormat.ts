@@ -51,6 +51,7 @@ export function useAiSmartFormat(deps: {
   aiFeaturesEnabled: Ref<boolean>;
   aiSkillOverrides: Ref<Record<string, AiSkillUserOverride>>;
   compressBlankKeepOneBlank: Ref<boolean>;
+  insertChapterTitleBlankLines: Ref<boolean>;
   runEditFormatWithChapterSync: (
     format: () => Promise<boolean | undefined> | boolean | undefined,
   ) => Promise<void>;
@@ -361,6 +362,7 @@ export function useAiSmartFormat(deps: {
       settings,
       readPostProcessContext(),
       deps.compressBlankKeepOneBlank.value,
+      deps.insertChapterTitleBlankLines.value,
     );
   }
 

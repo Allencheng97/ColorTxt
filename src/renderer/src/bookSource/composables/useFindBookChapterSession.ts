@@ -49,6 +49,7 @@ export type FindBookChapterSessionDeps = {
   textConvertDigit: Ref<TextConvertWidthMode>;
   compressBlankLines: Ref<boolean>;
   compressBlankKeepOneBlank: Ref<boolean>;
+  insertChapterTitleBlankLines: Ref<boolean>;
   leadIndentFullWidth: Ref<boolean>;
   chapterMinCharCount: Ref<number>;
   effectiveCacheDir: Ref<string>;
@@ -253,6 +254,7 @@ export function useFindBookChapterSession(deps: FindBookChapterSessionDeps) {
     const formatted = formatPhysicalPlainTextForReader(text, {
       compressBlankLines: deps.compressBlankLines.value,
       compressBlankKeepOneBlank: deps.compressBlankKeepOneBlank.value,
+      insertChapterTitleBlankLines: deps.insertChapterTitleBlankLines.value,
       leadIndentFullWidth: deps.leadIndentFullWidth.value,
       minCharCount: deps.chapterMinCharCount.value,
       skipBlanksBeforeFirstChapterTitle: true,

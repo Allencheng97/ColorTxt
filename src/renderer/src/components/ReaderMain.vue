@@ -360,7 +360,7 @@ const props = withDefaults(
     monacoCustomHighlight?: boolean;
     /** 与「内容上色」同时生效：成对引号/括号是否允许跨行 */
     txtrDelimitedMatchCrossLine?: boolean;
-    /** 为 true 时由数据层压缩空行并标准化章节留白（标题下 1 行；标题上 1 或 2 行取决于「保留一个空行」） */
+    /** 为 true 时由数据层压缩空行；章节标题留白由「章节标题前后保留空行」控制 */
     compressBlankLines?: boolean;
     /** Monaco 高级换行策略（wrappingStrategy: advanced） */
     monacoAdvancedWrapping?: boolean;
@@ -1052,6 +1052,7 @@ function readerFormatOptions(
   return {
     compressBlankLines: false,
     compressBlankKeepOneBlank: false,
+    insertChapterTitleBlankLines: false,
     leadIndentFullWidth: false,
     minCharCount: ctx.chapterMinCharCount,
     isMarkdown: ctx.isMarkdown,
@@ -1107,6 +1108,7 @@ async function applyEditFormatAsync(
 
 async function applyEditFormatCompressBlankLines(
   keepOneBlank: boolean,
+  insertChapterTitleBlankLines = false,
 ): Promise<boolean> {
   return applyEditFormat((plain) =>
     formatPhysicalPlainTextForReader(
@@ -1114,6 +1116,7 @@ async function applyEditFormatCompressBlankLines(
       readerFormatOptions({
         compressBlankLines: true,
         compressBlankKeepOneBlank: keepOneBlank,
+        insertChapterTitleBlankLines,
       }),
     ),
   );
@@ -1192,9 +1195,15 @@ function applySmartFormatReviewFormat(
 
 function applySmartFormatReviewCompressBlankLines(
   keepOneBlank: boolean,
+  insertChapterTitleBlankLines = false,
 ): boolean {
   return applySmartFormatReviewFormat((plain) =>
-    compressBlankLinesInText(plain, smartFormatPostProcessContext(), keepOneBlank),
+    compressBlankLinesInText(
+      plain,
+      smartFormatPostProcessContext(),
+      keepOneBlank,
+      insertChapterTitleBlankLines,
+    ),
   );
 }
 
@@ -1227,12 +1236,14 @@ function applyEditFormatCompressBlankLinesInRange(
   startLine: number,
   endLine: number,
   keepOneBlank: boolean,
+  insertChapterTitleBlankLines = false,
 ): boolean {
   return applyEditFormatInLineRange(startLine, endLine, (plain) =>
     compressBlankLinesInText(
       plain,
       smartFormatPostProcessContext(),
       keepOneBlank,
+      insertChapterTitleBlankLines,
     ),
   );
 }

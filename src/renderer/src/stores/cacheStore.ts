@@ -76,8 +76,10 @@ export type PersistedSettingsData = {
   txtrDelimitedMatchCrossLine?: boolean;
   /** 是否在加载时过滤空行（仅空格/缩进也视为空行） */
   compressBlankLines?: boolean;
-  /** 压缩空行时是否在每行正文下方保留一行空行（章节标题行除外） */
+  /** 压缩空行时是否在每行（含章节标题）下方保留一行空行 */
   compressBlankKeepOneBlank?: boolean;
+  /** 压缩空行时章节标题留白增强（关：前 1；开：前 2、后 1） */
+  insertChapterTitleBlankLines?: boolean;
   /** 是否为正文行统一行首两个全角空格（章节标题行与空行除外） */
   leadIndentFullWidth?: boolean;
   textConvertZh?: string;
@@ -342,6 +344,9 @@ export function loadPersistedSettingsData(
   }
   if (typeof obj.compressBlankKeepOneBlank === "boolean") {
     data.compressBlankKeepOneBlank = obj.compressBlankKeepOneBlank;
+  }
+  if (typeof obj.insertChapterTitleBlankLines === "boolean") {
+    data.insertChapterTitleBlankLines = obj.insertChapterTitleBlankLines;
   }
   if (typeof obj.leadIndentFullWidth === "boolean") {
     data.leadIndentFullWidth = obj.leadIndentFullWidth;

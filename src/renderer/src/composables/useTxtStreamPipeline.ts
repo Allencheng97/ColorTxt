@@ -45,6 +45,7 @@ export function useTxtStreamPipeline(deps: {
   readerEditMode: Ref<boolean>;
   compressBlankLines: Ref<boolean>;
   compressBlankKeepOneBlank: Ref<boolean>;
+  insertChapterTitleBlankLines: Ref<boolean>;
   leadIndentFullWidth: Ref<boolean>;
   textConvertZh: Ref<TextConvertZhMode>;
   textConvertLetter: Ref<TextConvertWidthMode>;
@@ -303,6 +304,7 @@ export function useTxtStreamPipeline(deps: {
       {
         compressBlankLines: deps.compressBlankLines.value,
         compressBlankKeepOneBlank: deps.compressBlankKeepOneBlank.value,
+        insertChapterTitleBlankLines: deps.insertChapterTitleBlankLines.value,
         leadIndentFullWidth: deps.leadIndentFullWidth.value,
         minCharCount: deps.chapterMinCharCount.value,
         isMarkdown: deps.currentFileIsMarkdown.value,

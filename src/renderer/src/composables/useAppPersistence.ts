@@ -214,6 +214,7 @@ export function useAppPersistence(deps: {
   monacoCustomHighlight: Ref<boolean>;
   compressBlankLines: Ref<boolean>;
   compressBlankKeepOneBlank: Ref<boolean>;
+  insertChapterTitleBlankLines: Ref<boolean>;
   /** 与「内容上色」同时生效：成对引号/括号是否跨行 */
   txtrDelimitedMatchCrossLine: Ref<boolean>;
   leadIndentFullWidth: Ref<boolean>;
@@ -357,6 +358,7 @@ export function useAppPersistence(deps: {
       monacoCustomHighlight: deps.monacoCustomHighlight.value,
       compressBlankLines: deps.compressBlankLines.value,
       compressBlankKeepOneBlank: deps.compressBlankKeepOneBlank.value,
+      insertChapterTitleBlankLines: deps.insertChapterTitleBlankLines.value,
       txtrDelimitedMatchCrossLine: deps.txtrDelimitedMatchCrossLine.value,
       leadIndentFullWidth: deps.leadIndentFullWidth.value,
       textConvertZh: deps.textConvertZh.value,
@@ -1114,6 +1116,11 @@ export function useAppPersistence(deps: {
 
       if (typeof data.compressBlankKeepOneBlank === "boolean") {
         deps.compressBlankKeepOneBlank.value = data.compressBlankKeepOneBlank;
+      }
+
+      if (typeof data.insertChapterTitleBlankLines === "boolean") {
+        deps.insertChapterTitleBlankLines.value =
+          data.insertChapterTitleBlankLines;
       }
 
       if (typeof data.txtrDelimitedMatchCrossLine === "boolean") {

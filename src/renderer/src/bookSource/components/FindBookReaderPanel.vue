@@ -207,6 +207,7 @@ const {
   txtrDelimitedMatchCrossLine,
   compressBlankLines,
   compressBlankKeepOneBlank,
+  insertChapterTitleBlankLines,
   leadIndentFullWidth,
   textConvertZh,
   textConvertLetter,
@@ -583,6 +584,7 @@ const {
   textConvertDigit,
   compressBlankLines,
   compressBlankKeepOneBlank,
+  insertChapterTitleBlankLines,
   leadIndentFullWidth,
   chapterMinCharCount,
   effectiveCacheDir,
@@ -989,6 +991,7 @@ async function toggleCompressBlankLines() {
   if (readerEditMode.value) {
     void readerRef.value?.applyEditFormatCompressBlankLines?.(
       compressBlankKeepOneBlank.value,
+      insertChapterTitleBlankLines.value,
     );
     return;
   }
@@ -1031,6 +1034,7 @@ async function setTextConvertDigitRead(mode: typeof textConvertDigit.value) {
 function onFormatEditCompressBlankLines() {
   void readerRef.value?.applyEditFormatCompressBlankLines?.(
     compressBlankKeepOneBlank.value,
+    insertChapterTitleBlankLines.value,
   );
 }
 
@@ -1517,7 +1521,11 @@ watch(
 );
 
 watch(
-  [compressBlankKeepOneBlank, txtrDelimitedMatchCrossLine],
+  [
+    compressBlankKeepOneBlank,
+    insertChapterTitleBlankLines,
+    txtrDelimitedMatchCrossLine,
+  ],
   () => {
     if (!modelValue.value) return;
     void refreshCurrentChapterDisplay();

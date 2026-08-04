@@ -1,6 +1,7 @@
 import {
   clampLineHeightMultipleForFontSize,
   defaultCompressBlankKeepOneBlank,
+  defaultInsertChapterTitleBlankLines,
   defaultCompressBlankLines,
   defaultChapterNavToolbarEnabled,
   defaultFullscreenReaderWidthPercent,
@@ -142,6 +143,7 @@ export type SharedReaderSettingsSnapshot = {
   txtrDelimitedMatchCrossLine: boolean;
   compressBlankLines: boolean;
   compressBlankKeepOneBlank: boolean;
+  insertChapterTitleBlankLines: boolean;
   leadIndentFullWidth: boolean;
   textConvertZh: TextConvertZhMode;
   textConvertLetter: TextConvertWidthMode;
@@ -208,6 +210,10 @@ export function sharedReaderSettingsFromMainData(
       typeof data.compressBlankKeepOneBlank === "boolean"
         ? data.compressBlankKeepOneBlank
         : defaultCompressBlankKeepOneBlank,
+    insertChapterTitleBlankLines:
+      typeof data.insertChapterTitleBlankLines === "boolean"
+        ? data.insertChapterTitleBlankLines
+        : defaultInsertChapterTitleBlankLines,
     leadIndentFullWidth:
       typeof data.leadIndentFullWidth === "boolean"
         ? data.leadIndentFullWidth
@@ -283,6 +289,7 @@ export function snapshotSharedReaderSettingsForMain(
     txtrDelimitedMatchCrossLine: state.txtrDelimitedMatchCrossLine,
     compressBlankLines: state.compressBlankLines,
     compressBlankKeepOneBlank: state.compressBlankKeepOneBlank,
+    insertChapterTitleBlankLines: state.insertChapterTitleBlankLines,
     leadIndentFullWidth: state.leadIndentFullWidth,
     textConvertZh: state.textConvertZh,
     textConvertLetter: state.textConvertLetter,

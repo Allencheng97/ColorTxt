@@ -32,6 +32,12 @@ import { countCharsForLine } from "../utils/format";
 export type ReaderDisplayFormatOptions = {
   compressBlankLines: boolean;
   compressBlankKeepOneBlank: boolean;
+  /**
+   * 压缩空行时章节标题留白：
+   * - 关闭：标题前插入 1 个空行（若开「保留一个空行」则标题后也保留 1 行）
+   * - 开启：标题前 2 个空行、后 1 个空行
+   */
+  insertChapterTitleBlankLines: boolean;
   leadIndentFullWidth: boolean;
   /** 与侧栏章节列表一致：不足最少字数的标题行不插入章节上下空行 */
   minCharCount?: number;
@@ -450,7 +456,9 @@ export function formatPhysicalLinesForReader(
   }
 
   const keepOneBlank = options.compressBlankKeepOneBlank;
-  const blanksAbove = keepOneBlank ? 1 : 2;
+  const insertChapterTitleBlanks = options.insertChapterTitleBlankLines;
+  /** 关闭：前 1；开启「章节标题前后保留空行」：前 2 */
+  const blanksAbove = insertChapterTitleBlanks ? 2 : 1;
   const out: string[] = [];
   const displayLineToPhysicalLine: number[] = [];
 
@@ -531,7 +539,11 @@ export function formatPhysicalLinesForReader(
       }
       const titleDisplayLine = pushDisplay(shown, physicalLine, linkContext);
       chapterTitleDisplayLineByPhysical.set(physicalLine, titleDisplayLine);
-      pushDisplay("", physicalLine);
+      if (insertChapterTitleBlanks) {
+        pushDisplay("", physicalLine);
+      } else if (keepOneBlank) {
+        pushDisplay("", physicalLine);
+      }
     } else {
       pushDisplay(shown, physicalLine, linkContext);
       if (keepOneBlank) pushDisplay("", physicalLine);
@@ -671,7 +683,9 @@ export async function formatPhysicalLinesForReaderAsync(
   }
 
   const keepOneBlank = options.compressBlankKeepOneBlank;
-  const blanksAbove = keepOneBlank ? 1 : 2;
+  const insertChapterTitleBlanks = options.insertChapterTitleBlankLines;
+  /** 关闭：前 1；开启「章节标题前后保留空行」：前 2 */
+  const blanksAbove = insertChapterTitleBlanks ? 2 : 1;
   const out: string[] = [];
   const displayLineToPhysicalLine: number[] = [];
 
@@ -757,7 +771,11 @@ export async function formatPhysicalLinesForReaderAsync(
       }
       const titleDisplayLine = pushDisplay(shown, physicalLine, linkContext);
       chapterTitleDisplayLineByPhysical.set(physicalLine, titleDisplayLine);
-      pushDisplay("", physicalLine);
+      if (insertChapterTitleBlanks) {
+        pushDisplay("", physicalLine);
+      } else if (keepOneBlank) {
+        pushDisplay("", physicalLine);
+      }
     } else {
       pushDisplay(shown, physicalLine, linkContext);
       if (keepOneBlank) pushDisplay("", physicalLine);

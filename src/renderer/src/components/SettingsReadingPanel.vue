@@ -37,6 +37,7 @@ import {
   pomodoroLongBreakEvery,
 } from "../constants/pomodoro";
 import { computed } from "vue";
+import { icons } from "../icons.js";
 
 const props = defineProps<{
   draftFontSize: number;
@@ -50,6 +51,7 @@ const props = defineProps<{
   draftFastScrollSensitivity: number;
   draftStickyChapterTitleEnabled: boolean;
   draftChapterNavToolbarEnabled: boolean;
+  draftInsertChapterTitleBlankLines: boolean;
   draftCompressBlankKeepOneBlank: boolean;
   draftTxtrDelimitedMatchCrossLine: boolean;
   draftFullscreenReaderWidthPercent: number;
@@ -75,6 +77,7 @@ defineEmits<{
   "update:draftFastScrollSensitivity": [v: number];
   "update:draftStickyChapterTitleEnabled": [v: boolean];
   "update:draftChapterNavToolbarEnabled": [v: boolean];
+  "update:draftInsertChapterTitleBlankLines": [v: boolean];
   "update:draftCompressBlankKeepOneBlank": [v: boolean];
   "update:draftTxtrDelimitedMatchCrossLine": [v: boolean];
   "update:draftFullscreenReaderWidthPercent": [v: number];
@@ -194,23 +197,7 @@ const draftMaxLineHeightMultiple = computed(() =>
           />
         </div>
         <p class="settingsHint">
-          优化「简单换行策略」下的中文换行效果，不作用于「高级换行策略」。
-        </p>
-      </div>
-
-      <div class="settingsRow">
-        <div class="settingsRowMain">
-          <span class="settingsLabel">压缩空行时保留一个空行</span>
-          <SwitchToggle
-            :model-value="draftCompressBlankKeepOneBlank"
-            aria-label="压缩空行时保留一个空行"
-            @update:model-value="
-              $emit('update:draftCompressBlankKeepOneBlank', $event)
-            "
-          />
-        </div>
-        <p class="settingsHint">
-          仅在开启「压缩空行」时生效，在每行下方保留一个空行。
+          优化「简单换行策略」下的中文换行效果，不作用于「高级换行策略」。建议开启。
         </p>
       </div>
 
@@ -314,13 +301,51 @@ const draftMaxLineHeightMultiple = computed(() =>
       </div>
     </div>
 
+    <div class="settingsBody settingsBody--timedScroll">
+      <h3 class="settingsSectionTitle settingsSectionTitle--timedScroll">
+        <span class="settingsIcon" v-html="icons.play" />
+        定时滚动
+      </h3>
+
+      <div class="settingsRow">
+        <div class="settingsRowMain settingsRowMain--baseline">
+          <span class="settingsLabel">范围</span>
+          <RadioGroup
+            :model-value="draftTimedScrollRange"
+            :options="TIMED_SCROLL_RANGE_OPTIONS"
+            aria-label="定时滚动范围"
+            @update:model-value="
+              $emit('update:draftTimedScrollRange', $event as TimedScrollRange)
+            "
+          />
+        </div>
+      </div>
+
+      <div class="settingsRow">
+        <div class="settingsRowMain settingsRowMain--baseline">
+          <span class="settingsLabel">间隔（毫秒）</span>
+          <NumericInput
+            :model-value="draftTimedScrollIntervalMs"
+            :min="minTimedScrollIntervalMs"
+            :max="maxTimedScrollIntervalMs"
+            integer
+            aria-label="定时滚动间隔毫秒"
+            @update:model-value="$emit('update:draftTimedScrollIntervalMs', $event)"
+          />
+        </div>
+      </div>
+    </div>
+
     <div class="settingsBody settingsBody--fullscreen">
-      <h3 class="settingsSectionTitle settingsSectionTitle--fullscreen">全屏阅读</h3>
+      <h3 class="settingsSectionTitle settingsSectionTitle--fullscreen">
+        <span class="settingsIcon" v-html="icons.enterFullscreen" />
+        全屏阅读
+      </h3>
 
       <div class="settingsRow">
         <div class="settingsRowMain">
           <span class="settingsLabel short"
-            >全屏阅读区域宽度（{{ draftFullscreenReaderWidthPercent }}%）</span
+            >阅读区域宽度（{{ draftFullscreenReaderWidthPercent }}%）</span
           >
           <RangeSlider
             :model-value="draftFullscreenReaderWidthPercent"
@@ -334,12 +359,11 @@ const draftMaxLineHeightMultiple = computed(() =>
             "
           />
         </div>
-        <p class="settingsHint">仅在全屏模式生效，用于控制阅读区域宽度。</p>
       </div>
 
       <div class="settingsRow">
         <div class="settingsRowMain">
-          <span class="settingsLabel">全屏时在左下角显示系统时间</span>
+          <span class="settingsLabel">在左下角显示系统时间</span>
           <SwitchToggle
             :model-value="draftFullscreenShowSystemTime"
             aria-label="全屏时在左下角显示系统时间"
@@ -348,14 +372,14 @@ const draftMaxLineHeightMultiple = computed(() =>
             "
           />
         </div>
-        <p class="settingsHint">
-          进入全屏后在屏幕左下角显示当前系统时间（时:分）。
-        </p>
       </div>
     </div>
 
     <div class="settingsBody settingsBody--pomodoro">
-      <h3 class="settingsSectionTitle settingsSectionTitle--pomodoro">番茄时钟</h3>
+      <h3 class="settingsSectionTitle settingsSectionTitle--pomodoro">
+        <span class="settingsIcon" v-html="icons.history" />
+        番茄时钟
+      </h3>
 
       <div class="settingsRow">
         <div class="settingsRowMain">
@@ -423,33 +447,37 @@ const draftMaxLineHeightMultiple = computed(() =>
       </template>
     </div>
 
-    <div class="settingsBody settingsBody--timedScroll">
-      <h3 class="settingsSectionTitle settingsSectionTitle--timedScroll">定时滚动</h3>
+    <div class="settingsBody settingsBody--scroll">
+      <h3 class="settingsSectionTitle settingsSectionTitle--scroll">
+        <span class="settingsIcon" v-html="icons.compress" />
+        压缩空行
+      </h3>
 
       <div class="settingsRow">
-        <div class="settingsRowMain settingsRowMain--baseline">
-          <span class="settingsLabel">范围</span>
-          <RadioGroup
-            :model-value="draftTimedScrollRange"
-            :options="TIMED_SCROLL_RANGE_OPTIONS"
-            aria-label="定时滚动范围"
+        <div class="settingsRowMain">
+          <span class="settingsLabel">章节标题前后保留空行</span>
+          <SwitchToggle
+            :model-value="draftInsertChapterTitleBlankLines"
+            aria-label="压缩空行时章节标题前后保留空行"
             @update:model-value="
-              $emit('update:draftTimedScrollRange', $event as TimedScrollRange)
+              $emit('update:draftInsertChapterTitleBlankLines', $event)
             "
           />
         </div>
+        <p class="settingsHint">
+          关闭：前面保留一个空行；<br />打开：前面保留两个空行、后面保留一个空行。
+        </p>
       </div>
 
       <div class="settingsRow">
-        <div class="settingsRowMain settingsRowMain--baseline">
-          <span class="settingsLabel">间隔（毫秒）</span>
-          <NumericInput
-            :model-value="draftTimedScrollIntervalMs"
-            :min="minTimedScrollIntervalMs"
-            :max="maxTimedScrollIntervalMs"
-            integer
-            aria-label="定时滚动间隔毫秒"
-            @update:model-value="$emit('update:draftTimedScrollIntervalMs', $event)"
+        <div class="settingsRowMain">
+          <span class="settingsLabel">每行下方保留一个空行</span>
+          <SwitchToggle
+            :model-value="draftCompressBlankKeepOneBlank"
+            aria-label="压缩空行时每行下方保留一个空行"
+            @update:model-value="
+              $emit('update:draftCompressBlankKeepOneBlank', $event)
+            "
           />
         </div>
       </div>
@@ -515,6 +543,25 @@ const draftMaxLineHeightMultiple = computed(() =>
   font-size: 12px;
   line-height: 1.45;
   color: var(--muted);
+}
+
+.settingsSectionTitle:has(+ .settingsHint) {
+  margin-bottom: 0;
+}
+
+.settingsIcon {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+}
+.settingsIcon :deep(svg) {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+.settingsIcon :deep(svg path) {
+  fill: currentColor;
 }
 
 .settingsBody--scroll,

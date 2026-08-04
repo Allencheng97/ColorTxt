@@ -114,7 +114,9 @@ export const defaultMonacoCustomHighlight = true;
 export const defaultTxtrDelimitedMatchCrossLine = true;
 /** 为 true 时在加载文件流中丢弃空行（仅空格/缩进也视为空行） */
 export const defaultCompressBlankLines = false;
-/** 压缩空行时是否在每行正文下方保留一行空行（章节标题行除外） */
+/** 压缩空行时章节标题前后空行（关：前 1；开：前 2、后 1） */
+export const defaultInsertChapterTitleBlankLines = false;
+/** 压缩空行时是否在每行（含章节标题）下方保留一行空行 */
 export const defaultCompressBlankKeepOneBlank = false;
 /** 为 true 时正文行统一行首两个全角空格（章节标题行与空行除外） */
 export const defaultLeadIndentFullWidth = false;
