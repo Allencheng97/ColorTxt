@@ -237,6 +237,9 @@ export const readerHorizontalInsetPxStep = 1;
 /** 有左右边距时正文区最小宽；与侧栏拖拽时的阅读区最小宽一致 */
 export const minReaderBodyWidthWithHorizontalInsetPx = SIDEBAR_MIN_READER_WIDTH;
 
+/** 阅读模式「编辑选中文本」选区字数上限（按物理原文字符数） */
+export const maxPartialEditSelectionChars = 1000;
+
 export function clampReaderHorizontalInsetPx(px: number): number {
   if (!Number.isFinite(px)) return defaultReaderHorizontalInsetPx;
   return Math.max(

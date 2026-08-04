@@ -2283,6 +2283,64 @@ function applyChaptersFromReaderPlainText() {
   chapterNav.refreshChapterListFromReader();
 }
 
+async function onApplyPartialPhysicalEdit(payload: {
+  range: {
+    startPhysicalLine: number;
+    startColumn: number;
+    endPhysicalLine: number;
+    endColumn: number;
+  };
+  text: string;
+}) {
+  if (readerEditMode.value) return;
+  if (!canEnterReaderEditMode.value) {
+    appToast("请等待当前文件加载完成后再编辑。", { kind: "info" });
+    return;
+  }
+  const p = physicalReaderPath.value;
+  if (!p || !window.colorTxt?.writeTextFile) {
+    appToast("无法保存：文件路径不可用。", { kind: "danger" });
+    return;
+  }
+  const nextText = stream.buildPlainTextAfterPhysicalReplace(
+    payload.range,
+    payload.text,
+  );
+  if (nextText == null) {
+    appToast("无法应用局部编辑（选区映射失败）。", { kind: "danger" });
+    return;
+  }
+  const normalized = normalizeIpcEncoding(readerSaveEncoding.value);
+  const written = await window.colorTxt.writeTextFile(p, nextText, normalized);
+  if (!written.ok) {
+    void appAlert(written.message ?? "保存失败");
+    return;
+  }
+  readerSaveEncoding.value = normalized;
+  fileEncoding.value = formatTextEncodingLabel(normalized);
+  stream.commitPhysicalLinesFromPlainText(nextText);
+  const anchor =
+    captureViewportRestoreAnchor() ?? {
+      physicalLine: payload.range.startPhysicalLine,
+      wrappedLineIndex: 0,
+    };
+  await withChapterListScrollSuppressed(async () => {
+    const ok = await stream.applyReaderDisplayFromPhysicalLines(anchor);
+    if (!ok) {
+      appToast("已写入磁盘，但刷新阅读显示失败，请重新打开文件。", {
+        kind: "warning",
+      });
+      return;
+    }
+    await syncChaptersAfterViewportSettled();
+  });
+  revalidateCurrentFileAnnotations();
+  refreshCurrentFileAnnotationDisplayTexts();
+  bumpAnnotationDisplayEpoch();
+  readerRef.value?.refreshReaderAnnotationDecorations?.();
+  appToast("已保存局部修改", { kind: "success" });
+}
+
 async function onToggleReaderEdit() {
   if (readerEditMode.value && aiSmartFormatReviewSession.value) {
     appToast("排版预览进行中，请先点击「应用」或「放弃」。", { kind: "info" });
@@ -3283,6 +3341,12 @@ useAppWindowBindings({
   },
   openFindBook: openFindBookWindow,
   toggleFind: onToggleFind,
+  toggleReaderEdit: () => {
+    void onToggleReaderEdit();
+  },
+  editSelectedText: () => {
+    readerRef.value?.tryOpenPartialEditFromSelection?.();
+  },
   scrollDownLine: () => readerRef.value?.scrollByLineStep?.(1),
   scrollUpLine: () => readerRef.value?.scrollByLineStep?.(-1),
   scrollPageUp: () => readerRef.value?.scrollByPageStep?.(-1),
@@ -3673,6 +3737,7 @@ useAppShellThemeWatch({
           @reader-edit-load-failed="onReaderEditLoadFailed"
           @reader-edit-save-request="onSaveReaderFile"
           @reader-edit-cursor-change="onReaderEditCursorChange"
+          @apply-partial-physical-edit="onApplyPartialPhysicalEdit"
         />
         <VoiceReadToolbar
           :visible="isVoiceReadActive"

@@ -98,6 +98,7 @@ import AppContextMenu from "./AppContextMenu.vue";
 import ReaderSelectionToolbar from "./ReaderSelectionToolbar.vue";
 import ReaderNoteInputPanel from "./ReaderNoteInputPanel.vue";
 import ReaderImageLightbox from "./ReaderImageLightbox.vue";
+import ReaderPartialEditPanel from "./ReaderPartialEditPanel.vue";
 import VoiceReadResumeGuide from "./VoiceReadResumeGuide.vue";
 import "./readerMainMonaco.css";
 import {
@@ -119,6 +120,7 @@ import {
   defaultLetterSpacingPx,
   defaultReaderHorizontalInsetPx,
   effectiveReaderHorizontalInsetPx,
+  maxPartialEditSelectionChars,
   defaultReaderPaletteDark,
   defaultReaderPaletteLight,
   defaultReaderPaletteColorEnabled,
@@ -147,6 +149,13 @@ import {
 } from "../utils/modalStack";
 import { yieldToUi } from "../ebook/yieldToUi";
 import { appAlert } from "../services/appDialog";
+import { appToast } from "../services/appToast";
+import {
+  annotationColumnMapOptions,
+  getTextInPhysicalRangeFromLines,
+  monacoRangeToPhysicalRange,
+  type AnnotationRange,
+} from "../utils/readerAnnotations";
 import type { SmartFormatReviewSession } from "../aiSmartFormat/aiSmartFormatReviewTypes";
 import {
   useReaderSmartFormatDiff,
@@ -168,6 +177,10 @@ const editorEditContextMenuOpen = ref(false);
 const editorEditContextMenuX = ref(0);
 const editorEditContextMenuY = ref(0);
 const editorEditContextMenuHasSelection = ref(false);
+
+const partialEditOpen = ref(false);
+const partialEditDraft = ref("");
+const partialEditRange = ref<AnnotationRange | null>(null);
 
 const diffReviewContextMenuOpen = ref(false);
 const diffReviewContextMenuX = ref(0);
@@ -218,6 +231,13 @@ const editorEditContextMenuItems = computed(() => {
     });
     items.push({ id: "sep-select-all", separator: true });
     items.push({ id: "selectAll", label: "全选" });
+    items.push({ id: "sep-edit", separator: true });
+    items.push({
+      id: "edit-selection",
+      label: "编辑选中文本",
+      iconHtml: icons.edit,
+      disabled: !editorEditContextMenuHasSelection.value,
+    });
     return items;
   }
   items.push(
@@ -225,6 +245,8 @@ const editorEditContextMenuItems = computed(() => {
     { id: "copy", label: "复制" },
     { id: "paste", label: "粘贴" },
   );
+  items.push({ id: "sep-select-all", separator: true });
+  items.push({ id: "selectAll", label: "全选" });
   if (
     props.aiFeaturesEnabled &&
     props.canUseAiSmartFormat &&
@@ -236,11 +258,6 @@ const editorEditContextMenuItems = computed(() => {
       label: "AI 智能排版：选中文本",
       iconHtml: icons.aiCompose,
       disabled: !editorEditContextMenuHasSelection.value,
-    });
-    items.push({
-      id: "ai-format-full",
-      label: "AI 智能排版：全文",
-      iconHtml: icons.aiCompose,
     });
   }
   return items;
@@ -499,6 +516,9 @@ const emit = defineEmits<{
   readerEditSaveRequest: [];
   readerEditCursorChange: [
     payload: { line: number; column: number; selectionLength: number },
+  ];
+  applyPartialPhysicalEdit: [
+    payload: { range: AnnotationRange; text: string },
   ];
   voiceReadResume: [];
   aiSmartFormatFull: [];
@@ -2369,7 +2389,13 @@ function onEditorEditContextMenuSelect(id: string) {
     e.trigger("keyboard", "editor.action.selectAll", null);
     return;
   }
-  if (!props.readerEditMode || smartFormatRunning.value) return;
+  if (!props.readerEditMode) {
+    if (id === "edit-selection") {
+      tryOpenPartialEditFromSelection();
+    }
+    return;
+  }
+  if (smartFormatRunning.value) return;
   if (id === "cut") {
     e.focus();
     e.trigger("keyboard", "editor.action.clipboardCutAction", null);
@@ -2381,11 +2407,63 @@ function onEditorEditContextMenuSelect(id: string) {
   }
   if (id === "ai-format-selection") {
     emit("aiSmartFormatSelection");
+  }
+}
+
+function partialEditColumnMap() {
+  return annotationColumnMapOptions({
+    readerEditMode: false,
+    leadIndentFullWidth: props.leadIndentFullWidth === true,
+  });
+}
+
+function tryOpenPartialEditFromSelection() {
+  if (props.readerEditMode) return;
+  if (props.streamLoading) {
+    appToast("请等待当前文件加载完成后再编辑。", { kind: "info" });
     return;
   }
-  if (id === "ai-format-full") {
-    emit("aiSmartFormatFull");
+  const getPhys = props.getPhysicalLineContent;
+  const displayToPhysical = props.ebookDisplayLineToPhysical;
+  if (typeof getPhys !== "function" || typeof displayToPhysical !== "function") {
+    appToast("当前内容暂不支持编辑选中文本，请使用顶栏进入编辑模式。", {
+      kind: "info",
+    });
+    return;
   }
+  const sel = getSelectionRange();
+  if (!sel || sel.isEmpty()) return;
+  const columnMap = partialEditColumnMap();
+  const range = monacoRangeToPhysicalRange(
+    sel,
+    displayToPhysical,
+    getPhys,
+    columnMap,
+  );
+  const text = getTextInPhysicalRangeFromLines(
+    getPhys,
+    range,
+    "physical",
+    columnMap,
+  );
+  if (text.length > maxPartialEditSelectionChars) {
+    void appAlert(
+      `选取内容过大（超过 ${maxPartialEditSelectionChars} 字），请缩小选区。`,
+    );
+    return;
+  }
+  partialEditRange.value = range;
+  partialEditDraft.value = text;
+  partialEditOpen.value = true;
+}
+
+function onPartialEditConfirm(text: string) {
+  const range = partialEditRange.value;
+  partialEditOpen.value = false;
+  partialEditRange.value = null;
+  if (!range) return;
+  if (text === partialEditDraft.value) return;
+  emit("applyPartialPhysicalEdit", { range, text });
 }
 
 const FIND_CONTROLLER_ID = "editor.contrib.findController";
@@ -2876,6 +2954,7 @@ defineExpose({
   getSelectedText,
   getSelectionRange,
   applyEditLineRangePatch,
+  tryOpenPartialEditFromSelection,
   getSmartFormatPostProcessContext: smartFormatPostProcessContext,
   getSmartFormatReviewModifiedText,
   focusSmartFormatAppliedRange,
@@ -3418,9 +3497,15 @@ watch(smartFormatReviewActive, (active) => {
       :x="editorEditContextMenuX"
       :y="editorEditContextMenuY"
       :items="editorEditContextMenuItems"
-      :min-width="readerEditMode ? 200 : 96"
+      :min-width="readerEditMode ? 200 : 168"
       @close="closeEditorEditContextMenu"
       @select="onEditorEditContextMenuSelect"
+    />
+    <ReaderPartialEditPanel
+      v-model:open="partialEditOpen"
+      :draft="partialEditDraft"
+      :monaco-font-family="monacoFontFamily"
+      @confirm="onPartialEditConfirm"
     />
     <AppContextMenu
       :open="diffReviewContextMenuOpen"

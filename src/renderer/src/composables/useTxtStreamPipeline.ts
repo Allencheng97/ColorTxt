@@ -7,6 +7,8 @@ import type ReaderMain from "../components/ReaderMain.vue";
 import {
   annotationColumnMapOptions,
   physicalColumnToDisplayColumn,
+  replaceTextInPhysicalLines,
+  type AnnotationRange,
 } from "../utils/readerAnnotations";
 import {
   physicalLineToChapterTitleDisplayLine,
@@ -437,6 +439,27 @@ export function useTxtStreamPipeline(deps: {
     return physicalLineContents.join("\n");
   }
 
+  /** 预览物理区间替换后的全文；失败返回 null（不改内存） */
+  function buildPlainTextAfterPhysicalReplace(
+    range: AnnotationRange,
+    newText: string,
+  ): string | null {
+    const next = replaceTextInPhysicalLines(
+      physicalLineContents,
+      range,
+      newText,
+    );
+    if (!next) return null;
+    return next.join("\n");
+  }
+
+  /** 用纯文本覆盖物理行镜像（局部编辑写盘成功后提交） */
+  function commitPhysicalLinesFromPlainText(text: string) {
+    physicalLineContents = text.length > 0 ? text.split("\n") : [""];
+    deps.totalCharCount.value = text.length;
+    deps.totalLineCount.value = physicalLineContents.length;
+  }
+
   function resyncMirrorFromReader() {
     syncMirrorFromReaderModel();
   }
@@ -483,6 +506,8 @@ export function useTxtStreamPipeline(deps: {
     getDisplayLineContent,
     physicalSearchRangeToDisplayColumns,
     getPhysicalFilePlainText,
+    buildPlainTextAfterPhysicalReplace,
+    commitPhysicalLinesFromPlainText,
     resyncMirrorFromReader,
     resyncFormattedDisplayLinesFromReader,
     removeFilteredDisplayLinesAtOriginalIndices,

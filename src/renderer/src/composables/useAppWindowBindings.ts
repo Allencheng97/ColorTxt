@@ -117,6 +117,8 @@ export function useAppWindowBindings(deps: {
   /** 主窗口无书源面板；找书窗口内由对应快捷键处理 */
   openBookSource?: () => void;
   toggleFind: () => void;
+  toggleReaderEdit: () => void;
+  editSelectedText: () => void;
   scrollDownLine: () => void;
   scrollUpLine: () => void;
   scrollPageUp: () => void;
@@ -252,6 +254,8 @@ export function useAppWindowBindings(deps: {
           jumpToPrevChapter: deps.jumpToPrevChapter,
           jumpToNextChapter: deps.jumpToNextChapter,
           toggleFind: deps.toggleFind,
+          toggleReaderEdit: deps.toggleReaderEdit,
+          editSelectedText: deps.editSelectedText,
           scrollDownLine: deps.scrollDownLine,
           scrollUpLine: deps.scrollUpLine,
           scrollPageUp: deps.scrollPageUp,

@@ -935,6 +935,7 @@ const { shortcutBindings } = useFindBookReaderShortcuts({
   toggleFullscreen: () => void toggleFullscreen(),
   isVoiceReadScrollLocked,
   isVoiceReadBlocksFind,
+  toggleReaderEdit: onToggleReaderEdit,
 });
 
 const isMacPlatform = /mac|iphone|ipad|ipod/i.test(navigator.platform || "");
