@@ -505,8 +505,8 @@ const emit = defineEmits<{
   viewportTopLineChange: [lineNumber: number];
   viewportEndLineChange: [lineNumber: number];
   viewportVisualProgressChange: [percent: number, atBottom: boolean];
-  /** 行间距已应用且视口锚点恢复完成（供侧栏章节列表强制重新居中） */
-  lineSpacingViewportRestored: [];
+  /** 仅布局变化（行间距 / 换行优化等）且视口锚点已恢复；供侧栏章节列表强制重居中 */
+  layoutViewportRestored: [];
   addHighlightTerm: [payload: { text: string; colorIndex: number }];
   removeHighlightTerm: [payload: { text: string }];
   upsertReaderAnnotation: [annotation: ReaderAnnotationRecord];
@@ -1322,15 +1322,21 @@ watch(
 watch(
   () => props.monacoAdvancedWrapping,
   (advanced) => {
-    setWrappingStrategyAdvanced(advanced);
-    syncCjkWrapOptimizeFlag(true);
+    void applyWrappingLayoutChange(() => {
+      setWrappingStrategyAdvanced(advanced);
+      const next = effectiveCjkWrapOptimize();
+      if (isCjkWrapOptimizeEnabled() !== next) {
+        setCjkWrapOptimizeEnabled(next);
+      }
+      forceWrappingRecalc();
+    });
   },
 );
 
 watch(
   () => props.monacoCjkWrapOptimize,
   () => {
-    syncCjkWrapOptimizeFlag(true);
+    void syncCjkWrapOptimizeFlag(true);
   },
 );
 
@@ -1929,27 +1935,35 @@ function setLineHeightMultiple(multiple: number) {
   }
 }
 
-async function setLineSpacingPx(px: number): Promise<void> {
-  const next = clampMonacoLineSpacingPx(px);
-  if (next === getLineSpacingPx()) return;
+/**
+ * 仅改布局（折行/行间距等）、不改展示行映射时：按 Monaco 展示行采锚并恢复，
+ * 避免 scrollTop 不变导致视口漂；并通知外层重居中章节列表。
+ */
+async function applyWrappingLayoutChange(
+  work: () => void,
+): Promise<void> {
   const e = editor.value;
   const m = model.value;
-  // 行间距只改布局高度、不改展示行 ↔ 物理行映射；按 Monaco 展示行采锚，
-  // 避免压缩空行时把物理行号当成展示行号导致跳很远。
   const displayAnchor =
     e && m
       ? captureReaderViewportRestoreAnchor(e, m, (displayLine) => displayLine)
       : null;
-  // 高度变化可能触发 onDidScrollChange；程序性期间勿当作用户滚章
   beginProgrammaticScroll();
-  applyMonacoLineSpacingPx(next);
+  work();
   if (displayAnchor) {
     await restoreViewportToRestoreAnchor(displayAnchor);
   } else {
     emitProbeLine(false);
   }
-  // activeChapterIdx 常未变，侧栏 watch 不会重居中；通知外层强制居中当前章
-  emit("lineSpacingViewportRestored");
+  emit("layoutViewportRestored");
+}
+
+async function setLineSpacingPx(px: number): Promise<void> {
+  const next = clampMonacoLineSpacingPx(px);
+  if (next === getLineSpacingPx()) return;
+  await applyWrappingLayoutChange(() => {
+    applyMonacoLineSpacingPx(next);
+  });
 }
 
 function setLetterSpacingPx(px: number) {
@@ -1985,12 +1999,18 @@ function forceWrappingRecalc() {
   e.updateOptions({ wordBreak: current });
 }
 
-function syncCjkWrapOptimizeFlag(recalcIfChanged: boolean) {
+async function syncCjkWrapOptimizeFlag(recalcIfChanged: boolean): Promise<void> {
   const next = effectiveCjkWrapOptimize();
   const prev = isCjkWrapOptimizeEnabled();
   if (prev === next) return;
-  setCjkWrapOptimizeEnabled(next);
-  if (recalcIfChanged) forceWrappingRecalc();
+  if (!recalcIfChanged) {
+    setCjkWrapOptimizeEnabled(next);
+    return;
+  }
+  await applyWrappingLayoutChange(() => {
+    setCjkWrapOptimizeEnabled(next);
+    forceWrappingRecalc();
+  });
 }
 
 function setFontFamily(fontFamily: string) {

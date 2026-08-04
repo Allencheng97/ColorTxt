@@ -2029,8 +2029,8 @@ async function syncChaptersAfterViewportSettled() {
   }
 }
 
-/** 行间距恢复后：activeChapterIdx 常不变，需强制重居中章节列表 */
-function onLineSpacingViewportRestored() {
+/** 行间距 / 换行优化等布局恢复后：activeChapterIdx 常不变，需强制重居中章节列表 */
+function onLayoutViewportRestored() {
   if (suppressChapterListAutoScroll.value) return;
   void readerSidebarRef.value?.centerActiveChapterInList?.(false);
 }
@@ -3775,7 +3775,7 @@ useAppShellThemeWatch({
           @smart-format-review-apply="applySmartFormatReview()"
           @smart-format-review-discard="discardSmartFormatReview()"
           @probe-line-change="onProbeLineChange"
-          @line-spacing-viewport-restored="onLineSpacingViewportRestored"
+          @layout-viewport-restored="onLayoutViewportRestored"
           @viewport-top-line-change="onViewportTopLineChange"
           @viewport-end-line-change="onViewportEndLineChange"
           @viewport-visual-progress-change="onViewportVisualProgressChange"

@@ -535,7 +535,7 @@ async function scrollChapterListToCurrent(options?: {
   });
 }
 
-function onFindBookLineSpacingViewportRestored() {
+function onFindBookLayoutViewportRestored() {
   void scrollChapterListToCurrent({ force: true, smooth: false });
 }
 
@@ -2051,7 +2051,7 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
             @viewport-top-line-change="readerUi.onViewportTopLineChange"
             @viewport-end-line-change="onFindBookViewportEndLineChange"
             @viewport-visual-progress-change="readerUi.onViewportVisualProgressChange"
-            @line-spacing-viewport-restored="onFindBookLineSpacingViewportRestored"
+            @layout-viewport-restored="onFindBookLayoutViewportRestored"
             @reader-edit-dirty-change="onReaderEditDirtyChange"
             @reader-edit-save-request="onSaveReaderChapter"
             @apply-partial-physical-edit="onApplyPartialPhysicalEdit"
