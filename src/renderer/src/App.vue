@@ -1252,17 +1252,22 @@ function onSetFilesCategory(paths: string[], category: string) {
   }
 }
 
-/** 侧栏筛选为具体分类时，新加入列表的文件自动归入该分类 */
-function applyCurrentFileCategoryToNewPaths(paths: string[]) {
+/**
+ * 侧栏筛选非「全部」时：将路径归入当前筛选。
+ * - 具体分类名：写入 `category`
+ * - 「未分类」：清除 `category`
+ * 路径可含新加入与已在列表中再次添加的项。
+ */
+function applyCurrentFileCategoryToPaths(paths: string[]) {
   const fc = fileCategory.value;
-  if (
-    fc === FILE_CATEGORY_FILTER_ALL ||
-    fc === FILE_CATEGORY_FILTER_UNCATEGORIZED ||
-    paths.length === 0
-  ) {
+  if (fc === FILE_CATEGORY_FILTER_ALL || paths.length === 0) {
     return;
   }
-  onSetFilesCategory(paths, fc);
+  if (fc === FILE_CATEGORY_FILTER_UNCATEGORIZED) {
+    onSetFilesCategory(paths, "");
+  } else {
+    onSetFilesCategory(paths, fc);
+  }
 }
 
 function onApplyCategoryCatalog(payload: {
@@ -1945,7 +1950,7 @@ const fileSession = useAppFileSession({
   bookPackUnpackDir,
   bookPackPassword,
   characterPortraitCacheDir,
-  applyCurrentFileCategoryIfConcrete: applyCurrentFileCategoryToNewPaths,
+  applyCurrentFileCategoryIfConcrete: applyCurrentFileCategoryToPaths,
   readerEditMode,
   readerEditorDirty,
   confirmIfReaderEditDiscard,
