@@ -233,11 +233,13 @@ import {
 } from "./services/fileListService";
 import {
   cloneDefaultFileCategoryCatalog,
+  DEFAULT_FILE_LIST_VIEW_MODE,
   DEFAULT_FILE_SORT,
   FILE_CATEGORY_FILTER_ALL,
   FILE_CATEGORY_FILTER_UNCATEGORIZED,
   type CategoryEditorRow,
   type FileCategoryDefinition,
+  type FileListViewMode,
   type FileSortMode,
 } from "./constants/fileCategories";
 
@@ -521,6 +523,7 @@ const CHAPTER_REFRESH_DEBOUNCE_MS = 400;
 const txtFiles = ref<TxtFileItem[]>([]);
 const fileCategory = ref<string>(FILE_CATEGORY_FILTER_ALL);
 const fileSort = ref<FileSortMode>(DEFAULT_FILE_SORT);
+const fileListViewMode = ref<FileListViewMode>(DEFAULT_FILE_LIST_VIEW_MODE);
 const fileCategoryCatalog = ref<FileCategoryDefinition[]>(
   cloneDefaultFileCategoryCatalog(),
 );
@@ -1122,6 +1125,7 @@ const persistence = useAppPersistence({
   characterCardTextureEffect,
   fileCategory,
   fileSort,
+  fileListViewMode,
   fileCategoryCatalog,
   fileListEditing,
   syncCurrentFile,
@@ -3571,6 +3575,7 @@ useAppShellThemeWatch({
           :file-meta-records="fileMetaRecords"
           :file-category="fileCategory"
           :file-sort="fileSort"
+          :file-list-view-mode="fileListViewMode"
           :file-category-catalog="fileCategoryCatalog"
           :meta-progress-by-path-key="metaProgressByPathKey"
           :live-reading-progress-percent="liveReadingProgressForUi"
@@ -3665,6 +3670,7 @@ useAppShellThemeWatch({
           @persist-ui="onPersistUi"
           @update:file-category="fileCategory = $event"
           @update:file-sort="fileSort = $event"
+          @update:file-list-view-mode="fileListViewMode = $event"
           @apply-category-catalog="onApplyCategoryCatalog"
           @set-files-category="onSetFilesCategory"
           @update:fullscreen-file-list-popovers-open="
