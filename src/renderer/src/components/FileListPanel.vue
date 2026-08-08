@@ -400,6 +400,21 @@ async function scrollTreeToCurrentFile(mode: "edge" | "center" = "center") {
   await scrollTreeToCurrentFileRow(mode);
 }
 
+async function scrollListToCurrentFile(mode: "edge" | "center" = "center") {
+  await nextTick();
+  if (isTreeMode.value || !props.panelVisible) return;
+  const path = props.currentFilePath;
+  if (!path) return;
+  const idx = props.filesFiltered.findIndex((f) => f.path === path);
+  if (idx < 0) return;
+  const vl = listRef.value;
+  if (!vl) return;
+  vl.scrollToIndex(idx, {
+    align: mode === "center" ? "center" : "auto",
+    behavior: "auto",
+  });
+}
+
 watch(
   () => props.shouldCenterFileList,
   (v) => {
@@ -409,9 +424,17 @@ watch(
 );
 
 watch(isTreeMode, (tree) => {
-  if (tree && props.currentFilePath && props.panelVisible) {
+  if (!props.currentFilePath || !props.panelVisible) return;
+  if (tree) {
     void scrollTreeToCurrentFile("center");
+    return;
   }
+  // 树 → 列表：VirtualList 换键后需等一帧再定位
+  void nextTick(() => {
+    requestAnimationFrame(() => {
+      void scrollListToCurrentFile("center");
+    });
+  });
 });
 
 const filterVisible = ref(false);
