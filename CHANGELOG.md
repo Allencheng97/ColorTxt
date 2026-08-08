@@ -27,6 +27,7 @@
 修复：
 
 - 「AI 阅读助手」思维导图现在只渲染一次 [#57](https://github.com/ssnangua/ColorTxt/issues/57)
+- 内容上色「引号内文字」现支持全角双引号 `＂`（U+FF02）
 
 ## 3.4
 
