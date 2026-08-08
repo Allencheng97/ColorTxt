@@ -37,6 +37,10 @@ import {
   mergePomodoroSettings,
   type PomodoroSettings,
 } from "./constants/pomodoro";
+import {
+  mergeSelectionToolbarButtons,
+  type SelectionToolbarButtons,
+} from "./constants/selectionToolbar";
 import type { AiCustomSkill, AiSkillUserOverride } from "@shared/aiSkills";
 import type { ColorTxtShowMessageBoxOptions } from "@shared/colorTxtShowMessageBox";
 import type {
@@ -635,6 +639,9 @@ const timedScrollSettings = ref<TimedScrollSettings>(
   mergeTimedScrollSettings(undefined),
 );
 const pomodoroSettings = ref<PomodoroSettings>(mergePomodoroSettings(undefined));
+const selectionToolbarButtons = ref<SelectionToolbarButtons>(
+  mergeSelectionToolbarButtons(undefined),
+);
 const {
   phase: pomodoroPhase,
   displayMode: pomodoroDisplayMode,
@@ -1101,6 +1108,7 @@ const persistence = useAppPersistence({
   fullscreenShowSystemTime,
   timedScrollSettings,
   pomodoroSettings,
+  selectionToolbarButtons,
   fileMetaRecords,
   shortcutBindings,
   defaultShortcutBindings,
@@ -3178,6 +3186,9 @@ async function applySettings(payload: SettingsApplyPayload) {
   chapterCharCountExact.value = payload.chapterCharCountExact;
   timedScrollSettings.value = mergeTimedScrollSettings(payload.timedScroll);
   pomodoroSettings.value = mergePomodoroSettings(payload.pomodoro);
+  selectionToolbarButtons.value = mergeSelectionToolbarButtons(
+    payload.selectionToolbarButtons,
+  );
   readerEditShowLineNumbers.value = payload.readerEditShowLineNumbers;
   readerEditMinimap.value = payload.readerEditMinimap;
   editAutoRefreshChapterList.value = payload.editAutoRefreshChapterList;
@@ -3757,6 +3768,7 @@ useAppShellThemeWatch({
           :mouse-wheel-scroll-sensitivity="mouseWheelScrollSensitivity"
           :fast-scroll-sensitivity="fastScrollSensitivity"
           :sticky-chapter-title-enabled="stickyChapterTitleEnabled"
+          :selection-toolbar-buttons="selectionToolbarButtons"
           :reader-edit-show-line-numbers="readerEditShowLineNumbers"
           :reader-edit-minimap="readerEditMinimap"
           :stream-loading="loading"
@@ -4008,6 +4020,7 @@ useAppShellThemeWatch({
       :chapter-char-count-exact="chapterCharCountExact"
       :timed-scroll-settings="timedScrollSettings"
       :pomodoro-settings="pomodoroSettings"
+      :selection-toolbar-buttons="selectionToolbarButtons"
       :reader-edit-show-line-numbers="readerEditShowLineNumbers"
       :reader-edit-minimap="readerEditMinimap"
       :edit-auto-refresh-chapter-list="editAutoRefreshChapterList"

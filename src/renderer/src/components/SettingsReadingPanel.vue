@@ -40,6 +40,8 @@ import {
   minPomodoroMinutes,
   pomodoroLongBreakEvery,
 } from "../constants/pomodoro";
+import type { SelectionToolbarButtons } from "../constants/selectionToolbar";
+import SettingsSelectionToolbarPreview from "./SettingsSelectionToolbarPreview.vue";
 import { computed } from "vue";
 import { icons } from "../icons.js";
 
@@ -66,6 +68,7 @@ const props = defineProps<{
   draftPomodoroLongBreakMinutes: number;
   draftTimedScrollRange: TimedScrollRange;
   draftTimedScrollIntervalMs: number;
+  draftSelectionToolbarButtons: SelectionToolbarButtons;
   monacoCustomHighlight: boolean;
 }>();
 
@@ -92,6 +95,7 @@ defineEmits<{
   "update:draftPomodoroLongBreakMinutes": [v: number];
   "update:draftTimedScrollRange": [v: TimedScrollRange];
   "update:draftTimedScrollIntervalMs": [v: number];
+  "update:draftSelectionToolbarButtons": [v: SelectionToolbarButtons];
 }>();
 
 const draftMaxLineHeightMultiple = computed(() =>
@@ -501,6 +505,19 @@ const selectListsEmpty: CustomSelectItem[] = [];
         </div>
       </div>
     </div>
+
+    <div class="settingsBody settingsBody--toolbar">
+      <h3 class="settingsSectionTitle settingsSectionTitle--toolbar">
+        工具条
+      </h3>
+      <SettingsSelectionToolbarPreview
+        :model-value="draftSelectionToolbarButtons"
+        :show-highlight="monacoCustomHighlight"
+        @update:model-value="
+          $emit('update:draftSelectionToolbarButtons', $event)
+        "
+      />
+    </div>
   </div>
 </template>
 
@@ -597,7 +614,8 @@ const selectListsEmpty: CustomSelectItem[] = [];
 .settingsBody--scroll,
 .settingsBody--fullscreen,
 .settingsBody--pomodoro,
-.settingsBody--timedScroll {
+.settingsBody--timedScroll,
+.settingsBody--toolbar {
   gap: 10px;
 }
 
@@ -606,5 +624,8 @@ const selectListsEmpty: CustomSelectItem[] = [];
 .settingsSectionTitle--pomodoro,
 .settingsSectionTitle--timedScroll {
   margin-bottom: 10px;
+}
+.settingsSectionTitle--toolbar {
+  margin-bottom: 5px;
 }
 </style>

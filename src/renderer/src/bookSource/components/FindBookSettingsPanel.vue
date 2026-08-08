@@ -53,6 +53,11 @@ import {
   mergePomodoroSettings,
 } from "../../constants/pomodoro";
 import {
+  defaultSelectionToolbarButtons,
+  mergeSelectionToolbarButtons,
+  type SelectionToolbarButtons,
+} from "../../constants/selectionToolbar";
+import {
   mergeVoiceReadSettings,
   voiceReadDashScopeRequiresApiKey,
   type VoiceReadSettings,
@@ -166,6 +171,9 @@ const draftPomodoroShortBreakMinutes = ref(defaultPomodoroShortBreakMinutes);
 const draftPomodoroLongBreakMinutes = ref(defaultPomodoroLongBreakMinutes);
 const draftTimedScrollRange = ref<TimedScrollRange>(defaultTimedScrollRange);
 const draftTimedScrollIntervalMs = ref(defaultTimedScrollIntervalMs);
+const draftSelectionToolbarButtons = ref<SelectionToolbarButtons>(
+  mergeSelectionToolbarButtons(undefined),
+);
 const draftVoiceRead = ref<VoiceReadSettings>(mergeVoiceReadSettings(undefined));
 const draftVoiceReadProfiles = ref<VoiceReadProfile[]>([]);
 const draftActiveVoiceReadProfileId = ref("");
@@ -247,6 +255,9 @@ function syncSharedReaderDraftFromStore() {
   const timedScrollMerged = mergeTimedScrollSettings(fb.timedScrollSettings.value);
   draftTimedScrollRange.value = timedScrollMerged.range;
   draftTimedScrollIntervalMs.value = timedScrollMerged.intervalMs;
+  draftSelectionToolbarButtons.value = mergeSelectionToolbarButtons(
+    fb.selectionToolbarButtons.value,
+  );
 }
 
 async function syncVoiceDraftFromStore() {
@@ -326,6 +337,7 @@ function resetReadingDraft() {
   draftPomodoroLongBreakMinutes.value = defaultPomodoroLongBreakMinutes;
   draftTimedScrollRange.value = defaultTimedScrollRange;
   draftTimedScrollIntervalMs.value = defaultTimedScrollIntervalMs;
+  draftSelectionToolbarButtons.value = { ...defaultSelectionToolbarButtons };
 }
 
 function resetEditDraft() {
@@ -502,6 +514,9 @@ async function onConfirm() {
     range: draftTimedScrollRange.value,
     intervalMs: draftTimedScrollIntervalMs.value,
   });
+  fb.selectionToolbarButtons.value = mergeSelectionToolbarButtons(
+    draftSelectionToolbarButtons.value,
+  );
 
   fb.persistAll();
   fb.persistReaderUiPrefs();
@@ -627,6 +642,9 @@ watch(draftFontSize, (size) => {
               v-model:draft-pomodoro-long-break-minutes="draftPomodoroLongBreakMinutes"
               v-model:draft-timed-scroll-range="draftTimedScrollRange"
               v-model:draft-timed-scroll-interval-ms="draftTimedScrollIntervalMs"
+              v-model:draft-selection-toolbar-buttons="
+                draftSelectionToolbarButtons
+              "
               :monaco-custom-highlight="fb.monacoCustomHighlight.value"
             />
 

@@ -81,6 +81,11 @@ import {
   mergePomodoroSettings,
   type PomodoroSettings,
 } from "../constants/pomodoro";
+import {
+  defaultSelectionToolbarButtons,
+  mergeSelectionToolbarButtons,
+  type SelectionToolbarButtons,
+} from "../constants/selectionToolbar";
 import { appAlert } from "../services/appDialog";
 import { getBuiltinEmbeddingBlockMessage } from "../ai/embeddingReady";
 import { icons } from "../icons";
@@ -149,6 +154,7 @@ export type SettingsApplyPayload = {
   txtrDelimitedMatchCrossLine: boolean;
   timedScroll: TimedScrollSettings;
   pomodoro: PomodoroSettings;
+  selectionToolbarButtons: SelectionToolbarButtons;
   ebookConvertOutputDir: string;
   bookPackUnpackDir: string;
   bookPackPassword: string;
@@ -196,6 +202,7 @@ const props = defineProps<{
   txtrDelimitedMatchCrossLine: boolean;
   timedScrollSettings: TimedScrollSettings;
   pomodoroSettings: PomodoroSettings;
+  selectionToolbarButtons: SelectionToolbarButtons;
   ebookConvertOutputDir: string;
   bookPackUnpackDir: string;
   bookPackPassword: string;
@@ -275,6 +282,9 @@ const draftPomodoroEnabled = ref(defaultPomodoroEnabled);
 const draftPomodoroFocusMinutes = ref(defaultPomodoroFocusMinutes);
 const draftPomodoroShortBreakMinutes = ref(defaultPomodoroShortBreakMinutes);
 const draftPomodoroLongBreakMinutes = ref(defaultPomodoroLongBreakMinutes);
+const draftSelectionToolbarButtons = ref<SelectionToolbarButtons>(
+  mergeSelectionToolbarButtons(undefined),
+);
 const draftEbookConvertOutputDir = ref("");
 const draftBookPackUnpackDir = ref("");
 const draftBookPackPassword = ref("");
@@ -353,6 +363,9 @@ function syncDraftFromProps() {
   draftPomodoroFocusMinutes.value = pomodoroMerged.focusMinutes;
   draftPomodoroShortBreakMinutes.value = pomodoroMerged.shortBreakMinutes;
   draftPomodoroLongBreakMinutes.value = pomodoroMerged.longBreakMinutes;
+  draftSelectionToolbarButtons.value = mergeSelectionToolbarButtons(
+    props.selectionToolbarButtons,
+  );
   draftEbookConvertOutputDir.value = props.ebookConvertOutputDir;
   draftBookPackUnpackDir.value = props.bookPackUnpackDir;
   draftBookPackPassword.value = props.bookPackPassword;
@@ -495,6 +508,7 @@ function resetReadingDraft() {
   draftPomodoroLongBreakMinutes.value = defaultPomodoroLongBreakMinutes;
   draftTimedScrollRange.value = defaultTimedScrollRange;
   draftTimedScrollIntervalMs.value = defaultTimedScrollIntervalMs;
+  draftSelectionToolbarButtons.value = { ...defaultSelectionToolbarButtons };
 }
 
 function resetEditDraft() {
@@ -726,6 +740,9 @@ async function onConfirm() {
       shortBreakMinutes: draftPomodoroShortBreakMinutes.value,
       longBreakMinutes: draftPomodoroLongBreakMinutes.value,
     }),
+    selectionToolbarButtons: mergeSelectionToolbarButtons(
+      draftSelectionToolbarButtons.value,
+    ),
     ebookConvertOutputDir: draftEbookConvertOutputDir.value.trim(),
     bookPackUnpackDir: draftBookPackUnpackDir.value.trim(),
     bookPackPassword: draftBookPackPassword.value,
@@ -899,6 +916,9 @@ async function onClearCache() {
               v-model:draft-timed-scroll-range="draftTimedScrollRange"
               v-model:draft-timed-scroll-interval-ms="
                 draftTimedScrollIntervalMs
+              "
+              v-model:draft-selection-toolbar-buttons="
+                draftSelectionToolbarButtons
               "
               :monaco-custom-highlight="monacoCustomHighlight"
             />
