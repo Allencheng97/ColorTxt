@@ -63,13 +63,17 @@ export async function applyTextDisplayConvertsToHighlightWordsByIndex(
 ): Promise<HighlightWordsByIndex | undefined> {
   if (!map) return undefined;
   const out: HighlightWordsByIndex = {};
-  for (const [key, words] of Object.entries(map)) {
-    const converted: string[] = [];
-    for (const word of words) {
-      if (!word) continue;
-      converted.push(await applyTextDisplayConverts(word, options));
+  for (const [key, groups] of Object.entries(map)) {
+    const convertedGroups: string[][] = [];
+    for (const group of groups) {
+      const converted: string[] = [];
+      for (const word of group) {
+        if (!word) continue;
+        converted.push(await applyTextDisplayConverts(word, options));
+      }
+      if (converted.length > 0) convertedGroups.push(converted);
     }
-    if (converted.length > 0) out[key] = converted;
+    if (convertedGroups.length > 0) out[key] = convertedGroups;
   }
   return Object.keys(out).length > 0 ? out : undefined;
 }

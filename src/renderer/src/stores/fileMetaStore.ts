@@ -1,4 +1,10 @@
 import { normalizeReaderAnnotations } from "../utils/readerAnnotations";
+import {
+  removeHighlightGroupFromMap,
+  removeHighlightTermFromMap,
+  setHighlightGroupColorInMap,
+  upsertHighlightGroupInMap,
+} from "../utils/highlightWords";
 import type {
   CharacterBookStylePersisted,
   CharacterGender,
@@ -21,8 +27,12 @@ export type FileBookmarkItem = {
 /** Monaco `saveViewState()` 的 JSON 形态，按路径持久化在 meta 中 */
 export type PersistedEditorViewState = Record<string, unknown>;
 
-/** 自定义高亮词：键为索引字符串 `"0"`,`"1"`…，值为该索引下高亮词（仅存索引不存色值） */
-export type HighlightWordsByIndex = Record<string, string[]>;
+/**
+ * 自定义高亮词：键为色索引字符串 `"0"`,`"1"`…，值为该色下的**词组**列表。
+ * 每组 `string[]` 长度 ≥ 1；侧栏一行一组，多词组内各词同色上色。
+ * 旧版曾为 `Record<string, string[]>`（扁平词列表），由 normalize 迁成每词一组。
+ */
+export type HighlightWordsByIndex = Record<string, string[][]>;
 
 export type ReaderLineationType = "marker" | "wavy" | "straight";
 
@@ -141,6 +151,34 @@ function normalizeEditorViewState(
 
 const MAX_HIGHLIGHT_TERM_LEN = 100;
 
+function normalizeHighlightGroupTerms(
+  rawGroup: unknown,
+  seenGlobal: Set<string>,
+): string[] | null {
+  /** 旧版扁平：桶内元素为 string */
+  if (typeof rawGroup === "string") {
+    const t = rawGroup.trim();
+    if (!t || t.length > MAX_HIGHLIGHT_TERM_LEN || seenGlobal.has(t)) {
+      return null;
+    }
+    seenGlobal.add(t);
+    return [t];
+  }
+  if (!Array.isArray(rawGroup)) return null;
+  const terms: string[] = [];
+  const seenLocal = new Set<string>();
+  for (const w of rawGroup) {
+    if (typeof w !== "string") continue;
+    const t = w.trim();
+    if (!t || t.length > MAX_HIGHLIGHT_TERM_LEN) continue;
+    if (seenLocal.has(t) || seenGlobal.has(t)) continue;
+    seenLocal.add(t);
+    seenGlobal.add(t);
+    terms.push(t);
+  }
+  return terms.length > 0 ? terms : null;
+}
+
 export function normalizeHighlightWordsByIndex(
   raw: unknown,
 ): HighlightWordsByIndex | undefined {
@@ -149,21 +187,17 @@ export function normalizeHighlightWordsByIndex(
   }
   const o = raw as Record<string, unknown>;
   const out: HighlightWordsByIndex = {};
+  const seenGlobal = new Set<string>();
   for (const [k, v] of Object.entries(o)) {
     const idx = Number.parseInt(k, 10);
     if (!Number.isFinite(idx) || idx < 0 || String(idx) !== k) continue;
     if (!Array.isArray(v)) continue;
-    const words: string[] = [];
-    const seen = new Set<string>();
-    for (const w of v) {
-      if (typeof w !== "string") continue;
-      const t = w.trim();
-      if (!t || t.length > MAX_HIGHLIGHT_TERM_LEN) continue;
-      if (seen.has(t)) continue;
-      seen.add(t);
-      words.push(t);
+    const groups: string[][] = [];
+    for (const item of v) {
+      const group = normalizeHighlightGroupTerms(item, seenGlobal);
+      if (group) groups.push(group);
     }
-    if (words.length) out[k] = words;
+    if (groups.length) out[k] = groups;
   }
   return Object.keys(out).length ? out : undefined;
 }
@@ -604,34 +638,74 @@ export function appendHighlightTermForFile(
   return assignHighlightTermToColorForFile(items, path, colorIndex, text);
 }
 
-/** 将高亮词归到指定高亮色：先从所有索引桶中移除同一词，再写入目标桶（一词仅属一个索引） */
+/** 将单词汇组归到指定高亮色（选区添词） */
 export function assignHighlightTermToColorForFile(
   items: FileMetaRecord[],
   path: string,
   colorIndex: number,
   text: string,
 ) {
-  let term = text.trim();
-  if (!term || colorIndex < 0 || !Number.isFinite(colorIndex)) return items;
-  if (term.length > MAX_HIGHLIGHT_TERM_LEN) {
-    term = term.slice(0, MAX_HIGHLIGHT_TERM_LEN);
-  }
-  const targetKey = String(Math.floor(colorIndex));
-  return upsertFileMetaRecord(items, path, (prev) => {
-    const base = { ...(prev?.highlightWordsByIndex ?? {}) };
-    for (const k of Object.keys(base)) {
-      const next = base[k]!.filter((w) => w !== term);
-      if (next.length === 0) delete base[k];
-      else base[k] = next;
-    }
-    const list = [...(base[targetKey] ?? [])];
-    if (!list.includes(term)) list.push(term);
-    base[targetKey] = list;
-    return { highlightWordsByIndex: base };
+  return upsertHighlightGroupForFile(items, path, colorIndex, [text]);
+}
+
+/** 写入 / 更新词组到本书指定高亮色 */
+export function upsertHighlightGroupForFile(
+  items: FileMetaRecord[],
+  path: string,
+  colorIndex: number,
+  terms: readonly string[],
+  replaceStoredTerms?: readonly string[],
+) {
+  if (colorIndex < 0 || !Number.isFinite(colorIndex)) return items;
+  return upsertFileMetaRecord(items, path, (rec) => {
+    const next = upsertHighlightGroupInMap(
+      rec?.highlightWordsByIndex,
+      colorIndex,
+      terms,
+      replaceStoredTerms ? { replaceStoredTerms } : undefined,
+    );
+    if (next === rec?.highlightWordsByIndex) return {};
+    return { highlightWordsByIndex: next };
   });
 }
 
-/** 从所有高亮色桶中移除该高亮词（与存储项字符串全等匹配） */
+/** 将本书已有词组迁到另一高亮色 */
+export function setHighlightGroupColorForFile(
+  items: FileMetaRecord[],
+  path: string,
+  storedTerms: readonly string[],
+  colorIndex: number,
+) {
+  return upsertFileMetaRecord(items, path, (rec) => {
+    const next = setHighlightGroupColorInMap(
+      rec?.highlightWordsByIndex,
+      storedTerms,
+      colorIndex,
+    );
+    if (next === rec?.highlightWordsByIndex) return {};
+    return { highlightWordsByIndex: next };
+  });
+}
+
+/** 按整组删除（storedTerms 全等） */
+export function removeHighlightGroupFromFile(
+  items: FileMetaRecord[],
+  path: string,
+  storedTerms: readonly string[],
+) {
+  return upsertFileMetaRecord(items, path, (prev) => {
+    const next = removeHighlightGroupFromMap(
+      prev?.highlightWordsByIndex,
+      storedTerms,
+    );
+    if (next === prev?.highlightWordsByIndex) return {};
+    return {
+      highlightWordsByIndex: next,
+    };
+  });
+}
+
+/** 从各组中剔除该词（多词组收缩）；兼容旧单调用 */
 export function removeHighlightTermFromFile(
   items: FileMetaRecord[],
   path: string,
@@ -640,18 +714,13 @@ export function removeHighlightTermFromFile(
   const term = text.trim();
   if (!term) return items;
   return upsertFileMetaRecord(items, path, (prev) => {
-    const base = { ...(prev?.highlightWordsByIndex ?? {}) };
-    let changed = false;
-    for (const k of Object.keys(base)) {
-      const prevList = base[k]!;
-      const next = prevList.filter((w) => w !== term);
-      if (next.length !== prevList.length) changed = true;
-      if (next.length === 0) delete base[k];
-      else base[k] = next;
-    }
-    if (!changed) return {};
+    const next = removeHighlightTermFromMap(
+      prev?.highlightWordsByIndex,
+      term,
+    );
+    if (next === prev?.highlightWordsByIndex) return {};
     return {
-      highlightWordsByIndex: Object.keys(base).length > 0 ? base : undefined,
+      highlightWordsByIndex: next,
     };
   });
 }

@@ -2123,6 +2123,9 @@ const {
   onRemoveHighlightTerm,
   onFavoriteHighlightTerm,
   onUnfavoriteHighlightTerm,
+  onCommitHighlightGroup,
+  onMergeHighlightGroups,
+  onSplitHighlightTerm,
   clearCurrentFileHighlightTerms,
   onExportBookHighlightsJson,
   onImportBookHighlightsJson,
@@ -3600,6 +3603,7 @@ useAppShellThemeWatch({
               ? readerSurfaceLight.readerBg
               : readerSurfaceDark.readerBg
           "
+          :highlight-colors="highlightColorsForReader"
           :monaco-font-family="monacoFontFamily"
           :lineation-colors="lineationColorsForReader"
           :active-bookmark-line="activeBookmarkLine"
@@ -3659,6 +3663,9 @@ useAppShellThemeWatch({
           @remove-highlight-term="onRemoveHighlightTerm"
           @favorite-highlight-term="onFavoriteHighlightTerm"
           @unfavorite-highlight-term="onUnfavoriteHighlightTerm"
+          @commit-highlight-group="onCommitHighlightGroup"
+          @merge-highlight-groups="onMergeHighlightGroups"
+          @split-highlight-term="onSplitHighlightTerm"
           @clear-highlights="clearCurrentFileHighlightTerms"
           @export-book-highlights-json="onExportBookHighlightsJson"
           @import-book-highlights-json="onImportBookHighlightsJson"

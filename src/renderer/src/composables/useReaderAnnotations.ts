@@ -11,6 +11,7 @@ import {
   type AnnotationCompactHit,
 } from "../reader/readerAnnotationDecor";
 import type {
+  HighlightWordsByIndex,
   ReaderAnnotationRecord,
   ReaderLineationType,
 } from "../stores/fileMetaStore";
@@ -53,7 +54,7 @@ export function useReaderAnnotations(opts: {
   readerFilePath: () => string | null | undefined;
   readerEditMode: () => boolean;
   monacoCustomHighlight: () => boolean;
-  highlightWordsByIndexBookOnly: () => Record<string, string[]> | undefined;
+  highlightWordsByIndexBookOnly: () => HighlightWordsByIndex | undefined;
   highlightColorsLength: () => number;
   lineationColorsLength: () => number;
   emitUpsert: (ann: ReaderAnnotationRecord) => void;
