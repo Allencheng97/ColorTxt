@@ -522,6 +522,8 @@ const emit = defineEmits<{
     payload: { type: import("../stores/fileMetaStore").ReaderLineationType; colorIndex: number },
   ];
   askAiWithQuote: [text: string];
+  /** 选区工具条「查找」→ 侧栏全文搜索 */
+  searchWithQuote: [text: string];
   readerEditDirtyChange: [dirty: boolean];
   readerEditContentChange: [];
   readerEditLoaded: [payload: { encoding: string }];
@@ -662,7 +664,16 @@ const readerAnn = useReaderAnnotations({
   emitAddHighlightTerm: (payload) => emit("addHighlightTerm", payload),
   emitRemoveHighlightTerm: (payload) => emit("removeHighlightTerm", payload),
   emitAskAiWithQuote: (text) => emit("askAiWithQuote", text),
-  emitFindWithQuote: (text) => openFindWithSearchString(text),
+  emitFindWithQuote: (text) => {
+    const target =
+      (props.selectionToolbarButtons ?? defaultSelectionToolbarButtons)
+        .findTarget;
+    if (target === "sidebarSearch") {
+      emit("searchWithQuote", text);
+      return;
+    }
+    openFindWithSearchString(text);
+  },
   ebookDisplayLineToPhysical: () => props.ebookDisplayLineToPhysical,
   ebookAnchorPhysicalToDisplay: () => props.ebookAnchorPhysicalToDisplay,
   getPhysicalLineContent: (line) => props.getPhysicalLineContent?.(line) ?? "",

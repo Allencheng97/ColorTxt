@@ -645,6 +645,7 @@ watch(draftFontSize, (size) => {
               v-model:draft-selection-toolbar-buttons="
                 draftSelectionToolbarButtons
               "
+              :show-find-target-option="false"
               :monaco-custom-highlight="fb.monacoCustomHighlight.value"
             />
 

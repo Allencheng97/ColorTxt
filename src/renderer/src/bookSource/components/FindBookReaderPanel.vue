@@ -2057,6 +2057,9 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
             @reader-edit-dirty-change="onReaderEditDirtyChange"
             @reader-edit-save-request="onSaveReaderChapter"
             @apply-partial-physical-edit="onApplyPartialPhysicalEdit"
+            @search-with-quote="
+              (text) => readerRef?.openFindWithSearchString?.(text)
+            "
           />
           <VoiceReadToolbar
             :visible="isVoiceReadActive"

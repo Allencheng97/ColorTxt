@@ -3158,6 +3158,14 @@ function onAskAiWithQuote(text: string) {
   });
 }
 
+function onSearchWithQuote(text: string) {
+  const q = text.trim();
+  if (!q) return;
+  sidebarTab.value = "search";
+  showSidebar.value = true;
+  searchQuery.value = q;
+}
+
 watch(readerEditMode, (edit) => {
   if (!edit) {
     clearChapterRefreshDebounce();
@@ -3816,6 +3824,7 @@ useAppShellThemeWatch({
           @annotation-quotes-changed="bumpAnnotationDisplayEpoch"
           @update-lineation-last-color="onUpdateLineationLastColor"
           @ask-ai-with-quote="onAskAiWithQuote"
+          @search-with-quote="onSearchWithQuote"
           @reader-edit-dirty-change="onReaderEditDirtyChange"
           @reader-edit-content-change="onReaderEditContentChange"
           @reader-edit-loaded="onReaderEditLoaded"

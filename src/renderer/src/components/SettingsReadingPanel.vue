@@ -40,37 +40,46 @@ import {
   minPomodoroMinutes,
   pomodoroLongBreakEvery,
 } from "../constants/pomodoro";
-import type { SelectionToolbarButtons } from "../constants/selectionToolbar";
+import {
+  SELECTION_TOOLBAR_FIND_TARGET_OPTIONS,
+  type SelectionToolbarButtons,
+  type SelectionToolbarFindTarget,
+} from "../constants/selectionToolbar";
 import SettingsSelectionToolbarPreview from "./SettingsSelectionToolbarPreview.vue";
 import { computed } from "vue";
 import { icons } from "../icons.js";
 
-const props = defineProps<{
-  draftFontSize: number;
-  draftLineHeightMultiple: number;
-  draftLineSpacingPx: number;
-  draftLetterSpacingPx: number;
-  draftReaderHorizontalInsetPx: number;
-  draftMonacoSmoothScrolling: boolean;
-  draftMonacoCjkWrapOptimize: boolean;
-  draftMouseWheelScrollSensitivity: number;
-  draftFastScrollSensitivity: number;
-  draftStickyChapterTitleEnabled: boolean;
-  draftChapterNavToolbarEnabled: boolean;
-  draftChapterTitleBlankMode: ChapterTitleBlankMode;
-  draftCompressBlankKeepOneBlank: boolean;
-  draftTxtrDelimitedMatchCrossLine: boolean;
-  draftFullscreenReaderWidthPercent: number;
-  draftFullscreenShowSystemTime: boolean;
-  draftPomodoroEnabled: boolean;
-  draftPomodoroFocusMinutes: number;
-  draftPomodoroShortBreakMinutes: number;
-  draftPomodoroLongBreakMinutes: number;
-  draftTimedScrollRange: TimedScrollRange;
-  draftTimedScrollIntervalMs: number;
-  draftSelectionToolbarButtons: SelectionToolbarButtons;
-  monacoCustomHighlight: boolean;
-}>();
+const props = withDefaults(
+  defineProps<{
+    draftFontSize: number;
+    draftLineHeightMultiple: number;
+    draftLineSpacingPx: number;
+    draftLetterSpacingPx: number;
+    draftReaderHorizontalInsetPx: number;
+    draftMonacoSmoothScrolling: boolean;
+    draftMonacoCjkWrapOptimize: boolean;
+    draftMouseWheelScrollSensitivity: number;
+    draftFastScrollSensitivity: number;
+    draftStickyChapterTitleEnabled: boolean;
+    draftChapterNavToolbarEnabled: boolean;
+    draftChapterTitleBlankMode: ChapterTitleBlankMode;
+    draftCompressBlankKeepOneBlank: boolean;
+    draftTxtrDelimitedMatchCrossLine: boolean;
+    draftFullscreenReaderWidthPercent: number;
+    draftFullscreenShowSystemTime: boolean;
+    draftPomodoroEnabled: boolean;
+    draftPomodoroFocusMinutes: number;
+    draftPomodoroShortBreakMinutes: number;
+    draftPomodoroLongBreakMinutes: number;
+    draftTimedScrollRange: TimedScrollRange;
+    draftTimedScrollIntervalMs: number;
+    draftSelectionToolbarButtons: SelectionToolbarButtons;
+    monacoCustomHighlight: boolean;
+    /** 主界面显示「查找」应用目标；找书窗口无全文搜索侧栏，不展示该项 */
+    showFindTargetOption?: boolean;
+  }>(),
+  { showFindTargetOption: true },
+);
 
 defineEmits<{
   "update:draftFontSize": [v: number];
@@ -517,6 +526,25 @@ const selectListsEmpty: CustomSelectItem[] = [];
           $emit('update:draftSelectionToolbarButtons', $event)
         "
       />
+      <div v-if="showFindTargetOption" class="settingsRow">
+        <div class="settingsRowMain settingsRowMain--baseline">
+          <span class="settingsLabel"
+            >「<span class="settingsIcon" v-html="icons.find" />
+            查找」应用目标</span
+          >
+          <RadioGroup
+            :model-value="draftSelectionToolbarButtons.findTarget"
+            :options="SELECTION_TOOLBAR_FIND_TARGET_OPTIONS"
+            aria-label="查找应用目标"
+            @update:model-value="
+              $emit('update:draftSelectionToolbarButtons', {
+                ...draftSelectionToolbarButtons,
+                findTarget: $event as SelectionToolbarFindTarget,
+              })
+            "
+          />
+        </div>
+      </div>
     </div>
   </div>
 </template>
