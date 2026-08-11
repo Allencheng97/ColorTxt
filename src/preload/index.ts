@@ -1081,9 +1081,13 @@ const api = {
     ipcRenderer.invoke(BOOK_SOURCE_IPC.importCommit, payload) as ReturnType<
       BookSourceIpcApi["bookSourceImportCommit"]
     >,
-  bookSourceFetchUrl: (url: string) =>
-    ipcRenderer.invoke(BOOK_SOURCE_IPC.fetchUrl, url) as ReturnType<
+  bookSourceFetchUrl: (url: string, options?: { requestId?: number }) =>
+    ipcRenderer.invoke(BOOK_SOURCE_IPC.fetchUrl, url, options) as ReturnType<
       BookSourceIpcApi["bookSourceFetchUrl"]
+    >,
+  bookSourceFetchUrlAbort: (requestId: number) =>
+    ipcRenderer.invoke(BOOK_SOURCE_IPC.fetchUrlAbort, requestId) as ReturnType<
+      BookSourceIpcApi["bookSourceFetchUrlAbort"]
     >,
   bookSourceReadFile: (filePath: string) =>
     ipcRenderer.invoke(BOOK_SOURCE_IPC.readFile, filePath) as ReturnType<
