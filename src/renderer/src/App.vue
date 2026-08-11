@@ -32,6 +32,7 @@ import WebDavSyncPanel from "./components/WebDavSyncPanel.vue";
 import FullscreenSystemClock from "./components/FullscreenSystemClock.vue";
 import PomodoroBreakOverlay from "./components/PomodoroBreakOverlay.vue";
 import type { SettingsApplyPayload } from "./components/SettingsPanel.vue";
+import type { ColorSchemeApplyPayload } from "./components/ColorSchemePanel.vue";
 import { usePomodoroTimer } from "./composables/usePomodoroTimer";
 import {
   mergePomodoroSettings,
@@ -3027,56 +3028,59 @@ function refreshReaderSurfaceAfterPaletteChange() {
   readerRef.value?.setTheme(currentTheme.value);
 }
 
-function onApplyReaderPalettes(payload: {
-  light: ReaderSurfacePalette;
-  dark: ReaderSurfacePalette;
-  colorEnabledLight: ReaderSurfaceColorEnabled;
-  colorEnabledDark: ReaderSurfaceColorEnabled;
-}) {
-  readerPaletteOverridesLight.value = overridesFromFullPalette(
-    payload.light,
-    defaultReaderPaletteLight,
-  );
-  readerPaletteOverridesDark.value = overridesFromFullPalette(
-    payload.dark,
-    defaultReaderPaletteDark,
-  );
-  readerPaletteColorEnabledOverridesLight.value = overridesFromColorEnabled(
-    payload.colorEnabledLight,
-  );
-  readerPaletteColorEnabledOverridesDark.value = overridesFromColorEnabled(
-    payload.colorEnabledDark,
-  );
+function onApplyColorScheme(payload: ColorSchemeApplyPayload) {
+  if (payload.reader) {
+    readerPaletteOverridesLight.value = overridesFromFullPalette(
+      payload.reader.light,
+      defaultReaderPaletteLight,
+    );
+    readerPaletteOverridesDark.value = overridesFromFullPalette(
+      payload.reader.dark,
+      defaultReaderPaletteDark,
+    );
+    readerPaletteColorEnabledOverridesLight.value = overridesFromColorEnabled(
+      payload.reader.colorEnabledLight,
+    );
+    readerPaletteColorEnabledOverridesDark.value = overridesFromColorEnabled(
+      payload.reader.colorEnabledDark,
+    );
+  }
+  if (payload.highlight) {
+    highlightColorsLight.value = mergeHighlightColors(
+      DEFAULT_HIGHLIGHT_COLORS_LIGHT,
+      payload.highlight.light.length >= MIN_HIGHLIGHT_COLORS
+        ? payload.highlight.light
+        : undefined,
+    );
+    highlightColorsDark.value = mergeHighlightColors(
+      DEFAULT_HIGHLIGHT_COLORS_DARK,
+      payload.highlight.dark.length >= MIN_HIGHLIGHT_COLORS
+        ? payload.highlight.dark
+        : undefined,
+    );
+  }
+  if (payload.lineation) {
+    lineationColorsLight.value = mergeLineationColors(
+      DEFAULT_LINEATION_COLORS_LIGHT,
+      payload.lineation.light.length >= MIN_LINEATION_COLORS
+        ? payload.lineation.light
+        : undefined,
+    );
+    lineationColorsDark.value = mergeLineationColors(
+      DEFAULT_LINEATION_COLORS_DARK,
+      payload.lineation.dark.length >= MIN_LINEATION_COLORS
+        ? payload.lineation.dark
+        : undefined,
+    );
+    lineationLastColors.value = clampLineationLastColorsToCount(
+      lineationLastColors.value,
+      lineationColorsForReader.value.length,
+    );
+  }
   persistSettings();
-  refreshReaderSurfaceAfterPaletteChange();
-}
-
-function onApplyHighlightColors(payload: { light: string[]; dark: string[] }) {
-  highlightColorsLight.value = mergeHighlightColors(
-    DEFAULT_HIGHLIGHT_COLORS_LIGHT,
-    payload.light.length >= MIN_HIGHLIGHT_COLORS ? payload.light : undefined,
-  );
-  highlightColorsDark.value = mergeHighlightColors(
-    DEFAULT_HIGHLIGHT_COLORS_DARK,
-    payload.dark.length >= MIN_HIGHLIGHT_COLORS ? payload.dark : undefined,
-  );
-  persistSettings();
-}
-
-function onApplyLineationColors(payload: { light: string[]; dark: string[] }) {
-  lineationColorsLight.value = mergeLineationColors(
-    DEFAULT_LINEATION_COLORS_LIGHT,
-    payload.light.length >= MIN_LINEATION_COLORS ? payload.light : undefined,
-  );
-  lineationColorsDark.value = mergeLineationColors(
-    DEFAULT_LINEATION_COLORS_DARK,
-    payload.dark.length >= MIN_LINEATION_COLORS ? payload.dark : undefined,
-  );
-  lineationLastColors.value = clampLineationLastColorsToCount(
-    lineationLastColors.value,
-    lineationColorsForReader.value.length,
-  );
-  persistSettings();
+  if (payload.reader) {
+    refreshReaderSurfaceAfterPaletteChange();
+  }
 }
 
 function onUpdateLineationLastColor(payload: {
@@ -4084,9 +4088,7 @@ useAppShellThemeWatch({
         updateEditingBookmarkToCurrentViewportLine
       "
       @confirm-remove-active-bookmark="confirmRemoveActiveBookmark"
-      @apply-reader-palettes="onApplyReaderPalettes"
-      @apply-highlight-colors="onApplyHighlightColors"
-      @apply-lineation-colors="onApplyLineationColors"
+      @apply-color-scheme="onApplyColorScheme"
       @open-reading-data="openReadingDataPanel"
       @clear-reading-data-paths="onClearReadingDataPaths"
       @clear-all-reading-data="onClearAllReadingData"

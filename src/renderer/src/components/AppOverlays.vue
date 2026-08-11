@@ -19,7 +19,9 @@ import { bookmarkNoteInputRefKey } from "../injectionKeys";
 import type { FileBookmarkItem } from "../stores/fileMetaStore";
 import AboutPanel from "./AboutPanel.vue";
 import AppModal from "./AppModal.vue";
-import ColorSchemePanel from "./ColorSchemePanel.vue";
+import ColorSchemePanel, {
+  type ColorSchemeApplyPayload,
+} from "./ColorSchemePanel.vue";
 import AppUpdateFlow from "./AppUpdateFlow.vue";
 import ChapterRulePanel from "./ChapterRulePanel.vue";
 import ReadingDataPanel from "./ReadingDataPanel.vue";
@@ -127,16 +129,7 @@ const emit = defineEmits<{
   updateBookmarkToCurrentViewportLine: [];
   confirmRemoveActiveBookmark: [];
   applyShortcutBindings: [payload: ShortcutBindingMap];
-  applyReaderPalettes: [
-    payload: {
-      light: ReaderSurfacePalette;
-      dark: ReaderSurfacePalette;
-      colorEnabledLight: ReaderSurfaceColorEnabled;
-      colorEnabledDark: ReaderSurfaceColorEnabled;
-    },
-  ];
-  applyHighlightColors: [payload: { light: string[]; dark: string[] }];
-  applyLineationColors: [payload: { light: string[]; dark: string[] }];
+  applyColorScheme: [payload: ColorSchemeApplyPayload];
   applyReplaceRuleFormat: [rules: ReplaceRule[]];
   openReadingData: [];
   clearReadingDataPaths: [paths: string[]];
@@ -344,9 +337,7 @@ onBeforeUnmount(() => {
     :highlight-colors-dark="highlightColorsDark"
     :lineation-colors-light="lineationColorsLight"
     :lineation-colors-dark="lineationColorsDark"
-    @apply-reader-palettes="emit('applyReaderPalettes', $event)"
-    @apply-highlight-colors="emit('applyHighlightColors', $event)"
-    @apply-lineation-colors="emit('applyLineationColors', $event)"
+    @apply="emit('applyColorScheme', $event)"
   />
 
   <AppModal
