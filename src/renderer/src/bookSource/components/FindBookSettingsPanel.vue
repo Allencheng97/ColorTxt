@@ -2,7 +2,10 @@
 import { nextTick, ref, useTemplateRef, watch } from "vue";
 import AppModal from "../../components/AppModal.vue";
 import SettingsReadingPanel from "../../components/SettingsReadingPanel.vue";
+import DictionaryManageModal from "../../components/DictionaryManageModal.vue";
 import SettingsEditPanel from "../../components/SettingsEditPanel.vue";
+import { mergeDictionarySettings } from "../../constants/dictionarySettings";
+import type { DictionarySettings } from "@shared/dictionaryTypes";
 import SettingsVoiceReadPanel from "../../components/SettingsVoiceReadPanel.vue";
 import FindBookSettingsTabBar, {
   type FindBookSettingsTabId,
@@ -174,6 +177,7 @@ const draftTimedScrollIntervalMs = ref(defaultTimedScrollIntervalMs);
 const draftSelectionToolbarButtons = ref<SelectionToolbarButtons>(
   mergeSelectionToolbarButtons(undefined),
 );
+const showDictionaryManagePanel = ref(false);
 const draftVoiceRead = ref<VoiceReadSettings>(mergeVoiceReadSettings(undefined));
 const draftVoiceReadProfiles = ref<VoiceReadProfile[]>([]);
 const draftActiveVoiceReadProfileId = ref("");
@@ -561,6 +565,16 @@ watch(
   },
 );
 
+/** 主界面改代理后跨窗 storage / 同窗事件会更新 fb.proxy，设置面板打开时同步草稿 */
+watch(
+  () => fb.proxy.value,
+  () => {
+    if (!modelValue.value) return;
+    syncFindBookOnlyDraftFromStore();
+  },
+  { deep: true },
+);
+
 watch(
   () => props.initialTab,
   (tab) => {
@@ -647,6 +661,7 @@ watch(draftFontSize, (size) => {
               "
               :show-find-target-option="false"
               :monaco-custom-highlight="fb.monacoCustomHighlight.value"
+              @open-dictionary-manage="showDictionaryManagePanel = true"
             />
 
             <SettingsEditPanel
@@ -676,6 +691,7 @@ watch(draftFontSize, (size) => {
               v-model:draft-proxy-port="draftProxyPort"
               v-model:draft-proxy-username="draftProxyUsername"
               v-model:draft-proxy-password="draftProxyPassword"
+              show-book-source-proxy-hint
             />
 
             <SettingsWebDavPanel
@@ -720,6 +736,16 @@ watch(draftFontSize, (size) => {
       </div>
     </template>
   </AppModal>
+  <DictionaryManageModal
+    v-model="showDictionaryManagePanel"
+    :settings="fb.dictionarySettings.value"
+    @update:settings="
+      (v: DictionarySettings) => {
+        fb.dictionarySettings.value = mergeDictionarySettings(v);
+        fb.persistReaderUiPrefs();
+      }
+    "
+  />
 </template>
 
 <style>

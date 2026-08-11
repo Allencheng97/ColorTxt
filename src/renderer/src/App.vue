@@ -33,6 +33,7 @@ import FullscreenSystemClock from "./components/FullscreenSystemClock.vue";
 import PomodoroBreakOverlay from "./components/PomodoroBreakOverlay.vue";
 import type { SettingsApplyPayload } from "./components/SettingsPanel.vue";
 import type { ColorSchemeApplyPayload } from "./components/ColorSchemePanel.vue";
+import { syncPersistedFindBookProxyToMain } from "./bookSource/services/findBookSettingsStore";
 import { usePomodoroTimer } from "./composables/usePomodoroTimer";
 import {
   mergePomodoroSettings,
@@ -42,6 +43,10 @@ import {
   mergeSelectionToolbarButtons,
   type SelectionToolbarButtons,
 } from "./constants/selectionToolbar";
+import {
+  mergeDictionarySettings,
+} from "./constants/dictionarySettings";
+import type { DictionarySettings } from "@shared/dictionaryTypes";
 import type { AiCustomSkill, AiSkillUserOverride } from "@shared/aiSkills";
 import type { ColorTxtShowMessageBoxOptions } from "@shared/colorTxtShowMessageBox";
 import type {
@@ -501,6 +506,8 @@ onMounted(() => {
   void refreshAiSidebarFlags();
   refreshReplaceRulesCache();
   window.addEventListener(appReplaceRulesChangedEvent, onReplaceRulesChanged);
+  // 主窗口推送找书/设置共用的 HTTP 代理（词典等网络请求依赖主进程默认代理）
+  syncPersistedFindBookProxyToMain();
 });
 
 onBeforeUnmount(() => {
@@ -643,6 +650,10 @@ const pomodoroSettings = ref<PomodoroSettings>(mergePomodoroSettings(undefined))
 const selectionToolbarButtons = ref<SelectionToolbarButtons>(
   mergeSelectionToolbarButtons(undefined),
 );
+const dictionarySettings = ref<DictionarySettings>(
+  mergeDictionarySettings(undefined),
+);
+const showDictionaryManagePanel = ref(false);
 const {
   phase: pomodoroPhase,
   displayMode: pomodoroDisplayMode,
@@ -1110,6 +1121,7 @@ const persistence = useAppPersistence({
   timedScrollSettings,
   pomodoroSettings,
   selectionToolbarButtons,
+  dictionarySettings,
   fileMetaRecords,
   shortcutBindings,
   defaultShortcutBindings,
@@ -1190,6 +1202,11 @@ watch(
 );
 watch(
   timedScrollSettings,
+  () => persistSettings(),
+  { deep: true },
+);
+watch(
+  dictionarySettings,
   () => persistSettings(),
   { deep: true },
 );
@@ -1843,6 +1860,10 @@ async function onRemoveMissingReadingDataFiles() {
 
 function openReadingDataPanel() {
   showReadingDataPanel.value = true;
+}
+
+function onDictionarySettingsUpdate(v: DictionarySettings) {
+  dictionarySettings.value = mergeDictionarySettings(v);
 }
 
 /** 顶栏「更多」里最近文件：仅路径来自 recent，进度来自 meta（当前书用 live） */
@@ -3781,6 +3802,7 @@ useAppShellThemeWatch({
           :fast-scroll-sensitivity="fastScrollSensitivity"
           :sticky-chapter-title-enabled="stickyChapterTitleEnabled"
           :selection-toolbar-buttons="selectionToolbarButtons"
+          :dictionary-settings="dictionarySettings"
           :reader-edit-show-line-numbers="readerEditShowLineNumbers"
           :reader-edit-minimap="readerEditMinimap"
           :stream-loading="loading"
@@ -3829,6 +3851,7 @@ useAppShellThemeWatch({
           @update-lineation-last-color="onUpdateLineationLastColor"
           @ask-ai-with-quote="onAskAiWithQuote"
           @search-with-quote="onSearchWithQuote"
+          @open-dictionary-manage="showDictionaryManagePanel = true"
           @reader-edit-dirty-change="onReaderEditDirtyChange"
           @reader-edit-content-change="onReaderEditContentChange"
           @reader-edit-loaded="onReaderEditLoaded"
@@ -4007,6 +4030,7 @@ useAppShellThemeWatch({
       v-model:show-color-scheme-panel="showColorSchemePanel"
       v-model:show-chapter-rule-panel="showChapterRulePanel"
       v-model:show-reading-data-panel="showReadingDataPanel"
+      v-model:show-dictionary-manage-panel="showDictionaryManagePanel"
       v-model:show-replace-rule-panel="showReplaceRulePanel"
       v-model:add-bookmark-open="addBookmarkOpen"
       v-model:remove-bookmark-open="removeBookmarkOpen"
@@ -4034,6 +4058,7 @@ useAppShellThemeWatch({
       :timed-scroll-settings="timedScrollSettings"
       :pomodoro-settings="pomodoroSettings"
       :selection-toolbar-buttons="selectionToolbarButtons"
+      :dictionary-settings="dictionarySettings"
       :reader-edit-show-line-numbers="readerEditShowLineNumbers"
       :reader-edit-minimap="readerEditMinimap"
       :edit-auto-refresh-chapter-list="editAutoRefreshChapterList"
@@ -4090,6 +4115,8 @@ useAppShellThemeWatch({
       @confirm-remove-active-bookmark="confirmRemoveActiveBookmark"
       @apply-color-scheme="onApplyColorScheme"
       @open-reading-data="openReadingDataPanel"
+      @open-dictionary-manage="showDictionaryManagePanel = true"
+      @update:dictionary-settings="onDictionarySettingsUpdate"
       @clear-reading-data-paths="onClearReadingDataPaths"
       @clear-all-reading-data="onClearAllReadingData"
       @remove-missing-reading-data-files="onRemoveMissingReadingDataFiles"

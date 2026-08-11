@@ -102,6 +102,7 @@ import zoomInIcon from "./assets/zoom_in.svg?raw";
 import convertIcon from "./assets/conver.svg?raw";
 import replaceIcon from "./assets/replace.svg?raw";
 import noteIcon from "./assets/note.svg?raw";
+import dictionaryIcon from "./assets/dictionary.svg?raw";
 import quoteIcon from "./assets/quote.svg?raw";
 import speakIcon from "./assets/speak.svg?raw";
 import speak0Icon from "./assets/speak_0.svg?raw";
@@ -256,6 +257,7 @@ export const icons = {
   /** 高亮词：已收藏（常驻） */
   favoriteFill: favoriteFillIcon,
   note: noteIcon,
+  dictionary: dictionaryIcon,
   quote: quoteIcon,
   /** 定时滚动 / 自动阅读 */
   reading: readingIcon,

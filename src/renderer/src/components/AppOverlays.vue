@@ -28,6 +28,8 @@ import ReadingDataPanel from "./ReadingDataPanel.vue";
 import ReplaceRulePanel from "../bookSource/components/ReplaceRulePanel.vue";
 import type { ReplaceRule } from "@shared/bookSource/replaceRule";
 import SettingsPanel, { type SettingsApplyPayload } from "./SettingsPanel.vue";
+import DictionaryManageModal from "./DictionaryManageModal.vue";
+import type { DictionarySettings } from "@shared/dictionaryTypes";
 import ShortcutPanel from "./ShortcutPanel.vue";
 import type { ShortcutBindingMap } from "../services/shortcutRegistry";
 import type { ReaderSurfacePalette } from "../constants/appUi";
@@ -66,6 +68,7 @@ const props = defineProps<{
   timedScrollSettings: TimedScrollSettings;
   pomodoroSettings: PomodoroSettings;
   selectionToolbarButtons: import("../constants/selectionToolbar").SelectionToolbarButtons;
+  dictionarySettings: DictionarySettings;
   chapterRules: ChapterMatchRule[];
   chapterRuleErrorText: string;
   /** 编辑态打开文本替换时面板主按钮为「应用」 */
@@ -136,6 +139,8 @@ const emit = defineEmits<{
   clearAllReadingData: [];
   removeMissingReadingDataFiles: [];
   openReadingDataPath: [path: string];
+  openDictionaryManage: [];
+  "update:dictionarySettings": [v: DictionarySettings];
 }>();
 
 const showAboutPanel = defineModel<boolean>("showAboutPanel", {
@@ -153,6 +158,12 @@ const showChapterRulePanel = defineModel<boolean>("showChapterRulePanel", {
 const showReadingDataPanel = defineModel<boolean>("showReadingDataPanel", {
   default: false,
 });
+const showDictionaryManagePanel = defineModel<boolean>(
+  "showDictionaryManagePanel",
+  {
+    default: false,
+  },
+);
 const showReplaceRulePanel = defineModel<boolean>("showReplaceRulePanel", {
   default: false,
 });
@@ -302,6 +313,12 @@ onBeforeUnmount(() => {
     :character-roster="characterRoster"
     @apply="emit('applySettings', $event)"
     @open-reading-data="emit('openReadingData')"
+    @open-dictionary-manage="emit('openDictionaryManage')"
+  />
+  <DictionaryManageModal
+    v-model="showDictionaryManagePanel"
+    :settings="dictionarySettings"
+    @update:settings="emit('update:dictionarySettings', $event)"
   />
   <ReadingDataPanel
     v-model="showReadingDataPanel"

@@ -105,6 +105,7 @@ defineEmits<{
   "update:draftTimedScrollRange": [v: TimedScrollRange];
   "update:draftTimedScrollIntervalMs": [v: number];
   "update:draftSelectionToolbarButtons": [v: SelectionToolbarButtons];
+  openDictionaryManage: [];
 }>();
 
 const draftMaxLineHeightMultiple = computed(() =>
@@ -545,6 +546,22 @@ const selectListsEmpty: CustomSelectItem[] = [];
           />
         </div>
       </div>
+      <div class="settingsRow">
+        <div class="settingsRowMain">
+          <span class="settingsLabel">
+            「<span class="settingsIcon" v-html="icons.dictionary" />
+            词典」
+          </span>
+          <button
+            class="btn"
+            type="button"
+            size="large"
+            @click="$emit('openDictionaryManage')"
+          >
+            词典管理
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -636,6 +653,22 @@ const selectListsEmpty: CustomSelectItem[] = [];
   display: block;
 }
 .settingsIcon :deep(svg path) {
+  fill: currentColor;
+}
+
+.settingsToolbarDictIcon {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  margin-right: 6px;
+  vertical-align: -3px;
+}
+.settingsToolbarDictIcon :deep(svg) {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+.settingsToolbarDictIcon :deep(svg path) {
   fill: currentColor;
 }
 
