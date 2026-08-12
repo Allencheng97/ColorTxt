@@ -17,6 +17,7 @@ type ToolbarAction =
   | "note"
   | "find"
   | "dictionary"
+  | "translate"
   | "askAi";
 
 const props = defineProps<{
@@ -337,6 +338,20 @@ function isPickerSwatchSelected(index: number): boolean {
           v-html="icons.dictionary"
         ></span>
         <span class="selActionLabel">词典</span>
+      </button>
+      <button
+        v-if="selectionToolbarButtons.translate"
+        type="button"
+        class="selAction"
+        aria-label="翻译"
+        @pointerdown.prevent="emit('action', 'translate')"
+      >
+        <span
+          class="selActionIcon"
+          aria-hidden="true"
+          v-html="icons.translate"
+        ></span>
+        <span class="selActionLabel">翻译</span>
       </button>
       <button
         v-if="aiFeaturesEnabled && selectionToolbarButtons.askAi"

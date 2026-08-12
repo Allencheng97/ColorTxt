@@ -111,6 +111,14 @@ export function useReaderAnnotations(opts: {
   const dictionaryPopupMaxHeight = ref(420);
   const dictionaryPopupRootRef = ref<HTMLElement | null>(null);
   let dictionaryPopupResizeObserver: ResizeObserver | null = null;
+  const translatePopupOpen = ref(false);
+  const translatePopupText = ref("");
+  const translatePopupCenterX = ref(0);
+  const translatePopupTop = ref(0);
+  const translatePopupOpenDownward = ref(false);
+  const translatePopupMaxHeight = ref(420);
+  const translatePopupRootRef = ref<HTMLElement | null>(null);
+  let translatePopupResizeObserver: ResizeObserver | null = null;
 
   let annotationViewportSyncTimer: ReturnType<typeof setTimeout> | null = null;
   let annotationViewportDecorLastKey = "";
@@ -575,6 +583,115 @@ export function useReaderAnnotations(opts: {
     dictionaryPopupWord.value = "";
   }
 
+  const TRANSLATE_POPUP_W = 380;
+  const TRANSLATE_POPUP_MAX_H = 420;
+  const TRANSLATE_POPUP_MIN_H = 140;
+  const TRANSLATE_POPUP_ESTIMATE_H = 260;
+
+  function disconnectTranslatePopupResizeObserver() {
+    translatePopupResizeObserver?.disconnect();
+    translatePopupResizeObserver = null;
+  }
+
+  function applyTranslatePopupPlacement(measuredHeight?: number) {
+    const anchor = getAnchor();
+    const editorClip = getEditorClipRect();
+    const floatWidth = TRANSLATE_POPUP_W;
+    let floatHeight =
+      measuredHeight && measuredHeight > 0
+        ? measuredHeight
+        : TRANSLATE_POPUP_ESTIMATE_H;
+    floatHeight = Math.min(
+      TRANSLATE_POPUP_MAX_H,
+      Math.max(TRANSLATE_POPUP_MIN_H, floatHeight),
+    );
+
+    if (anchor && editorClip) {
+      const base = {
+        selectionCenterX: anchor.selectionCenterX,
+        anchorTop: anchor.anchorTop,
+        lineBottom: anchor.lineBottom,
+        floatHeight,
+        floatWidth,
+        gap: FLOAT_GAP,
+        margin: FLOAT_MARGIN,
+      };
+      let placed = computeFloatPlacement({ ...base, clip: editorClip });
+      const rightEdge = placed.centerX + floatWidth / 2;
+      const windowRightLimit = window.innerWidth - FLOAT_MARGIN;
+      if (rightEdge > windowRightLimit + 0.5) {
+        placed = computeFloatPlacement({
+          ...base,
+          clip: {
+            top: editorClip.top,
+            bottom: editorClip.bottom,
+            left: 0,
+            right: window.innerWidth,
+          },
+        });
+      }
+      translatePopupCenterX.value = placed.centerX;
+      translatePopupTop.value = placed.rootTop;
+      translatePopupOpenDownward.value = placed.openDownward;
+      const avail = placed.openDownward
+        ? editorClip.bottom - FLOAT_MARGIN - placed.rootTop
+        : placed.rootTop - (editorClip.top + FLOAT_MARGIN);
+      translatePopupMaxHeight.value = Math.min(
+        TRANSLATE_POPUP_MAX_H,
+        Math.max(TRANSLATE_POPUP_MIN_H, avail),
+      );
+      return;
+    }
+    translatePopupCenterX.value = floatCenterX.value;
+    translatePopupTop.value = floatRootTop.value;
+    translatePopupOpenDownward.value = floatOpenDownward.value;
+    const fallbackAvail = floatOpenDownward.value
+      ? window.innerHeight - FLOAT_MARGIN - floatRootTop.value
+      : floatRootTop.value - FLOAT_MARGIN;
+    translatePopupMaxHeight.value = Math.min(
+      TRANSLATE_POPUP_MAX_H,
+      Math.max(TRANSLATE_POPUP_MIN_H, fallbackAvail),
+    );
+  }
+
+  function observeTranslatePopupSize() {
+    disconnectTranslatePopupResizeObserver();
+    const el = translatePopupRootRef.value?.querySelector(".trPopup");
+    if (!(el instanceof HTMLElement)) return;
+    translatePopupResizeObserver = new ResizeObserver(() => {
+      if (!translatePopupOpen.value) return;
+      const h = el.getBoundingClientRect().height;
+      if (h > 0) applyTranslatePopupPlacement(h);
+    });
+    translatePopupResizeObserver.observe(el);
+  }
+
+  function openTranslatePopupFromToolbar() {
+    const text = draftText.value.trim();
+    if (!text) bindDraftFromSelection();
+    const quote = draftText.value.trim();
+    if (!quote) return;
+    translatePopupText.value = quote;
+    applyTranslatePopupPlacement();
+    translatePopupOpen.value = true;
+    closeToolbarUi();
+    suppressToolbarUntilMs = Date.now() + 300;
+    void nextTick(() => {
+      observeTranslatePopupSize();
+      const el = translatePopupRootRef.value?.querySelector(".trPopup");
+      if (el instanceof HTMLElement) {
+        const h = el.getBoundingClientRect().height;
+        if (h > 0) applyTranslatePopupPlacement(h);
+      }
+    });
+  }
+
+  function closeTranslatePopup() {
+    disconnectTranslatePopupResizeObserver();
+    translatePopupOpen.value = false;
+    translatePopupText.value = "";
+  }
+
   function ensureNotePanelAnnotationRecord(): ReaderAnnotationRecord | null {
     const existing = resolveAnnotationById(notePanelTargetAnnotationId.value);
     if (existing) return existing;
@@ -718,6 +835,7 @@ export function useReaderAnnotations(opts: {
     if (opts.monacoCustomHighlight()) actions += 1;
     if (buttons.find) actions += 1;
     if (buttons.dictionary) actions += 1;
+    if (buttons.translate) actions += 1;
     if (opts.aiFeaturesEnabled() && buttons.askAi) actions += 1;
     return actions * FLOAT_ACTION_W + FLOAT_TOOLBAR_PAD_X;
   }
@@ -1186,6 +1304,7 @@ export function useReaderAnnotations(opts: {
       | "note"
       | "find"
       | "dictionary"
+      | "translate"
       | "askAi",
   ) {
     if (action === "note") {
@@ -1212,6 +1331,10 @@ export function useReaderAnnotations(opts: {
     }
     if (action === "dictionary") {
       openDictionaryPopupFromToolbar();
+      return;
+    }
+    if (action === "translate") {
+      openTranslatePopupFromToolbar();
       return;
     }
     if (action === "askAi") {
@@ -1323,6 +1446,7 @@ export function useReaderAnnotations(opts: {
       if (floatRootRef.value?.contains(ev.target as Node)) return;
       if (notePanelRootRef.value?.contains(ev.target as Node)) return;
       if (dictionaryPopupRootRef.value?.contains(ev.target as Node)) return;
+      if (translatePopupRootRef.value?.contains(ev.target as Node)) return;
       const editorDom = opts.editor.value?.getDomNode();
       if (!editorDom?.contains(ev.target as Node)) return;
       closeToolbarUi();
@@ -1359,6 +1483,14 @@ export function useReaderAnnotations(opts: {
     dictionaryPopupMaxHeight,
     dictionaryPopupRootRef,
     closeDictionaryPopup,
+    translatePopupOpen,
+    translatePopupText,
+    translatePopupCenterX,
+    translatePopupTop,
+    translatePopupOpenDownward,
+    translatePopupMaxHeight,
+    translatePopupRootRef,
+    closeTranslatePopup,
     closeToolbarUi,
     showToolbarFromSelectionIfAny,
     syncToolbarOnScroll,

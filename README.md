@@ -48,6 +48,7 @@
 | <img src="./src/renderer/src/assets/findBook.svg" width="18" height="18" alt=""> | 书源找书 | 可多源搜索，支持在线阅读或整书下载（入口：「更多 → 找书」） |
 | <img src="./src/renderer/src/assets/WebDAV.svg" width="18" height="18" alt=""> | **WebDAV** | 用于跨设备同步应用配置、书包 |
 | <img src="./src/renderer/src/assets/dictionary.svg" width="18" height="18" alt=""> | 词典 | 查询词语释义，支持导入本地词库 |
+| <img src="./src/renderer/src/assets/translate.svg" width="18" height="18" alt=""> | 翻译 | 翻译选中文本，支持 AI 翻译和多种翻译服务 |
 | <img src="./src/renderer/src/assets/compress.svg" width="18" height="18" alt=""> | 空行压缩 | 压缩多余空行 |
 | <img src="./src/renderer/src/assets/indent.svg" width="18" height="18" alt=""> | 行首缩进 | 在行首添加全角缩进 |
 | <img src="./src/renderer/src/assets/ebook.svg" width="18" height="18" alt=""> | 文件列表 | 拖放添加文件 / 目录（会递归读取子目录），支持分类 / 排序 / 过滤；可切换列表 / 树状 |

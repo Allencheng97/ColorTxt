@@ -22,7 +22,14 @@ import FindBookReaderFooter from "./FindBookReaderFooter.vue";
 import FindBookReaderHeader from "./FindBookReaderHeader.vue";
 import FindBookReaderChapterSidebar from "./FindBookReaderChapterSidebar.vue";
 import DictionaryManageModal from "../../components/DictionaryManageModal.vue";
+import TranslateManageModal from "../../components/TranslateManageModal.vue";
 import { mergeDictionarySettings } from "../../constants/dictionarySettings";
+import {
+  collectTranslationSecrets,
+  mergeTranslationSettings,
+  serializeTranslationSecrets,
+} from "../../constants/translationSettings";
+import type { TranslationSettings } from "@shared/translationTypes";
 import type { DictionarySettings } from "@shared/dictionaryTypes";
 import {
   countCharsForLine,
@@ -224,6 +231,7 @@ const {
   chapterNavToolbarEnabled,
   selectionToolbarButtons,
   dictionarySettings,
+  translationSettings,
   readerEditShowLineNumbers,
   readerEditMinimap,
   fullscreenReaderWidthPercent,
@@ -257,9 +265,28 @@ const {
 } = useBookSourceDownload();
 
 const showDictionaryManagePanel = ref(false);
+const showTranslateManagePanel = ref(false);
+
+function openTranslateManagePanel() {
+  showTranslateManagePanel.value = true;
+}
 
 function onDictionarySettingsUpdate(v: DictionarySettings) {
   dictionarySettings.value = mergeDictionarySettings(v);
+  persistReaderUiPrefs();
+}
+
+async function onTranslationSettingsUpdate(v: TranslationSettings) {
+  translationSettings.value = mergeTranslationSettings(v);
+  try {
+    await window.colorTxt.secrets.setTranslationSecrets({
+      providerKeys: serializeTranslationSecrets(
+        collectTranslationSecrets(translationSettings.value),
+      ),
+    });
+  } catch {
+    /* ignore */
+  }
   persistReaderUiPrefs();
 }
 const { isInBookshelf, toggle: toggleBookshelf, updateReadProgress } =
@@ -2049,7 +2076,10 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
             :sticky-chapter-title-enabled="stickyChapterTitleEnabled"
             :selection-toolbar-buttons="selectionToolbarButtons"
             :dictionary-settings="dictionarySettings"
+            :translation-settings="translationSettings"
             @open-dictionary-manage="showDictionaryManagePanel = true"
+            @open-translate-manage="openTranslateManagePanel"
+            @update:translation-settings="onTranslationSettingsUpdate"
             :reader-surface-light="effectiveReaderSurfaceLight"
             :reader-surface-dark="effectiveReaderSurfaceDark"
             :reader-palette-color-enabled="readerPaletteColorEnabledForReader"
@@ -2173,6 +2203,11 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
       v-model="showDictionaryManagePanel"
       :settings="dictionarySettings"
       @update:settings="onDictionarySettingsUpdate"
+    />
+    <TranslateManageModal
+      v-model="showTranslateManagePanel"
+      :settings="translationSettings"
+      @update:settings="onTranslationSettingsUpdate"
     />
   </AppModal>
 </template>

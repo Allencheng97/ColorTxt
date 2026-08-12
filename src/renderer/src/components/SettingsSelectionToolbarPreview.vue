@@ -182,6 +182,29 @@ function toggleButton(key: keyof SelectionToolbarButtons) {
       <div
         class="stbAction stbAction--checkable"
         role="checkbox"
+        :aria-checked="modelValue.translate"
+        tabindex="0"
+        @click="toggleButton('translate')"
+        @keydown.space.prevent="toggleButton('translate')"
+        @keydown.enter.prevent="toggleButton('translate')"
+      >
+        <AppCheckbox
+          class="stbCheck"
+          passive
+          :model-value="modelValue.translate"
+          aria-label="工具条显示翻译"
+        />
+        <span
+          class="stbActionIcon"
+          aria-hidden="true"
+          v-html="icons.translate"
+        />
+        <span class="stbActionLabel">翻译</span>
+      </div>
+
+      <div
+        class="stbAction stbAction--checkable"
+        role="checkbox"
         :aria-checked="modelValue.askAi"
         tabindex="0"
         @click="toggleButton('askAi')"

@@ -46,7 +46,11 @@ import {
 import {
   mergeDictionarySettings,
 } from "./constants/dictionarySettings";
+import {
+  mergeTranslationSettings,
+} from "./constants/translationSettings";
 import type { DictionarySettings } from "@shared/dictionaryTypes";
+import type { TranslationSettings } from "@shared/translationTypes";
 import type { AiCustomSkill, AiSkillUserOverride } from "@shared/aiSkills";
 import type { ColorTxtShowMessageBoxOptions } from "@shared/colorTxtShowMessageBox";
 import type {
@@ -653,7 +657,15 @@ const selectionToolbarButtons = ref<SelectionToolbarButtons>(
 const dictionarySettings = ref<DictionarySettings>(
   mergeDictionarySettings(undefined),
 );
+const translationSettings = ref<TranslationSettings>(
+  mergeTranslationSettings(undefined),
+);
 const showDictionaryManagePanel = ref(false);
+const showTranslateManagePanel = ref(false);
+
+function openTranslateManagePanel() {
+  showTranslateManagePanel.value = true;
+}
 const {
   phase: pomodoroPhase,
   displayMode: pomodoroDisplayMode,
@@ -1122,6 +1134,7 @@ const persistence = useAppPersistence({
   pomodoroSettings,
   selectionToolbarButtons,
   dictionarySettings,
+  translationSettings,
   fileMetaRecords,
   shortcutBindings,
   defaultShortcutBindings,
@@ -1166,6 +1179,7 @@ const {
   persistSettings,
   persistSidebarWidth,
   persistVoiceReadSecretsToVault,
+  persistTranslationSecretsToVault,
   clearRecentFiles,
   persistWindowUnloadState,
   persistFileListCache,
@@ -1207,6 +1221,11 @@ watch(
 );
 watch(
   dictionarySettings,
+  () => persistSettings(),
+  { deep: true },
+);
+watch(
+  translationSettings,
   () => persistSettings(),
   { deep: true },
 );
@@ -1864,6 +1883,11 @@ function openReadingDataPanel() {
 
 function onDictionarySettingsUpdate(v: DictionarySettings) {
   dictionarySettings.value = mergeDictionarySettings(v);
+}
+
+function onTranslationSettingsUpdate(v: TranslationSettings) {
+  translationSettings.value = mergeTranslationSettings(v);
+  void persistTranslationSecretsToVault();
 }
 
 /** 顶栏「更多」里最近文件：仅路径来自 recent，进度来自 meta（当前书用 live） */
@@ -3323,6 +3347,7 @@ async function applySettings(payload: SettingsApplyPayload) {
   voiceReadProfiles.value = cloneVoiceReadProfiles(payload.voiceReadProfiles);
   activeVoiceReadProfileId.value = payload.activeVoiceReadProfileId.trim();
   await persistVoiceReadSecretsToVault();
+  await persistTranslationSecretsToVault();
   aiAssistantConfigSyncNonce.value += 1;
   persistSettings();
   if (!payload.restoreSessionOnStartup) {
@@ -3803,6 +3828,7 @@ useAppShellThemeWatch({
           :sticky-chapter-title-enabled="stickyChapterTitleEnabled"
           :selection-toolbar-buttons="selectionToolbarButtons"
           :dictionary-settings="dictionarySettings"
+          :translation-settings="translationSettings"
           :reader-edit-show-line-numbers="readerEditShowLineNumbers"
           :reader-edit-minimap="readerEditMinimap"
           :stream-loading="loading"
@@ -3852,6 +3878,8 @@ useAppShellThemeWatch({
           @ask-ai-with-quote="onAskAiWithQuote"
           @search-with-quote="onSearchWithQuote"
           @open-dictionary-manage="showDictionaryManagePanel = true"
+          @open-translate-manage="openTranslateManagePanel"
+          @update:translation-settings="onTranslationSettingsUpdate"
           @reader-edit-dirty-change="onReaderEditDirtyChange"
           @reader-edit-content-change="onReaderEditContentChange"
           @reader-edit-loaded="onReaderEditLoaded"
@@ -4031,6 +4059,7 @@ useAppShellThemeWatch({
       v-model:show-chapter-rule-panel="showChapterRulePanel"
       v-model:show-reading-data-panel="showReadingDataPanel"
       v-model:show-dictionary-manage-panel="showDictionaryManagePanel"
+      v-model:show-translate-manage-panel="showTranslateManagePanel"
       v-model:show-replace-rule-panel="showReplaceRulePanel"
       v-model:add-bookmark-open="addBookmarkOpen"
       v-model:remove-bookmark-open="removeBookmarkOpen"
@@ -4059,6 +4088,7 @@ useAppShellThemeWatch({
       :pomodoro-settings="pomodoroSettings"
       :selection-toolbar-buttons="selectionToolbarButtons"
       :dictionary-settings="dictionarySettings"
+      :translation-settings="translationSettings"
       :reader-edit-show-line-numbers="readerEditShowLineNumbers"
       :reader-edit-minimap="readerEditMinimap"
       :edit-auto-refresh-chapter-list="editAutoRefreshChapterList"
@@ -4116,7 +4146,9 @@ useAppShellThemeWatch({
       @apply-color-scheme="onApplyColorScheme"
       @open-reading-data="openReadingDataPanel"
       @open-dictionary-manage="showDictionaryManagePanel = true"
+      @open-translate-manage="openTranslateManagePanel"
       @update:dictionary-settings="onDictionarySettingsUpdate"
+      @update:translation-settings="onTranslationSettingsUpdate"
       @clear-reading-data-paths="onClearReadingDataPaths"
       @clear-all-reading-data="onClearAllReadingData"
       @remove-missing-reading-data-files="onRemoveMissingReadingDataFiles"

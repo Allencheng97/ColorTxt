@@ -181,6 +181,7 @@ export function registerModal(opts: {
     unregister: () => {
       const idx = stack.findIndex((e) => e.instanceId === instanceId)
       if (idx >= 0) stack.splice(idx, 1)
+      reassignStackZIndices()
       removeEscListenerIfIdle()
       emitModalStackChange()
     },

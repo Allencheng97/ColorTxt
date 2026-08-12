@@ -235,6 +235,7 @@ const emit = defineEmits<{
   apply: [payload: SettingsApplyPayload];
   openReadingData: [];
   openDictionaryManage: [];
+  openTranslateManage: [];
 }>();
 
 const activeTab = ref<SettingsTabId>("general");
@@ -1003,6 +1004,7 @@ async function onClearCache() {
               "
               :monaco-custom-highlight="monacoCustomHighlight"
               @open-dictionary-manage="emit('openDictionaryManage')"
+              @open-translate-manage="emit('openTranslateManage')"
             />
 
             <SettingsEditPanel

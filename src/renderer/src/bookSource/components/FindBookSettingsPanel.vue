@@ -1,11 +1,18 @@
 <script setup lang="ts">
-import { nextTick, ref, useTemplateRef, watch } from "vue";
+import { computed, nextTick, ref, useTemplateRef, watch } from "vue";
 import AppModal from "../../components/AppModal.vue";
 import SettingsReadingPanel from "../../components/SettingsReadingPanel.vue";
 import DictionaryManageModal from "../../components/DictionaryManageModal.vue";
+import TranslateManageModal from "../../components/TranslateManageModal.vue";
 import SettingsEditPanel from "../../components/SettingsEditPanel.vue";
 import { mergeDictionarySettings } from "../../constants/dictionarySettings";
+import {
+  collectTranslationSecrets,
+  mergeTranslationSettings,
+  serializeTranslationSecrets,
+} from "../../constants/translationSettings";
 import type { DictionarySettings } from "@shared/dictionaryTypes";
+import type { TranslationSettings } from "@shared/translationTypes";
 import SettingsVoiceReadPanel from "../../components/SettingsVoiceReadPanel.vue";
 import FindBookSettingsTabBar, {
   type FindBookSettingsTabId,
@@ -178,6 +185,26 @@ const draftSelectionToolbarButtons = ref<SelectionToolbarButtons>(
   mergeSelectionToolbarButtons(undefined),
 );
 const showDictionaryManagePanel = ref(false);
+const showTranslateManagePanel = ref(false);
+
+function openTranslateManageFromSettings() {
+  showTranslateManagePanel.value = true;
+}
+
+async function onTranslationSettingsUpdate(v: TranslationSettings) {
+  fb.translationSettings.value = mergeTranslationSettings(v);
+  try {
+    await window.colorTxt.secrets.setTranslationSecrets({
+      providerKeys: serializeTranslationSecrets(
+        collectTranslationSecrets(fb.translationSettings.value),
+      ),
+    });
+  } catch {
+    /* ignore */
+  }
+  fb.persistReaderUiPrefs();
+}
+
 const draftVoiceRead = ref<VoiceReadSettings>(mergeVoiceReadSettings(undefined));
 const draftVoiceReadProfiles = ref<VoiceReadProfile[]>([]);
 const draftActiveVoiceReadProfileId = ref("");
@@ -662,6 +689,7 @@ watch(draftFontSize, (size) => {
               :show-find-target-option="false"
               :monaco-custom-highlight="fb.monacoCustomHighlight.value"
               @open-dictionary-manage="showDictionaryManagePanel = true"
+              @open-translate-manage="openTranslateManageFromSettings"
             />
 
             <SettingsEditPanel
@@ -745,6 +773,11 @@ watch(draftFontSize, (size) => {
         fb.persistReaderUiPrefs();
       }
     "
+  />
+  <TranslateManageModal
+    v-model="showTranslateManagePanel"
+    :settings="fb.translationSettings.value"
+    @update:settings="onTranslationSettingsUpdate"
   />
 </template>
 

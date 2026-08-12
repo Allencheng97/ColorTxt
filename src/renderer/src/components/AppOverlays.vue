@@ -29,7 +29,9 @@ import ReplaceRulePanel from "../bookSource/components/ReplaceRulePanel.vue";
 import type { ReplaceRule } from "@shared/bookSource/replaceRule";
 import SettingsPanel, { type SettingsApplyPayload } from "./SettingsPanel.vue";
 import DictionaryManageModal from "./DictionaryManageModal.vue";
+import TranslateManageModal from "./TranslateManageModal.vue";
 import type { DictionarySettings } from "@shared/dictionaryTypes";
+import type { TranslationSettings } from "@shared/translationTypes";
 import ShortcutPanel from "./ShortcutPanel.vue";
 import type { ShortcutBindingMap } from "../services/shortcutRegistry";
 import type { ReaderSurfacePalette } from "../constants/appUi";
@@ -69,6 +71,7 @@ const props = defineProps<{
   pomodoroSettings: PomodoroSettings;
   selectionToolbarButtons: import("../constants/selectionToolbar").SelectionToolbarButtons;
   dictionarySettings: DictionarySettings;
+  translationSettings: import("@shared/translationTypes").TranslationSettings;
   chapterRules: ChapterMatchRule[];
   chapterRuleErrorText: string;
   /** 编辑态打开文本替换时面板主按钮为「应用」 */
@@ -140,7 +143,9 @@ const emit = defineEmits<{
   removeMissingReadingDataFiles: [];
   openReadingDataPath: [path: string];
   openDictionaryManage: [];
+  openTranslateManage: [];
   "update:dictionarySettings": [v: DictionarySettings];
+  "update:translationSettings": [v: TranslationSettings];
 }>();
 
 const showAboutPanel = defineModel<boolean>("showAboutPanel", {
@@ -160,6 +165,12 @@ const showReadingDataPanel = defineModel<boolean>("showReadingDataPanel", {
 });
 const showDictionaryManagePanel = defineModel<boolean>(
   "showDictionaryManagePanel",
+  {
+    default: false,
+  },
+);
+const showTranslateManagePanel = defineModel<boolean>(
+  "showTranslateManagePanel",
   {
     default: false,
   },
@@ -314,11 +325,17 @@ onBeforeUnmount(() => {
     @apply="emit('applySettings', $event)"
     @open-reading-data="emit('openReadingData')"
     @open-dictionary-manage="emit('openDictionaryManage')"
+    @open-translate-manage="emit('openTranslateManage')"
   />
   <DictionaryManageModal
     v-model="showDictionaryManagePanel"
     :settings="dictionarySettings"
     @update:settings="emit('update:dictionarySettings', $event)"
+  />
+  <TranslateManageModal
+    v-model="showTranslateManagePanel"
+    :settings="translationSettings"
+    @update:settings="emit('update:translationSettings', $event)"
   />
   <ReadingDataPanel
     v-model="showReadingDataPanel"

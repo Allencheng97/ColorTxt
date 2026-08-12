@@ -8,6 +8,8 @@ export type SelectionToolbarButtons = {
   askAi: boolean;
   /** 词典查词（默认不显示） */
   dictionary: boolean;
+  /** 选区翻译（默认不显示） */
+  translate: boolean;
   /** 「查找」按钮：打开 Monaco 查找栏，或填入侧栏全文搜索 */
   findTarget: SelectionToolbarFindTarget;
 };
@@ -28,6 +30,7 @@ export const defaultSelectionToolbarButtons: SelectionToolbarButtons = {
   find: false,
   askAi: true,
   dictionary: false,
+  translate: false,
   findTarget: defaultSelectionToolbarFindTarget,
 };
 
@@ -57,6 +60,10 @@ export function mergeSelectionToolbarButtons(
       typeof partial?.dictionary === "boolean"
         ? partial.dictionary
         : defaultSelectionToolbarButtons.dictionary,
+    translate:
+      typeof partial?.translate === "boolean"
+        ? partial.translate
+        : defaultSelectionToolbarButtons.translate,
     findTarget: isSelectionToolbarFindTarget(partial?.findTarget)
       ? partial.findTarget
       : defaultSelectionToolbarButtons.findTarget,

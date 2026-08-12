@@ -49,6 +49,11 @@ import {
   type SelectionToolbarButtons,
 } from "../../constants/selectionToolbar";
 import { mergeDictionarySettings } from "../../constants/dictionarySettings";
+import {
+  mergeTranslationSettings,
+  stripTranslationSecretsForDisk,
+} from "../../constants/translationSettings";
+import type { TranslationSettings } from "@shared/translationTypes";
 import type { DictionarySettings } from "@shared/dictionaryTypes";
 import { READER_EDITOR_DEFAULT_FONT_FAMILY } from "../../monaco/readerEditorOptions";
 import {
@@ -204,6 +209,7 @@ export type SharedReaderSettingsSnapshot = {
   pomodoroSettings: PomodoroSettings;
   selectionToolbarButtons: SelectionToolbarButtons;
   dictionarySettings: DictionarySettings;
+  translationSettings: TranslationSettings;
 };
 
 export function sharedReaderSettingsFromMainData(
@@ -317,6 +323,9 @@ export function sharedReaderSettingsFromMainData(
       data.selectionToolbarButtons,
     ),
     dictionarySettings: mergeDictionarySettings(data.dictionarySettings),
+    translationSettings: stripTranslationSecretsForDisk(
+      mergeTranslationSettings(data.translationSettings),
+    ),
   };
 }
 
@@ -355,6 +364,9 @@ export function snapshotSharedReaderSettingsForMain(
     pomodoro: state.pomodoroSettings,
     selectionToolbarButtons: state.selectionToolbarButtons,
     dictionarySettings: state.dictionarySettings,
+    translationSettings: stripTranslationSecretsForDisk(
+      state.translationSettings,
+    ),
   };
 }
 

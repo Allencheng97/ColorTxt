@@ -106,6 +106,7 @@ defineEmits<{
   "update:draftTimedScrollIntervalMs": [v: number];
   "update:draftSelectionToolbarButtons": [v: SelectionToolbarButtons];
   openDictionaryManage: [];
+  openTranslateManage: [];
 }>();
 
 const draftMaxLineHeightMultiple = computed(() =>
@@ -559,6 +560,22 @@ const selectListsEmpty: CustomSelectItem[] = [];
             @click="$emit('openDictionaryManage')"
           >
             词典管理
+          </button>
+        </div>
+      </div>
+      <div class="settingsRow">
+        <div class="settingsRowMain">
+          <span class="settingsLabel">
+            「<span class="settingsIcon" v-html="icons.translate" />
+            翻译」
+          </span>
+          <button
+            class="btn"
+            type="button"
+            size="large"
+            @click="$emit('openTranslateManage')"
+          >
+            翻译设置
           </button>
         </div>
       </div>

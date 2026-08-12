@@ -63,6 +63,7 @@ import { registerVoiceReadIpcHandlers } from "./voiceRead/registerVoiceReadIpc";
 import { registerBookSourceIpcHandlers } from "./bookSource/registerBookSourceIpc";
 import { registerWebDavIpcHandlers } from "./webdav/registerWebDavIpc";
 import { registerDictionaryIpcHandlers } from "./dictionary/registerDictionaryIpc";
+import { registerTranslationIpcHandlers } from "./translation/registerTranslationIpc";
 import { createFindBookDesktopShortcut } from "./findBookLaunch";
 import {
   focusOrOpenFindBookWindow,
@@ -1069,4 +1070,5 @@ function unknownQuoteAttributions(
   registerTextConvertIpcHandlers();
   registerWebDavIpcHandlers();
   registerDictionaryIpcHandlers();
+  registerTranslationIpcHandlers();
 }
