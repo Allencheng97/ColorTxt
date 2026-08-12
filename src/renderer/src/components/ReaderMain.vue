@@ -27,6 +27,7 @@ import { useReaderInlineSearch } from "../composables/useReaderInlineSearch";
 import {
   replaceImgAnchorLinesWithViewZones,
   removeViewZonesById,
+  syncReaderImageViewZonesLineSpacing,
   type ReplaceImgAnchorsResult,
 } from "../monaco/readerImageViewZones";
 import { collectBlockMarkdownImageLines } from "../markdown/markdownImages";
@@ -2086,6 +2087,11 @@ async function setLineSpacingPx(px: number): Promise<void> {
   if (next === getLineSpacingPx()) return;
   await applyWrappingLayoutChange(() => {
     applyMonacoLineSpacingPx(next);
+    const e = editor.value;
+    if (e && imageViewZoneIds.value.length > 0) {
+      // 独占行插图已删物理行，段间距改动时同步 ViewZone 底部空隙
+      syncReaderImageViewZonesLineSpacing(e, imageViewZoneIds.value);
+    }
   });
 }
 
