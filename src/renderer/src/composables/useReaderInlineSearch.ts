@@ -1,5 +1,6 @@
 import type { ShallowRef } from "vue";
 import * as monaco from "monaco-editor";
+import { ensureSearchAnchorCursorInViewport } from "../reader/ensureSearchAnchorCursorInViewport";
 
 type MatchShape = { lineNumber: number; startColumn: number; endColumn: number };
 
@@ -205,6 +206,7 @@ export function useReaderInlineSearch(deps: {
       clearInlineSearchState();
       return false;
     }
+    ensureSearchAnchorCursorInViewport(e);
     inlineSearchQuery = q;
     inlineSearchCaseSensitive = options?.caseSensitive === true;
     inlineSearchWholeWord = options?.wholeWord === true;

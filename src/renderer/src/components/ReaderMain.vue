@@ -64,6 +64,7 @@ import {
   leadingWhitespaceColumnCount,
 } from "../chapter";
 import { pickActiveChapterIdx } from "../reader/chapterIndex";
+import { ensureSearchAnchorCursorInViewport } from "../reader/ensureSearchAnchorCursorInViewport";
 import {
   compressBlankLinesInText,
   leadIndentFullWidthInText,
@@ -2687,6 +2688,7 @@ function toggleFindWidget() {
     e.getAction("closeFindWidget")?.run();
   } else {
     props.beforeRevealFindWidget?.();
+    ensureSearchAnchorCursorInViewport(e);
     e.getAction("actions.find")?.run();
   }
 }
@@ -2760,6 +2762,7 @@ async function openFindWithSearchStringAsync(raw: string) {
   if (!e || !term) return;
 
   props.beforeRevealFindWidget?.();
+  ensureSearchAnchorCursorInViewport(e);
 
   const findOpt = e.getOption(monaco.editor.EditorOption.find);
   const ctrl = e.getContribution(FIND_CONTROLLER_ID) as {
@@ -3505,6 +3508,31 @@ onMounted(() => {
       onReaderContextMenuCapture,
       true,
     );
+    /** 查找栏下一处/上一处：先把视口外光标挪到视口首行，再让 Monaco 从该锚点搜 */
+    const onFindNavigateAnchorCapture = (ev: Event) => {
+      const t = ev.target;
+      if (!(t instanceof Element)) return;
+      if (
+        !t.closest(
+          ".find-widget .codicon-find-next-match, .find-widget .codicon-find-previous-match, .find-widget .button[aria-label*='下一个'], .find-widget .button[aria-label*='上一个'], .find-widget .button[title*='下一个'], .find-widget .button[title*='上一个'], .find-widget .button[aria-label*='Next'], .find-widget .button[aria-label*='Previous'], .find-widget .button[title*='Next'], .find-widget .button[title*='Previous']",
+        )
+      ) {
+        return;
+      }
+      ensureSearchAnchorCursorInViewport(e);
+    };
+    const onFindNavigateKeyCapture = (ev: KeyboardEvent) => {
+      if (!isFindWidgetRevealed()) return;
+      const isF3 = ev.key === "F3";
+      const isEnterInFind =
+        ev.key === "Enter" &&
+        ev.target instanceof Element &&
+        Boolean(ev.target.closest(".find-widget"));
+      if (!isF3 && !isEnterInFind) return;
+      ensureSearchAnchorCursorInViewport(e);
+    };
+    editorHost?.addEventListener("click", onFindNavigateAnchorCapture, true);
+    window.addEventListener("keydown", onFindNavigateKeyCapture, true);
     onBeforeUnmount(() => {
       d1.dispose();
       d2.dispose();
@@ -3527,6 +3555,8 @@ onMounted(() => {
         onReaderContextMenuCapture,
         true,
       );
+      editorHost?.removeEventListener("click", onFindNavigateAnchorCapture, true);
+      window.removeEventListener("keydown", onFindNavigateKeyCapture, true);
       readerAnn.cancelSelectionPointerInteraction();
     });
 
