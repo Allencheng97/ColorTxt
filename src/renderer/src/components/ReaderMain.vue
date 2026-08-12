@@ -63,6 +63,7 @@ import {
   chapterTitleForDisplay,
   leadingWhitespaceColumnCount,
 } from "../chapter";
+import { pickActiveChapterIdx } from "../reader/chapterIndex";
 import {
   compressBlankLinesInText,
   leadIndentFullWidthInText,
@@ -196,6 +197,8 @@ const editorEditContextMenuOpen = ref(false);
 const editorEditContextMenuX = ref(0);
 const editorEditContextMenuY = ref(0);
 const editorEditContextMenuHasSelection = ref(false);
+/** 打开右键菜单时的章节锚点行（点击处 / 选区 / 探针），供「选中本章」判断 */
+const editorEditContextMenuAnchorLine = ref(1);
 
 const partialEditOpen = ref(false);
 const partialEditDraft = ref("");
@@ -276,6 +279,11 @@ const editorEditContextMenuItems = computed(() => {
       disabled: !hasSelection,
     });
     items.push({ id: "sep-select-all", separator: true });
+    items.push({
+      id: "select-chapter",
+      label: "选中本章",
+      disabled: !canSelectCurrentChapter(editorEditContextMenuAnchorLine.value),
+    });
     items.push({ id: "selectAll", label: "全选" });
     items.push({ id: "sep-web-search", separator: true });
     items.push(webSearchItem);
@@ -293,10 +301,15 @@ const editorEditContextMenuItems = computed(() => {
     { id: "copy", label: "复制" },
     { id: "paste", label: "粘贴" },
   );
+  items.push({ id: "sep-select-all", separator: true });
+  items.push({
+    id: "select-chapter",
+    label: "选中本章",
+    disabled: !canSelectCurrentChapter(editorEditContextMenuAnchorLine.value),
+  });
+  items.push({ id: "selectAll", label: "全选" });
   items.push({ id: "sep-web-search", separator: true });
   items.push(webSearchItem);
-  items.push({ id: "sep-select-all", separator: true });
-  items.push({ id: "selectAll", label: "全选" });
   if (
     props.aiFeaturesEnabled &&
     props.canUseAiSmartFormat &&
@@ -2559,6 +2572,10 @@ function onEditorEditContextMenuSelect(id: string) {
     e.trigger("keyboard", "editor.action.selectAll", null);
     return;
   }
+  if (id === "select-chapter") {
+    selectCurrentChapter();
+    return;
+  }
   if (!props.readerEditMode) {
     if (id === "edit-selection") {
       tryOpenPartialEditFromSelection();
@@ -2997,6 +3014,66 @@ function getProbeLine(): number {
   return r.startLineNumber + Math.floor(span * 0.75);
 }
 
+/** 右键「选中本章」锚点行：优先菜单打开时记录的点击行，否则选区起点 / 探针行 */
+function getContextChapterAnchorLine(): number {
+  return editorEditContextMenuAnchorLine.value;
+}
+
+/**
+ * 指定展示行所属章节在展示层上的起止行（含标题行，至下一章标题前一行）。
+ * 无章节或未落入任何章时返回 null。
+ */
+function resolveCurrentChapterDisplayRange(
+  anchorLine?: number,
+): {
+  startLine: number;
+  endLine: number;
+} | null {
+  const m = model.value;
+  if (!m || chaptersSnapshot.length === 0) return null;
+  const line = anchorLine ?? getContextChapterAnchorLine();
+  const idx = pickActiveChapterIdx(
+    chaptersSnapshot as unknown as import("../chapter").Chapter[],
+    line,
+  );
+  if (idx < 0) return null;
+  const startLine = chaptersSnapshot[idx]!.lineNumber;
+  let endLine = m.getLineCount();
+  for (const ch of chaptersSnapshot) {
+    if (ch.lineNumber > startLine && ch.lineNumber - 1 < endLine) {
+      endLine = ch.lineNumber - 1;
+    }
+  }
+  if (endLine < startLine) return null;
+  return { startLine, endLine };
+}
+
+function canSelectCurrentChapter(anchorLine?: number): boolean {
+  return resolveCurrentChapterDisplayRange(anchorLine) != null;
+}
+
+function selectCurrentChapter() {
+  const e = editor.value;
+  const m = model.value;
+  const range = resolveCurrentChapterDisplayRange();
+  if (!e || !m || !range) return;
+  e.focus();
+  e.setSelection(
+    new monaco.Selection(
+      range.startLine,
+      1,
+      range.endLine,
+      m.getLineMaxColumn(range.endLine),
+    ),
+  );
+  // 程序化设选区不会走划词 pointerup，需主动弹出选区工具条
+  if (!props.readerEditMode) {
+    void nextTick(() => {
+      readerAnn.showToolbarFromSelectionIfAny();
+    });
+  }
+}
+
 /** 与 `emitProbeLine` 内 `endLine` 一致：当前视口末行（Monaco 显示行号） */
 function getViewportEndLine(): number {
   const e = editor.value;
@@ -3336,6 +3413,19 @@ onMounted(() => {
       if (props.readerEditMode && smartFormatRunning.value) return;
       const sel = e.getSelection();
       editorEditContextMenuHasSelection.value = Boolean(sel && !sel.isEmpty());
+      // 无选区时勿依赖光标（滚动阅读时常停在文首）；用右键落点行，再退回探针行
+      let anchorLine: number | null = null;
+      if (sel && !sel.isEmpty()) {
+        anchorLine = Math.min(
+          sel.selectionStartLineNumber,
+          sel.positionLineNumber,
+        );
+      } else {
+        const target = e.getTargetAtClientPoint(clientX, clientY);
+        anchorLine = target?.position?.lineNumber ?? null;
+      }
+      editorEditContextMenuAnchorLine.value =
+        anchorLine ?? getProbeLine();
       editorEditContextMenuX.value = clientX;
       editorEditContextMenuY.value = clientY;
       editorEditContextMenuOpen.value = true;
