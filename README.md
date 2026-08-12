@@ -101,6 +101,28 @@
 > [!WARNING]
 > 已知问题：启用「高级换行策略」会有很大的内存开销，且这个占用难以被释放，见 [#5311](https://github.com/microsoft/monaco-editor/issues/5311)。
 
+### 关于「词典」
+
+- 内置 Wiktionary、Wikipedia 网络词典
+- 支持导入本地词库 `StarDict` / `MDict` / `DICT` / `Slob` / `BGL`
+
+### 关于「翻译」
+
+支持以下翻译服务：
+
+| 服务商 | 说明 |
+| --- | --- |
+| **AI 翻译** | OpenAI 兼容接口，根据 AI 服务商配置相应 API 密钥 |
+| 微软翻译 | Edge 免费通道，无需配置 |
+| Google 翻译 | 免费网页接口，无需配置 |
+| Yandex 翻译 | 免费通道，无需配置 |
+| DeepL | 官方 API / DeepLX，需要 API Key |
+| 百度翻译 | 官方开放平台，需要 APP ID 与密钥 |
+| 有道翻译 | 官方开放平台，需要应用 ID 与密钥 |
+| 腾讯翻译 | 腾讯云机器翻译，需要 SecretId / SecretKey |
+| 火山翻译 | 火山引擎机器翻译，需要 Access Key |
+| 阿里翻译 | 阿里云机器翻译，需要 AccessKey |
+
 ### 关于「语音朗读」
 
 支持的 TTS：
