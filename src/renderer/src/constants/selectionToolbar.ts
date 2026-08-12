@@ -6,9 +6,9 @@ export type SelectionToolbarButtons = {
   copy: boolean;
   find: boolean;
   askAi: boolean;
-  /** 词典查词（默认不显示） */
+  /** 词典查词（默认显示） */
   dictionary: boolean;
-  /** 选区翻译（默认不显示） */
+  /** 选区翻译（默认显示） */
   translate: boolean;
   /** 「查找」按钮：打开 Monaco 查找栏，或填入侧栏全文搜索 */
   findTarget: SelectionToolbarFindTarget;
@@ -27,10 +27,10 @@ export const defaultSelectionToolbarFindTarget: SelectionToolbarFindTarget =
 
 export const defaultSelectionToolbarButtons: SelectionToolbarButtons = {
   copy: true,
-  find: false,
+  find: true,
   askAi: true,
-  dictionary: false,
-  translate: false,
+  dictionary: true,
+  translate: true,
   findTarget: defaultSelectionToolbarFindTarget,
 };
 
