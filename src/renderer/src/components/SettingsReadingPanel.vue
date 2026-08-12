@@ -106,6 +106,7 @@ defineEmits<{
   "update:draftTimedScrollIntervalMs": [v: number];
   "update:draftSelectionToolbarButtons": [v: SelectionToolbarButtons];
   openDictionaryManage: [];
+  openWebSearchManage: [];
   openTranslateManage: [];
 }>();
 
@@ -580,6 +581,28 @@ const selectListsEmpty: CustomSelectItem[] = [];
         </div>
       </div>
     </div>
+
+    <div class="settingsBody settingsBody--webSearch">
+      <h3 class="settingsSectionTitle settingsSectionTitle--webSearch">
+        右键菜单
+      </h3>
+      <div class="settingsRow">
+        <div class="settingsRowMain">
+          <span class="settingsLabel">
+            「<span class="settingsIcon" v-html="icons.browser" />
+            网络搜索」
+          </span>
+          <button
+            class="btn"
+            type="button"
+            size="large"
+            @click="$emit('openWebSearchManage')"
+          >
+            搜索管理
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -693,7 +716,8 @@ const selectListsEmpty: CustomSelectItem[] = [];
 .settingsBody--fullscreen,
 .settingsBody--pomodoro,
 .settingsBody--timedScroll,
-.settingsBody--toolbar {
+.settingsBody--toolbar,
+.settingsBody--webSearch {
   gap: 10px;
 }
 

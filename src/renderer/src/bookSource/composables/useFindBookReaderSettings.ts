@@ -385,6 +385,7 @@ function createFindBookReaderSettingsStore() {
     chapterNavToolbarEnabled: fb.chapterNavToolbarEnabled,
     selectionToolbarButtons: fb.selectionToolbarButtons,
     dictionarySettings: fb.dictionarySettings,
+    webSearchSettings: fb.webSearchSettings,
     translationSettings: fb.translationSettings,
     readerEditShowLineNumbers: fb.readerEditShowLineNumbers,
     readerEditMinimap: fb.readerEditMinimap,

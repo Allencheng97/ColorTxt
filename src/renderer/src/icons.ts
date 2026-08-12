@@ -104,6 +104,7 @@ import replaceIcon from "./assets/replace.svg?raw";
 import noteIcon from "./assets/note.svg?raw";
 import dictionaryIcon from "./assets/dictionary.svg?raw";
 import translateIcon from "./assets/translate.svg?raw";
+import browserIcon from "./assets/browser.svg?raw";
 import quoteIcon from "./assets/quote.svg?raw";
 import speakIcon from "./assets/speak.svg?raw";
 import speak0Icon from "./assets/speak_0.svg?raw";
@@ -260,6 +261,7 @@ export const icons = {
   note: noteIcon,
   dictionary: dictionaryIcon,
   translate: translateIcon,
+  browser: browserIcon,
   quote: quoteIcon,
   /** 定时滚动 / 自动阅读 */
   reading: readingIcon,

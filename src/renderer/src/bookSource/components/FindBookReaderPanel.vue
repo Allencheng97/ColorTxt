@@ -22,8 +22,11 @@ import FindBookReaderFooter from "./FindBookReaderFooter.vue";
 import FindBookReaderHeader from "./FindBookReaderHeader.vue";
 import FindBookReaderChapterSidebar from "./FindBookReaderChapterSidebar.vue";
 import DictionaryManageModal from "../../components/DictionaryManageModal.vue";
+import WebSearchManageModal from "../../components/WebSearchManageModal.vue";
 import TranslateManageModal from "../../components/TranslateManageModal.vue";
 import { mergeDictionarySettings } from "../../constants/dictionarySettings";
+import { mergeWebSearchSettings } from "../../constants/webSearchSettings";
+import type { WebSearchSettings } from "@shared/webSearchTypes";
 import {
   collectTranslationSecrets,
   mergeTranslationSettings,
@@ -231,6 +234,7 @@ const {
   chapterNavToolbarEnabled,
   selectionToolbarButtons,
   dictionarySettings,
+  webSearchSettings,
   translationSettings,
   readerEditShowLineNumbers,
   readerEditMinimap,
@@ -265,6 +269,7 @@ const {
 } = useBookSourceDownload();
 
 const showDictionaryManagePanel = ref(false);
+const showWebSearchManagePanel = ref(false);
 const showTranslateManagePanel = ref(false);
 
 function openTranslateManagePanel() {
@@ -273,6 +278,11 @@ function openTranslateManagePanel() {
 
 function onDictionarySettingsUpdate(v: DictionarySettings) {
   dictionarySettings.value = mergeDictionarySettings(v);
+  persistReaderUiPrefs();
+}
+
+function onWebSearchSettingsUpdate(v: WebSearchSettings) {
+  webSearchSettings.value = mergeWebSearchSettings(v);
   persistReaderUiPrefs();
 }
 
@@ -2076,8 +2086,10 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
             :sticky-chapter-title-enabled="stickyChapterTitleEnabled"
             :selection-toolbar-buttons="selectionToolbarButtons"
             :dictionary-settings="dictionarySettings"
+            :web-search-settings="webSearchSettings"
             :translation-settings="translationSettings"
             @open-dictionary-manage="showDictionaryManagePanel = true"
+            @open-web-search-manage="showWebSearchManagePanel = true"
             @open-translate-manage="openTranslateManagePanel"
             @update:translation-settings="onTranslationSettingsUpdate"
             :reader-surface-light="effectiveReaderSurfaceLight"
@@ -2203,6 +2215,11 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
       v-model="showDictionaryManagePanel"
       :settings="dictionarySettings"
       @update:settings="onDictionarySettingsUpdate"
+    />
+    <WebSearchManageModal
+      v-model="showWebSearchManagePanel"
+      :settings="webSearchSettings"
+      @update:settings="onWebSearchSettingsUpdate"
     />
     <TranslateManageModal
       v-model="showTranslateManagePanel"

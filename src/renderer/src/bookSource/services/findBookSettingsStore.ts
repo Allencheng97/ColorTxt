@@ -49,12 +49,14 @@ import {
   type SelectionToolbarButtons,
 } from "../../constants/selectionToolbar";
 import { mergeDictionarySettings } from "../../constants/dictionarySettings";
+import { mergeWebSearchSettings } from "../../constants/webSearchSettings";
 import {
   mergeTranslationSettings,
   stripTranslationSecretsForDisk,
 } from "../../constants/translationSettings";
 import type { TranslationSettings } from "@shared/translationTypes";
 import type { DictionarySettings } from "@shared/dictionaryTypes";
+import type { WebSearchSettings } from "@shared/webSearchTypes";
 import { READER_EDITOR_DEFAULT_FONT_FAMILY } from "../../monaco/readerEditorOptions";
 import {
   resolveDefaultBookSourceDownloadDirSync,
@@ -209,6 +211,7 @@ export type SharedReaderSettingsSnapshot = {
   pomodoroSettings: PomodoroSettings;
   selectionToolbarButtons: SelectionToolbarButtons;
   dictionarySettings: DictionarySettings;
+  webSearchSettings: WebSearchSettings;
   translationSettings: TranslationSettings;
 };
 
@@ -323,6 +326,7 @@ export function sharedReaderSettingsFromMainData(
       data.selectionToolbarButtons,
     ),
     dictionarySettings: mergeDictionarySettings(data.dictionarySettings),
+    webSearchSettings: mergeWebSearchSettings(data.webSearchSettings),
     translationSettings: stripTranslationSecretsForDisk(
       mergeTranslationSettings(data.translationSettings),
     ),
@@ -364,6 +368,7 @@ export function snapshotSharedReaderSettingsForMain(
     pomodoro: state.pomodoroSettings,
     selectionToolbarButtons: state.selectionToolbarButtons,
     dictionarySettings: state.dictionarySettings,
+    webSearchSettings: state.webSearchSettings,
     translationSettings: stripTranslationSecretsForDisk(
       state.translationSettings,
     ),

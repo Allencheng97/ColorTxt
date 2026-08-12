@@ -3,15 +3,18 @@ import { computed, nextTick, ref, useTemplateRef, watch } from "vue";
 import AppModal from "../../components/AppModal.vue";
 import SettingsReadingPanel from "../../components/SettingsReadingPanel.vue";
 import DictionaryManageModal from "../../components/DictionaryManageModal.vue";
+import WebSearchManageModal from "../../components/WebSearchManageModal.vue";
 import TranslateManageModal from "../../components/TranslateManageModal.vue";
 import SettingsEditPanel from "../../components/SettingsEditPanel.vue";
 import { mergeDictionarySettings } from "../../constants/dictionarySettings";
+import { mergeWebSearchSettings } from "../../constants/webSearchSettings";
 import {
   collectTranslationSecrets,
   mergeTranslationSettings,
   serializeTranslationSecrets,
 } from "../../constants/translationSettings";
 import type { DictionarySettings } from "@shared/dictionaryTypes";
+import type { WebSearchSettings } from "@shared/webSearchTypes";
 import type { TranslationSettings } from "@shared/translationTypes";
 import SettingsVoiceReadPanel from "../../components/SettingsVoiceReadPanel.vue";
 import FindBookSettingsTabBar, {
@@ -185,6 +188,7 @@ const draftSelectionToolbarButtons = ref<SelectionToolbarButtons>(
   mergeSelectionToolbarButtons(undefined),
 );
 const showDictionaryManagePanel = ref(false);
+const showWebSearchManagePanel = ref(false);
 const showTranslateManagePanel = ref(false);
 
 function openTranslateManageFromSettings() {
@@ -689,6 +693,7 @@ watch(draftFontSize, (size) => {
               :show-find-target-option="false"
               :monaco-custom-highlight="fb.monacoCustomHighlight.value"
               @open-dictionary-manage="showDictionaryManagePanel = true"
+              @open-web-search-manage="showWebSearchManagePanel = true"
               @open-translate-manage="openTranslateManageFromSettings"
             />
 
@@ -770,6 +775,16 @@ watch(draftFontSize, (size) => {
     @update:settings="
       (v: DictionarySettings) => {
         fb.dictionarySettings.value = mergeDictionarySettings(v);
+        fb.persistReaderUiPrefs();
+      }
+    "
+  />
+  <WebSearchManageModal
+    v-model="showWebSearchManagePanel"
+    :settings="fb.webSearchSettings.value"
+    @update:settings="
+      (v: WebSearchSettings) => {
+        fb.webSearchSettings.value = mergeWebSearchSettings(v);
         fb.persistReaderUiPrefs();
       }
     "

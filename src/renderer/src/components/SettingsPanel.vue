@@ -235,6 +235,7 @@ const emit = defineEmits<{
   apply: [payload: SettingsApplyPayload];
   openReadingData: [];
   openDictionaryManage: [];
+  openWebSearchManage: [];
   openTranslateManage: [];
 }>();
 
@@ -1004,6 +1005,7 @@ async function onClearCache() {
               "
               :monaco-custom-highlight="monacoCustomHighlight"
               @open-dictionary-manage="emit('openDictionaryManage')"
+              @open-web-search-manage="emit('openWebSearchManage')"
               @open-translate-manage="emit('openTranslateManage')"
             />
 

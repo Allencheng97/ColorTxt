@@ -152,6 +152,8 @@ import {
 } from "../constants/selectionToolbar";
 import { mergeDictionarySettings } from "../constants/dictionarySettings";
 import type { DictionarySettings } from "@shared/dictionaryTypes";
+import { mergeWebSearchSettings } from "../constants/webSearchSettings";
+import type { WebSearchSettings } from "@shared/webSearchTypes";
 import {
   applyTranslationSecrets,
   collectTranslationSecrets,
@@ -270,6 +272,7 @@ export function useAppPersistence(deps: {
   pomodoroSettings: Ref<import("../constants/pomodoro").PomodoroSettings>;
   selectionToolbarButtons: Ref<SelectionToolbarButtons>;
   dictionarySettings: Ref<DictionarySettings>;
+  webSearchSettings: Ref<WebSearchSettings>;
   translationSettings: Ref<TranslationSettings>;
   fileMetaRecords: Ref<FileMetaRecord[]>;
   shortcutBindings: Ref<ShortcutBindingMap>;
@@ -414,6 +417,7 @@ export function useAppPersistence(deps: {
       pomodoro: deps.pomodoroSettings.value,
       selectionToolbarButtons: deps.selectionToolbarButtons.value,
       dictionarySettings: deps.dictionarySettings.value,
+      webSearchSettings: deps.webSearchSettings.value,
       translationSettings: stripTranslationSecretsForDisk(
         deps.translationSettings.value,
       ),
@@ -1347,6 +1351,9 @@ export function useAppPersistence(deps: {
       );
       deps.dictionarySettings.value = mergeDictionarySettings(
         data.dictionarySettings,
+      );
+      deps.webSearchSettings.value = mergeWebSearchSettings(
+        data.webSearchSettings,
       );
       const mergedTranslation = mergeTranslationSettings(
         data.translationSettings,

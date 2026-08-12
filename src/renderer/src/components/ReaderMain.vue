@@ -103,6 +103,11 @@ import ReaderDictionaryPopup from "./ReaderDictionaryPopup.vue";
 import ReaderTranslatePopup from "./ReaderTranslatePopup.vue";
 import type { DictionarySettings } from "@shared/dictionaryTypes";
 import { mergeDictionarySettings } from "../constants/dictionarySettings";
+import type { WebSearchSettings } from "@shared/webSearchTypes";
+import {
+  buildWebSearchUrl,
+  mergeWebSearchSettings,
+} from "../constants/webSearchSettings";
 import type { TranslationSettings } from "@shared/translationTypes";
 import { mergeTranslationSettings } from "../constants/translationSettings";
 import ReaderImageLightbox from "./ReaderImageLightbox.vue";
@@ -230,27 +235,56 @@ const diffReviewContextMenuItems = computed(() => {
 });
 
 const editorEditContextMenuItems = computed(() => {
+  const engines = props.webSearchSettings?.engines ?? [];
+  const hasSelection = editorEditContextMenuHasSelection.value;
+  const webSearchItem = {
+    id: "web-search",
+    label: "网络搜索",
+    iconHtml: icons.browser,
+    disabled: !hasSelection,
+    children: [
+      ...engines.map((e) => ({
+        id: `web-search:${e.id}`,
+        label: e.name,
+      })),
+      ...(engines.length
+        ? [{ id: "sep-web-search-manage", separator: true as const }]
+        : []),
+      {
+        id: "web-search-manage",
+        label: "搜索管理",
+      },
+    ],
+  };
   const items: Array<{
     id: string;
     label?: string;
     separator?: boolean;
     disabled?: boolean;
     iconHtml?: string;
+    children?: Array<{
+      id: string;
+      label?: string;
+      disabled?: boolean;
+      separator?: boolean;
+    }>;
   }> = [];
   if (!props.readerEditMode) {
     items.push({
       id: "copy",
       label: "复制",
-      disabled: !editorEditContextMenuHasSelection.value,
+      disabled: !hasSelection,
     });
     items.push({ id: "sep-select-all", separator: true });
     items.push({ id: "selectAll", label: "全选" });
+    items.push({ id: "sep-web-search", separator: true });
+    items.push(webSearchItem);
     items.push({ id: "sep-edit", separator: true });
     items.push({
       id: "edit-selection",
       label: "编辑选中文本",
       iconHtml: icons.edit,
-      disabled: !editorEditContextMenuHasSelection.value,
+      disabled: !hasSelection,
     });
     return items;
   }
@@ -259,6 +293,8 @@ const editorEditContextMenuItems = computed(() => {
     { id: "copy", label: "复制" },
     { id: "paste", label: "粘贴" },
   );
+  items.push({ id: "sep-web-search", separator: true });
+  items.push(webSearchItem);
   items.push({ id: "sep-select-all", separator: true });
   items.push({ id: "selectAll", label: "全选" });
   if (
@@ -271,7 +307,7 @@ const editorEditContextMenuItems = computed(() => {
       id: "ai-format-selection",
       label: "AI 智能排版：选中文本",
       iconHtml: icons.aiCompose,
-      disabled: !editorEditContextMenuHasSelection.value,
+      disabled: !hasSelection,
     });
   }
   return items;
@@ -454,6 +490,8 @@ const props = withDefaults(
     selectionToolbarButtons?: SelectionToolbarButtons;
     /** 词典设置（查词浮层） */
     dictionarySettings?: DictionarySettings;
+    /** 网络搜索引擎（右键子菜单） */
+    webSearchSettings?: WebSearchSettings;
     /** 翻译设置（选区翻译浮层） */
     translationSettings?: TranslationSettings;
     /** 至少一项智能排版任务已开启（设置 → 编辑） */
@@ -484,6 +522,7 @@ const props = withDefaults(
     stickyChapterTitleEnabled: defaultStickyChapterTitleEnabled,
     selectionToolbarButtons: () => ({ ...defaultSelectionToolbarButtons }),
     dictionarySettings: () => mergeDictionarySettings(undefined),
+    webSearchSettings: () => mergeWebSearchSettings(undefined),
     translationSettings: () => mergeTranslationSettings(undefined),
     readerEditShowLineNumbers: defaultReaderEditShowLineNumbers,
     readerEditMinimap: defaultReaderEditMinimap,
@@ -554,6 +593,7 @@ const emit = defineEmits<{
   smartFormatReviewDiscard: [];
   annotationQuotesChanged: [];
   openDictionaryManage: [];
+  openWebSearchManage: [];
   openTranslateManage: [];
   "update:translationSettings": [v: TranslationSettings];
 }>();
@@ -2488,6 +2528,25 @@ function onDiffReviewContextMenuSelect(id: string) {
 function onEditorEditContextMenuSelect(id: string) {
   closeEditorEditContextMenu();
   if (smartFormatReviewActive.value) return;
+  if (id === "web-search-manage") {
+    emit("openWebSearchManage");
+    return;
+  }
+  if (id.startsWith("web-search:")) {
+    const engineId = id.slice("web-search:".length);
+    const engine = props.webSearchSettings?.engines?.find(
+      (e) => e.id === engineId,
+    );
+    const query = getSelectedText();
+    if (!engine || !query) return;
+    const url = buildWebSearchUrl(engine.urlTemplate, query);
+    if (!url) {
+      appToast("搜索链接无效，请检查 URL 模板是否包含 %s。", { kind: "danger" });
+      return;
+    }
+    void window.colorTxt.openExternal(url);
+    return;
+  }
   const e = editor.value;
   if (!e) return;
   if (id === "copy") {
@@ -3272,27 +3331,15 @@ onMounted(() => {
       shouldInterceptReadOnlyKeys: () =>
         !props.readerEditMode && !props.voiceReadScrollLocked,
     });
-    const d4 = e.onContextMenu((mouseEv) => {
-      const m = model.value;
-      if (!m) return;
-      if (smartFormatReviewActive.value) {
-        mouseEv.event.preventDefault();
-        mouseEv.event.stopPropagation();
-        return;
-      }
-      if (props.readerEditMode && smartFormatRunning.value) {
-        mouseEv.event.preventDefault();
-        mouseEv.event.stopPropagation();
-        return;
-      }
-      mouseEv.event.preventDefault();
-      mouseEv.event.stopPropagation();
+    function openEditorEditContextMenu(clientX: number, clientY: number) {
+      if (smartFormatReviewActive.value) return;
+      if (props.readerEditMode && smartFormatRunning.value) return;
       const sel = e.getSelection();
       editorEditContextMenuHasSelection.value = Boolean(sel && !sel.isEmpty());
-      editorEditContextMenuX.value = mouseEv.event.browserEvent.clientX;
-      editorEditContextMenuY.value = mouseEv.event.browserEvent.clientY;
+      editorEditContextMenuX.value = clientX;
+      editorEditContextMenuY.value = clientY;
       editorEditContextMenuOpen.value = true;
-    });
+    }
     saveCommandDisposable = e.addAction({
       id: "colortxt.readerEdit.save",
       label: "保存",
@@ -3304,9 +3351,15 @@ onMounted(() => {
     /**
      * Monaco 内部命中测试在部分 DOM 路径下会先得到 UNKNOWN 并短路；`.view-lines` 在 `.view-zones` 之后插入会盖住 zone。
      * CSS 抬高 `.view-zones`；在 `editorHost` 上 **捕获** pointerdown：先处理电子书内链（须早于 Monaco 默认 mousedown），再处理插图灯箱。
+     * 右键在捕获阶段截断，不交给 Monaco（否则会把光标移到点击处并清空选区）；菜单改由原生 contextmenu 打开。
      */
     const editorHost = editorEl.value;
     const onReaderPointerDownCapture = (ev: PointerEvent) => {
+      if (ev.button === 2) {
+        // 只截断冒泡到 Monaco，勿 preventDefault（否则可能不再触发 contextmenu）
+        ev.stopImmediatePropagation();
+        return;
+      }
       if (ev.button !== 0) return;
       if (
         ebookInternalLinkHitCount.value > 0 &&
@@ -3342,9 +3395,24 @@ onMounted(() => {
       imageLightboxSrc.value = url;
       readerAnn.cancelSelectionPointerInteraction();
     };
+    const onReaderMouseDownCapture = (ev: MouseEvent) => {
+      if (ev.button !== 2) return;
+      ev.stopImmediatePropagation();
+    };
+    const onReaderContextMenuCapture = (ev: MouseEvent) => {
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+      openEditorEditContextMenu(ev.clientX, ev.clientY);
+    };
     editorHost?.addEventListener(
       "pointerdown",
       onReaderPointerDownCapture,
+      true,
+    );
+    editorHost?.addEventListener("mousedown", onReaderMouseDownCapture, true);
+    editorHost?.addEventListener(
+      "contextmenu",
+      onReaderContextMenuCapture,
       true,
     );
     onBeforeUnmount(() => {
@@ -3352,12 +3420,21 @@ onMounted(() => {
       d2.dispose();
       dSel.dispose();
       d3.dispose();
-      d4.dispose();
       saveCommandDisposable?.dispose();
       saveCommandDisposable = null;
       editorHost?.removeEventListener(
         "pointerdown",
         onReaderPointerDownCapture,
+        true,
+      );
+      editorHost?.removeEventListener(
+        "mousedown",
+        onReaderMouseDownCapture,
+        true,
+      );
+      editorHost?.removeEventListener(
+        "contextmenu",
+        onReaderContextMenuCapture,
         true,
       );
       readerAnn.cancelSelectionPointerInteraction();
