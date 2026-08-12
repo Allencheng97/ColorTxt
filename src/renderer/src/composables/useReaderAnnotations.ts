@@ -45,7 +45,10 @@ import { appToast } from "../services/appToast";
 import {
   findHighlightColorIndexInMap,
 } from "../utils/highlightWords";
-import type { SelectionToolbarButtons } from "../constants/selectionToolbar";
+import {
+  hasVisibleSelectionToolbarActions,
+  type SelectionToolbarButtons,
+} from "../constants/selectionToolbar";
 
 export function useReaderAnnotations(opts: {
   editor: { value: monaco.editor.IStandaloneCodeEditor | null };
@@ -54,6 +57,11 @@ export function useReaderAnnotations(opts: {
   lineationLastColors: () => LineationLastColorPrefs;
   readerFilePath: () => string | null | undefined;
   readerEditMode: () => boolean;
+  /**
+   * 是否提供高亮词 / 划线 / 笔记入口。
+   * 找书阅读器为 false：无文件路径也可出选区工具条，但不含标注类按钮。
+   */
+  showSelectionAnnotationTools?: () => boolean;
   monacoCustomHighlight: () => boolean;
   aiFeaturesEnabled: () => boolean;
   selectionToolbarButtons: () => SelectionToolbarButtons;
@@ -87,6 +95,29 @@ export function useReaderAnnotations(opts: {
 }) {
   const toolbarVisible = ref(false);
   const colorPickerMode = ref<null | "highlight" | "lineation">(null);
+
+  function showSelectionAnnotationTools(): boolean {
+    return opts.showSelectionAnnotationTools?.() !== false;
+  }
+
+  /** 只读且（主窗有打开文件，或找书等无标注模式）时可弹出选区工具条 */
+  function canShowSelectionToolbar(): boolean {
+    if (opts.readerEditMode()) return false;
+    if (!showSelectionAnnotationTools()) return true;
+    return Boolean(opts.readerFilePath());
+  }
+
+  function canUseSelectionAnnotationTools(): boolean {
+    return showSelectionAnnotationTools() && Boolean(opts.readerFilePath());
+  }
+
+  function selectionToolbarHasVisibleActions(): boolean {
+    return hasVisibleSelectionToolbarActions({
+      buttons: opts.selectionToolbarButtons(),
+      showAnnotationTools: showSelectionAnnotationTools(),
+      aiFeaturesEnabled: opts.aiFeaturesEnabled(),
+    });
+  }
   const lineationPickerType = ref<ReaderLineationType | null>(null);
   const floatCenterX = ref(0);
   const floatRootTop = ref(0);
@@ -158,7 +189,7 @@ export function useReaderAnnotations(opts: {
     if (!selectionPointerActive) return;
     selectionPointerActive = false;
     clearSelectionPointerUpListener();
-    if (opts.readerEditMode() || !opts.readerFilePath()) return;
+    if (!canShowSelectionToolbar()) return;
     if (Date.now() < suppressToolbarUntilMs) return;
     void nextTick(() => {
       const ed = opts.editor.value;
@@ -167,9 +198,13 @@ export function useReaderAnnotations(opts: {
         showToolbarFromSelectionIfAny();
         return;
       }
-      if (!tryShowToolbarFromAnnotationPoint(clientX, clientY)) {
-        closeToolbarUi();
+      if (
+        canUseSelectionAnnotationTools() &&
+        tryShowToolbarFromAnnotationPoint(clientX, clientY)
+      ) {
+        return;
       }
+      closeToolbarUi();
     });
   }
 
@@ -936,7 +971,11 @@ export function useReaderAnnotations(opts: {
   }
 
   function showToolbarFromSelectionIfAny() {
-    if (opts.readerEditMode() || !opts.readerFilePath()) {
+    if (!canShowSelectionToolbar()) {
+      closeToolbarUi();
+      return;
+    }
+    if (!selectionToolbarHasVisibleActions()) {
       closeToolbarUi();
       return;
     }
@@ -961,11 +1000,16 @@ export function useReaderAnnotations(opts: {
     applyFloatPlacement(anchor);
     toolbarScrollHidden = false;
     toolbarVisible.value = true;
-    syncPickerFromSelection(true);
+    if (canUseSelectionAnnotationTools()) {
+      syncPickerFromSelection(true);
+    } else {
+      colorPickerMode.value = null;
+      lineationPickerType.value = null;
+    }
   }
 
   function onSelectionChangedDuringInteraction() {
-    if (opts.readerEditMode() || !opts.readerFilePath()) return;
+    if (!canShowSelectionToolbar()) return;
     if (selectionPointerActive) return;
     const sel = opts.editor.value?.getSelection();
     if (!sel || sel.isEmpty()) {
@@ -974,7 +1018,9 @@ export function useReaderAnnotations(opts: {
     }
     if (!toolbarVisible.value) return;
     if (bindDraftFromSelection()) {
-      syncPickerFromSelection(true);
+      if (canUseSelectionAnnotationTools()) {
+        syncPickerFromSelection(true);
+      }
     }
   }
 
@@ -1017,7 +1063,7 @@ export function useReaderAnnotations(opts: {
 
   /** 点击标注区域：弹出工具条并绑定该标注，但不改变编辑器选区 */
   function showToolbarForAnnotationClick(ann: ReaderAnnotationRecord) {
-    if (opts.readerEditMode() || !opts.readerFilePath()) return false;
+    if (!canUseSelectionAnnotationTools() || opts.readerEditMode()) return false;
     const ed = opts.editor.value;
     const m = opts.model.value;
     if (!ed || !m || ann.stale) return false;
@@ -1307,6 +1353,16 @@ export function useReaderAnnotations(opts: {
       | "translate"
       | "askAi",
   ) {
+    if (
+      !canUseSelectionAnnotationTools() &&
+      (action === "note" ||
+        action === "highlight" ||
+        action === "marker" ||
+        action === "wavy" ||
+        action === "straight")
+    ) {
+      return;
+    }
     if (action === "note") {
       openNotePanelFromToolbar();
       return;

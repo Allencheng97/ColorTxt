@@ -9,7 +9,7 @@ import {
 import AppCustomSelect, { type CustomSelectItem } from "./AppCustomSelect.vue";
 import AiTokenUsageBanner from "./AiTokenUsageBanner.vue";
 import LoadingDotsBounce from "./LoadingDotsBounce.vue";
-import { registerModal } from "../utils/modalStack";
+import { isPointerOnAppModalAbove, registerModal } from "../utils/modalStack";
 import type { AITokenUsageTotals } from "@shared/aiTokenUsage";
 import {
   TRANSLATION_PROVIDER_IDS,
@@ -208,12 +208,10 @@ function bindOutsideClose() {
     const t = ev.target as Node | null;
     if (!t) return;
     if (popupPanelRef.value?.contains(t)) return;
-    if (
-      t instanceof Element &&
-      (t.closest(".appModalBackdrop") || t.closest(".customSelectPanel"))
-    ) {
-      return;
-    }
+    // 下拉 Teleport 到 body，点选项不关翻译浮层
+    if (t instanceof Element && t.closest(".customSelectPanel")) return;
+    // 仅忽略叠在翻译浮层之上的 AppModal（如翻译设置）；找书阅读器等下层不阻拦关闭
+    if (isPointerOnAppModalAbove(t, panelZIndex.value)) return;
     emit("close");
   };
   window.addEventListener("pointerdown", onPointerDown, true);

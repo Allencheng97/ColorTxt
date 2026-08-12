@@ -691,6 +691,8 @@ watch(draftFontSize, (size) => {
                 draftSelectionToolbarButtons
               "
               :show-find-target-option="false"
+              :show-annotation-tools="false"
+              :show-ask-ai="false"
               :monaco-custom-highlight="fb.monacoCustomHighlight.value"
               @open-dictionary-manage="showDictionaryManagePanel = true"
               @open-web-search-manage="showWebSearchManagePanel = true"

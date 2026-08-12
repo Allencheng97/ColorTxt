@@ -3,7 +3,7 @@ import { computed, nextTick, onBeforeUnmount, ref, toRaw, watch } from "vue";
 import { icons } from "../icons";
 import { dictionaryDisplayName } from "../constants/dictionarySettings";
 import LoadingDotsBounce from "./LoadingDotsBounce.vue";
-import { registerModal } from "../utils/modalStack";
+import { isPointerOnAppModalAbove, registerModal } from "../utils/modalStack";
 import type { DictionarySettings } from "@shared/dictionaryTypes";
 import type { DictionaryLookupResultItem } from "@shared/dictionaryTypes";
 
@@ -208,13 +208,8 @@ function onDocPointerDown(ev: PointerEvent) {
   const t = ev.target;
   if (!(t instanceof Node)) return;
   if (popupPanelRef.value?.contains(t)) return;
-  // 词典管理等 AppModal 在浮层之上，点它们不关查词面板
-  if (
-    t instanceof Element &&
-    t.closest(".appModalBackdrop, .appModalPanel")
-  ) {
-    return;
-  }
+  // 仅忽略叠在查词浮层之上的 AppModal（如词典管理）；找书阅读器等下层不阻拦关闭
+  if (isPointerOnAppModalAbove(t, panelZIndex.value)) return;
   emit("close");
 }
 

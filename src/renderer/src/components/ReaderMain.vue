@@ -280,11 +280,13 @@ const editorEditContextMenuItems = computed(() => {
       disabled: !hasSelection,
     });
     items.push({ id: "sep-select-all", separator: true });
-    items.push({
-      id: "select-chapter",
-      label: "选中本章",
-      disabled: !canSelectCurrentChapter(editorEditContextMenuAnchorLine.value),
-    });
+    if (props.showSelectChapterMenuItem !== false) {
+      items.push({
+        id: "select-chapter",
+        label: "选中本章",
+        disabled: !canSelectCurrentChapter(editorEditContextMenuAnchorLine.value),
+      });
+    }
     items.push({ id: "selectAll", label: "全选" });
     items.push({ id: "sep-web-search", separator: true });
     items.push(webSearchItem);
@@ -303,11 +305,13 @@ const editorEditContextMenuItems = computed(() => {
     { id: "paste", label: "粘贴" },
   );
   items.push({ id: "sep-select-all", separator: true });
-  items.push({
-    id: "select-chapter",
-    label: "选中本章",
-    disabled: !canSelectCurrentChapter(editorEditContextMenuAnchorLine.value),
-  });
+  if (props.showSelectChapterMenuItem !== false) {
+    items.push({
+      id: "select-chapter",
+      label: "选中本章",
+      disabled: !canSelectCurrentChapter(editorEditContextMenuAnchorLine.value),
+    });
+  }
   items.push({ id: "selectAll", label: "全选" });
   items.push({ id: "sep-web-search", separator: true });
   items.push(webSearchItem);
@@ -467,8 +471,15 @@ const props = withDefaults(
     /** 本书阅读器划线 / 笔记 */
     readerAnnotations?: ReaderAnnotationRecord[];
     lineationLastColors?: LineationLastColorPrefs;
-    /** 已打开文件路径；为空时不显示选区高亮入口 */
+    /** 已打开文件路径；主窗无路径时不显示选区工具条（找书可关标注工具后仍显示） */
     readerFilePath?: string | null;
+    /**
+     * 选区工具条是否含高亮词 / 划线 / 笔记。
+     * 找书阅读器传 false。
+     */
+    showSelectionAnnotationTools?: boolean;
+    /** 右键是否含「选中本章」；找书按章渲染，传 false */
+    showSelectChapterMenuItem?: boolean;
     /** 电子书 MD 锚点/内链：物理行号 → Monaco 显示行（与流式滤空一致） */
     ebookAnchorPhysicalToDisplay?: (physicalLine: number) => number;
     /**
@@ -551,6 +562,8 @@ const props = withDefaults(
     readerAnnotations: () => [],
     lineationLastColors: () => ({ ...DEFAULT_LINEATION_LAST_COLORS }),
     readerFilePath: null,
+    showSelectionAnnotationTools: true,
+    showSelectChapterMenuItem: true,
     ebookAnchorPhysicalToDisplay: undefined,
     ebookDisplayLineToPhysical: undefined,
     beforeRevealFindWidget: undefined,
@@ -720,6 +733,7 @@ const readerAnn = useReaderAnnotations({
   lineationLastColors: () => props.lineationLastColors ?? DEFAULT_LINEATION_LAST_COLORS,
   readerFilePath: () => props.readerFilePath,
   readerEditMode: () => props.readerEditMode === true,
+  showSelectionAnnotationTools: () => props.showSelectionAnnotationTools !== false,
   monacoCustomHighlight: () => props.monacoCustomHighlight === true,
   aiFeaturesEnabled: () => props.aiFeaturesEnabled === true,
   selectionToolbarButtons: () =>
@@ -3818,6 +3832,7 @@ watch(smartFormatReviewActive, (active) => {
         :active-lineation="activeLineation"
         :lineation-picker-selected-index="lineationPickerSelectedIndex"
         :monaco-custom-highlight="monacoCustomHighlight"
+        :show-selection-annotation-tools="showSelectionAnnotationTools"
         :ai-features-enabled="aiFeaturesEnabled"
         :selection-toolbar-buttons="selectionToolbarButtons"
         :has-lineation="toolbarHasLineation"
