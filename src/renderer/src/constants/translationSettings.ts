@@ -331,3 +331,28 @@ export function serializeTranslationSecrets(
   }
   return Object.keys(clean).length ? JSON.stringify(clean) : "";
 }
+
+/**
+ * 计算写入保险库的 payload。
+ * 返回 `null` 表示应跳过写入：当前收集结果为空，且保险库也解不出任何密钥
+ * （常见于开发版 / 发布版 Electron safeStorage 互不解），此时空写会误删密文。
+ * 返回 `{ providerKeys: "" }` 表示用户确已清空（保险库仍能解密出旧值），应删除 slot。
+ */
+export async function resolveTranslationSecretsWritePayload(
+  settings: TranslationSettings,
+  readVaultKeys: () => Promise<string>,
+): Promise<{ providerKeys: string } | null> {
+  const serialized = serializeTranslationSecrets(
+    collectTranslationSecrets(settings),
+  );
+  if (serialized) return { providerKeys: serialized };
+  let existingRaw = "";
+  try {
+    existingRaw = await readVaultKeys();
+  } catch {
+    return null;
+  }
+  const existing = parseTranslationSecretsBlob(existingRaw);
+  if (!serializeTranslationSecrets(existing)) return null;
+  return { providerKeys: "" };
+}

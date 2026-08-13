@@ -114,6 +114,7 @@
   - http://download.huzheng.org/zh_CN/ — 胡正旧站，中文区常用
   - https://tuxor1337.frama.io/firedict/dictionaries.html — 开源许可的 StarDict 汇总
 - **MDict**（`.mdx` / `.mdd`）
+  - https://downloads.freemdict.com/ — FreeMdict 下载站
   - https://mdx.mdict.org/ — 常用镜像目录
 - **Slob**（`.slob`，Aard2）
   - https://github.com/itkach/slob/wiki/Dictionaries — 官方词典索引

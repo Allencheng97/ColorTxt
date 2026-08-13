@@ -156,10 +156,9 @@ import { mergeWebSearchSettings } from "../constants/webSearchSettings";
 import type { WebSearchSettings } from "@shared/webSearchTypes";
 import {
   applyTranslationSecrets,
-  collectTranslationSecrets,
   mergeTranslationSettings,
   parseTranslationSecretsBlob,
-  serializeTranslationSecrets,
+  resolveTranslationSecretsWritePayload,
   stripTranslationSecretsForDisk,
 } from "../constants/translationSettings";
 import type { TranslationSettings } from "@shared/translationTypes";
@@ -1013,10 +1012,15 @@ export function useAppPersistence(deps: {
   }
 
   async function persistTranslationSecretsToVault() {
-    const secrets = collectTranslationSecrets(deps.translationSettings.value);
-    await window.colorTxt.secrets.setTranslationSecrets({
-      providerKeys: serializeTranslationSecrets(secrets),
-    });
+    const payload = await resolveTranslationSecretsWritePayload(
+      deps.translationSettings.value,
+      async () => {
+        const res = await window.colorTxt.secrets.getTranslationProviderKeys();
+        return res.keys ?? "";
+      },
+    );
+    if (!payload) return;
+    await window.colorTxt.secrets.setTranslationSecrets(payload);
   }
 
   async function hydrateVoiceReadSecretsFromVault(): Promise<boolean> {

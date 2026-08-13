@@ -9,9 +9,8 @@ import SettingsEditPanel from "../../components/SettingsEditPanel.vue";
 import { mergeDictionarySettings } from "../../constants/dictionarySettings";
 import { mergeWebSearchSettings } from "../../constants/webSearchSettings";
 import {
-  collectTranslationSecrets,
   mergeTranslationSettings,
-  serializeTranslationSecrets,
+  resolveTranslationSecretsWritePayload,
 } from "../../constants/translationSettings";
 import type { DictionarySettings } from "@shared/dictionaryTypes";
 import type { WebSearchSettings } from "@shared/webSearchTypes";
@@ -198,11 +197,16 @@ function openTranslateManageFromSettings() {
 async function onTranslationSettingsUpdate(v: TranslationSettings) {
   fb.translationSettings.value = mergeTranslationSettings(v);
   try {
-    await window.colorTxt.secrets.setTranslationSecrets({
-      providerKeys: serializeTranslationSecrets(
-        collectTranslationSecrets(fb.translationSettings.value),
-      ),
-    });
+    const payload = await resolveTranslationSecretsWritePayload(
+      fb.translationSettings.value,
+      async () => {
+        const res = await window.colorTxt.secrets.getTranslationProviderKeys();
+        return res.keys ?? "";
+      },
+    );
+    if (payload) {
+      await window.colorTxt.secrets.setTranslationSecrets(payload);
+    }
   } catch {
     /* ignore */
   }

@@ -28,9 +28,8 @@ import { mergeDictionarySettings } from "../../constants/dictionarySettings";
 import { mergeWebSearchSettings } from "../../constants/webSearchSettings";
 import type { WebSearchSettings } from "@shared/webSearchTypes";
 import {
-  collectTranslationSecrets,
   mergeTranslationSettings,
-  serializeTranslationSecrets,
+  resolveTranslationSecretsWritePayload,
 } from "../../constants/translationSettings";
 import type { TranslationSettings } from "@shared/translationTypes";
 import type { DictionarySettings } from "@shared/dictionaryTypes";
@@ -289,11 +288,16 @@ function onWebSearchSettingsUpdate(v: WebSearchSettings) {
 async function onTranslationSettingsUpdate(v: TranslationSettings) {
   translationSettings.value = mergeTranslationSettings(v);
   try {
-    await window.colorTxt.secrets.setTranslationSecrets({
-      providerKeys: serializeTranslationSecrets(
-        collectTranslationSecrets(translationSettings.value),
-      ),
-    });
+    const payload = await resolveTranslationSecretsWritePayload(
+      translationSettings.value,
+      async () => {
+        const res = await window.colorTxt.secrets.getTranslationProviderKeys();
+        return res.keys ?? "";
+      },
+    );
+    if (payload) {
+      await window.colorTxt.secrets.setTranslationSecrets(payload);
+    }
   } catch {
     /* ignore */
   }
