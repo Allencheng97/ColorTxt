@@ -103,8 +103,9 @@
 
 ### 关于「词典」
 
-- 内置 Wiktionary、Wikipedia 网络词典
-- 支持导入本地词库 `StarDict` / `MDict` / `DICT` / `Slob` / `BGL`
+内置 `Wiktionary`、`Wikipedia` 网络词典，支持导入本地词典 `StarDict` / `MDict` / `DICT` / `Slob` / `BGL`。
+
+`StarDict` 词典下载：http://download.huzheng.org/zh_CN/
 
 ### 关于「翻译」
 

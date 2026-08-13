@@ -18,6 +18,8 @@ type DictSlot = {
   status: "pending" | "ready";
   result?: DictionaryLookupResultItem;
   collapsed: boolean;
+  /** 本词典内部 entry 跳转栈（含当前词） */
+  navStack: string[];
 };
 
 const props = defineProps<{
@@ -47,8 +49,194 @@ const slots = ref<DictSlot[]>([]);
 const errorMessage = ref("");
 const lookupDone = ref(false);
 let lookupSeq = 0;
+/** 单词典内部跳转序号，避免慢请求覆盖新结果 */
+const slotNavSeq = new Map<string, number>();
+/** 词典 mdd 发音：同时只播一条 */
+let dictSoundAudio: HTMLAudioElement | null = null;
 
 const hasVisibleSlots = computed(() => slots.value.length > 0);
+
+function stopDictSound() {
+  if (!dictSoundAudio) return;
+  try {
+    dictSoundAudio.pause();
+  } catch {
+    /* ignore */
+  }
+  dictSoundAudio = null;
+}
+
+function playDictSoundDataUrl(dataUrl: string) {
+  stopDictSound();
+  const audio = new Audio(dataUrl);
+  dictSoundAudio = audio;
+  audio.addEventListener(
+    "ended",
+    () => {
+      if (dictSoundAudio === audio) dictSoundAudio = null;
+    },
+    { once: true },
+  );
+  void audio.play().catch(() => {
+    if (dictSoundAudio === audio) dictSoundAudio = null;
+  });
+}
+
+function onDictHtmlClick(ev: MouseEvent, providerId: string) {
+  const t = ev.target;
+  if (!(t instanceof Element)) return;
+
+  const soundLink = t.closest("a.dictSound, a[data-dict-sound]");
+  if (soundLink instanceof HTMLAnchorElement) {
+    const href = soundLink.getAttribute("href") || "";
+    if (/^data:audio\//i.test(href)) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      playDictSoundDataUrl(href);
+      return;
+    }
+  }
+
+  const entryLink = t.closest("a.dictEntry, a[data-dict-entry]");
+  if (entryLink instanceof HTMLAnchorElement) {
+    const target = (entryLink.getAttribute("data-dict-entry") || "").trim();
+    if (!target) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    void navigateInSlot(providerId, target);
+  }
+}
+
+function slotCanGoBack(slot: DictSlot): boolean {
+  return slot.navStack.length > 1;
+}
+
+function slotNavLabel(slot: DictSlot): string {
+  return slot.navStack[slot.navStack.length - 1] || "";
+}
+
+/** 把指定词典卡片滚到浮层内容区顶部（内部跳转后），保留一点上边距 */
+async function scrollSlotToTop(providerId: string) {
+  await nextTick();
+  await new Promise<void>((resolve) => {
+    requestAnimationFrame(() => resolve());
+  });
+  const body = popupBodyRef.value;
+  if (!body) return;
+  const card = body.querySelector(
+    `.dictCard[data-provider-id="${CSS.escape(providerId)}"]`,
+  );
+  if (!(card instanceof HTMLElement)) return;
+  const bodyTop = body.getBoundingClientRect().top;
+  const cardTop = card.getBoundingClientRect().top;
+  const topGap = 8;
+  body.scrollTop += cardTop - bodyTop - topGap;
+}
+
+async function navigateInSlot(providerId: string, target: string) {
+  const word = target.trim();
+  if (!word) return;
+  const slot = slots.value.find((s) => s.providerId === providerId);
+  if (!slot) return;
+  const top = slot.navStack[slot.navStack.length - 1];
+  if (top === word) return;
+
+  const prevResult = slot.result;
+  const prevStack = slot.navStack;
+  const seq = (slotNavSeq.get(providerId) ?? 0) + 1;
+  slotNavSeq.set(providerId, seq);
+
+  slots.value = slots.value.map((s) =>
+    s.providerId === providerId
+      ? { ...s, status: "pending" as const, collapsed: false }
+      : s,
+  );
+
+  const plain = plainSettingsForIpc(props.settings);
+  let item: DictionaryLookupResultItem | null = null;
+  try {
+    item = await lookupOne(word, plain, providerId);
+  } catch {
+    item = null;
+  }
+  if (slotNavSeq.get(providerId) !== seq) return;
+
+  if (item?.content?.trim()) {
+    slots.value = slots.value.map((s) =>
+      s.providerId === providerId
+        ? {
+            ...s,
+            status: "ready" as const,
+            result: item!,
+            navStack: [...prevStack, word],
+            collapsed: false,
+          }
+        : s,
+    );
+    await scrollSlotToTop(providerId);
+    return;
+  }
+
+  // 本词典无此词条：恢复原文，不拆掉整张卡
+  slots.value = slots.value.map((s) =>
+    s.providerId === providerId
+      ? {
+          ...s,
+          status: "ready" as const,
+          result: prevResult,
+          navStack: prevStack,
+        }
+      : s,
+  );
+}
+
+async function goBackInSlot(providerId: string) {
+  const slot = slots.value.find((s) => s.providerId === providerId);
+  if (!slot || slot.navStack.length <= 1) return;
+  const nextStack = slot.navStack.slice(0, -1);
+  const prevWord = nextStack[nextStack.length - 1];
+  if (!prevWord) return;
+
+  const seq = (slotNavSeq.get(providerId) ?? 0) + 1;
+  slotNavSeq.set(providerId, seq);
+  slots.value = slots.value.map((s) =>
+    s.providerId === providerId
+      ? { ...s, status: "pending" as const, collapsed: false }
+      : s,
+  );
+
+  const plain = plainSettingsForIpc(props.settings);
+  let item: DictionaryLookupResultItem | null = null;
+  try {
+    item = await lookupOne(prevWord, plain, providerId);
+  } catch {
+    item = null;
+  }
+  if (slotNavSeq.get(providerId) !== seq) return;
+
+  if (item?.content?.trim()) {
+    slots.value = slots.value.map((s) =>
+      s.providerId === providerId
+        ? {
+            ...s,
+            status: "ready" as const,
+            result: item!,
+            navStack: nextStack,
+            collapsed: false,
+          }
+        : s,
+    );
+    await scrollSlotToTop(providerId);
+    return;
+  }
+
+  slots.value = slots.value.map((s) =>
+    s.providerId === providerId
+      ? { ...s, status: "ready" as const, navStack: nextStack }
+      : s,
+  );
+  await scrollSlotToTop(providerId);
+}
 
 function sanitizeHtml(html: string): string {
   return html
@@ -116,6 +304,7 @@ async function lookupOne(
 async function runLookup(wordOverride?: string) {
   const word = (wordOverride ?? queryWord.value).trim();
   queryWord.value = word;
+  slotNavSeq.clear();
   if (popupBodyRef.value) popupBodyRef.value.scrollTop = 0;
   if (!word) {
     slots.value = [];
@@ -144,6 +333,7 @@ async function runLookup(wordOverride?: string) {
     title: dictionaryDisplayName(plain, id),
     status: "pending" as const,
     collapsed: false,
+    navStack: [word],
   }));
 
   try {
@@ -248,6 +438,8 @@ watch(
       modalUnregister?.();
       modalUnregister = null;
       unbindOutsideClose();
+      stopDictSound();
+      slotNavSeq.clear();
       lookupSeq += 1;
       lookupDone.value = true;
     }
@@ -266,6 +458,7 @@ watch(
 );
 
 onBeforeUnmount(() => {
+  stopDictSound();
   modalUnregister?.();
   unbindOutsideClose();
 });
@@ -331,6 +524,7 @@ onBeforeUnmount(() => {
           v-for="slot in slots"
           :key="slot.providerId"
           class="dictCard"
+          :data-provider-id="slot.providerId"
         >
           <button
             type="button"
@@ -348,6 +542,24 @@ onBeforeUnmount(() => {
           </button>
           <div v-show="!slot.collapsed" class="dictCardBody">
             <div
+              v-if="slotCanGoBack(slot)"
+              class="dictCardNav"
+            >
+              <button
+                type="button"
+                class="dictCardNavBack"
+                aria-label="返回上一词条"
+                title="返回"
+                @click="goBackInSlot(slot.providerId)"
+              >
+                <span aria-hidden="true" v-html="icons.back"></span>
+                <span>返回</span>
+              </button>
+              <span class="dictCardNavWord" :title="slotNavLabel(slot)">{{
+                slotNavLabel(slot)
+              }}</span>
+            </div>
+            <div
               v-if="slot.status === 'pending'"
               class="dictCardPending"
             >
@@ -358,6 +570,7 @@ onBeforeUnmount(() => {
                 v-if="slot.result.contentFormat === 'html'"
                 class="dictCardContent dictCardContent--html"
                 v-html="sanitizeHtml(slot.result.content)"
+                @click="onDictHtmlClick($event, slot.providerId)"
               ></div>
               <pre
                 v-else
@@ -491,7 +704,8 @@ onBeforeUnmount(() => {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 10px 12px 12px;
+  padding: 12px 12px 12px;
+  scroll-padding-top: 8px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -583,6 +797,54 @@ onBeforeUnmount(() => {
   gap: 6px;
 }
 
+.dictCardNav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 2px 0 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.dictCardNavBack {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 2px 6px 2px 2px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--accent, #3b82f6);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.dictCardNavBack:hover {
+  background: color-mix(in srgb, var(--accent, #3b82f6) 12%, transparent);
+}
+
+.dictCardNavBack :deep(svg) {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+.dictCardNavBack :deep(svg path) {
+  fill: currentColor;
+}
+
+.dictCardNavWord {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--muted-fg, color-mix(in srgb, var(--fg) 62%, transparent));
+}
+
 .dictCardPending {
   display: inline-flex;
   align-items: center;
@@ -608,9 +870,28 @@ onBeforeUnmount(() => {
   color: var(--accent, #3b82f6);
 }
 
+.dictCardContent--html :deep(a.dictSound),
+.dictCardContent--html :deep(a[data-dict-sound]) {
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.dictCardContent--html :deep(a.dictSound:hover),
+.dictCardContent--html :deep(a[data-dict-sound]:hover) {
+  text-decoration: underline;
+}
+
+.dictCardContent--html :deep(a.dictEntry),
+.dictCardContent--html :deep(a[data-dict-entry]) {
+  cursor: pointer;
+  color: var(--accent, #3b82f6);
+  text-decoration: underline;
+}
+
 .dictCardContent--html :deep(img) {
   max-width: 100%;
   height: auto;
+  vertical-align: middle;
 }
 
 .dictCardContent--html :deep(.dictZhWord) {
