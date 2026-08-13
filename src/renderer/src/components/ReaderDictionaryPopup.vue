@@ -249,6 +249,21 @@ function sanitizeHtml(html: string): string {
     .replace(/javascript:/gi, "");
 }
 
+/** 应用自己拼的 HTML（Wiki / Wiktionary），暗色下跟主题色，不用浅底板 */
+function isAppThemedDictHtml(html: string): boolean {
+  return /\b(?:dictWikiTitle|dictZhWord|dictWtPos)\b/.test(html);
+}
+
+/** 词库写死浅底配色（如 MDict <font color>）时才套浅底板 */
+function needsLegacyLightPad(html: string): boolean {
+  if (!html || isAppThemedDictHtml(html)) return false;
+  return (
+    /<font\b/i.test(html) ||
+    /\bcolor\s*=/i.test(html) ||
+    /style\s*=\s*["'][^"']*color\s*:/i.test(html)
+  );
+}
+
 function splitProviderIds(settings: DictionarySettings): {
   localIds: string[];
   networkIds: string[];
@@ -569,6 +584,11 @@ onBeforeUnmount(() => {
               <div
                 v-if="slot.result.contentFormat === 'html'"
                 class="dictCardContent dictCardContent--html"
+                :class="{
+                  'dictCardContent--legacyPad': needsLegacyLightPad(
+                    slot.result.content,
+                  ),
+                }"
                 v-html="sanitizeHtml(slot.result.content)"
                 @click="onDictHtmlClick($event, slot.providerId)"
               ></div>
@@ -967,5 +987,38 @@ onBeforeUnmount(() => {
 
 .dictCardContent--text {
   font-family: inherit;
+}
+</style>
+
+<!--
+  暗色浅底板：仅 legacyPad（词库硬编码浅底色）。
+  Wiki / Wiktionary 等应用自绘 HTML 不套，避免与亮色主题不一致。
+  勿写进 scoped：`:global(html.dark) .foo` 会被误编成 `html.dark {…}`。
+-->
+<style>
+html.dark .dictPopup .dictCardContent--html.dictCardContent--legacyPad {
+  color-scheme: light;
+  color: #1c1917;
+  background: #f5f5f4;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+html.dark
+  .dictPopup
+  .dictCardContent--html.dictCardContent--legacyPad
+  a {
+  color: #2563eb;
+}
+
+html.dark
+  .dictPopup
+  .dictCardContent--html.dictCardContent--legacyPad
+  a.dictEntry,
+html.dark
+  .dictPopup
+  .dictCardContent--html.dictCardContent--legacyPad
+  a[data-dict-entry] {
+  color: #2563eb;
 }
 </style>
