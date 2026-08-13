@@ -105,7 +105,18 @@
 
 内置 `Wiktionary`、`Wikipedia` 网络词典，支持导入本地词典 `StarDict` / `MDict` / `DICT` / `Slob` / `BGL`。
 
-`StarDict` 词典下载：http://download.huzheng.org/zh_CN/
+> 实用建议：优先 `StarDict` 和 `MDict`；要离线维基/维基词典可用 `Slob`；要开源多语对译可用 `FreeDict`。
+
+- **StarDict**（`.ifo` / `.idx` / `.dict.dz`）
+  - http://download.huzheng.org/zh_CN/ — 胡正旧站，中文区常用
+  - https://tuxor1337.frama.io/firedict/dictionaries.html — 开源许可的 StarDict 汇总
+- **MDict**（`.mdx` / `.mdd`）
+  - https://mdx.mdict.org/ — 常用镜像目录
+- **Slob**（`.slob`，Aard2）
+  - https://github.com/itkach/slob/wiki/Dictionaries — 官方词典索引
+- **DICT**（dictd，常为 `.index` + `.dict.dz`）
+- **BGL**（Babylon）
+- https://freedict.org/downloads/ — FreeDict，多语双向，提供 `StarDict` / `Slob` / `Dictd` 词典下载
 
 ### 关于「翻译」
 

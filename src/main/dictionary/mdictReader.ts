@@ -331,6 +331,8 @@ export async function resolveMdictResources(
   let s = html;
 
   const cssChunks = await loadExternalCss(cssPaths);
+  /** 词库声明过外挂/内联样式（解析后 link/style 会被剥掉，前端靠此标记套浅底板） */
+  let sawDictStylesheet = cssChunks.length > 0;
 
   // <link rel=stylesheet href="xxx.css"> → 从 mdd 取 CSS 后去掉 link
   const linkRe = /<link\b[^>]*\bhref\s*=\s*(["'])([^"']+)\1[^>]*>/gi;
@@ -344,6 +346,7 @@ export async function resolveMdictResources(
       const full = m[0]!;
       const href = m[2]!;
       if (/\.css(?:\?|#|$)/i.test(href) || /stylesheet/i.test(full)) {
+        sawDictStylesheet = true;
         const dataUrl = await lookupMddDataUrl(mddPaths, href);
         if (dataUrl) {
           const comma = dataUrl.indexOf(",");
@@ -362,6 +365,7 @@ export async function resolveMdictResources(
   }
 
   // 去掉仍留在释义里的内联 <style>（词典自带样式改由上方注入，避免重复/脚本风险）
+  if (/<style[\s\S]*?<\/style>/i.test(s)) sawDictStylesheet = true;
   s = s.replace(/<style[\s\S]*?<\/style>/gi, "");
 
   // 图片
@@ -479,6 +483,11 @@ export async function resolveMdictResources(
   if (cssChunks.length) {
     const css = cssChunks.join("\n");
     s = `<style>${css}</style>${s}`;
+  }
+
+  // MDD 缺 CSS 时 link 已被剥掉，前端仍需识别「依赖词库样式」的释义
+  if (sawDictStylesheet && !/<!--colortxt-legacy-css-->/.test(s)) {
+    s = `<!--colortxt-legacy-css-->${s}`;
   }
 
   return s;

@@ -254,13 +254,16 @@ function isAppThemedDictHtml(html: string): boolean {
   return /\b(?:dictWikiTitle|dictZhWord|dictWtPos)\b/.test(html);
 }
 
-/** 词库写死浅底配色（如 MDict <font color>）时才套浅底板 */
+/** 词库写死浅底配色 / 依赖自带 CSS 时才套浅底板 */
 function needsLegacyLightPad(html: string): boolean {
   if (!html || isAppThemedDictHtml(html)) return false;
   return (
+    /<!--colortxt-legacy-css-->/.test(html) ||
     /<font\b/i.test(html) ||
     /\bcolor\s*=/i.test(html) ||
-    /style\s*=\s*["'][^"']*color\s*:/i.test(html)
+    /style\s*=\s*["'][^"']*color\s*:/i.test(html) ||
+    /<style[\s\S]*?<\/style>/i.test(html) ||
+    /<link\b[^>]*\bstylesheet\b/i.test(html)
   );
 }
 

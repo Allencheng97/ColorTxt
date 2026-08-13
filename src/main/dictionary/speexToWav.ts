@@ -85,16 +85,43 @@ function parseOggPackets(buf: Buffer): Buffer[] {
 
 type SpeexIdHeader = {
   rate: number;
+  mode: number;
   nbChannels: number;
   frameSize: number;
   framesPerPacket: number;
   extraHeaders: number;
 };
 
+/** Speex WASM only initializes at these rates (nb / wb / uwb). */
+const SPEEX_DECODER_RATES = [8000, 16000, 32000] as const;
+
+/**
+ * Pick a rate the WASM decoder accepts.
+ * Some dict packs (e.g. LDOCE5) put 22050 in the Speex ID header while
+ * encoding as wideband (mode=1, frameSize=320); create(22050) returns null.
+ */
+function resolveDecoderSampleRate(header: SpeexIdHeader): number {
+  if ((SPEEX_DECODER_RATES as readonly number[]).includes(header.rate)) {
+    return header.rate;
+  }
+  // Prefer Speex mode: 0=nb, 1=wb, 2=uwb
+  if (header.mode === 0) return 8000;
+  if (header.mode === 1) return 16000;
+  if (header.mode === 2) return 32000;
+  // frameSize is samples per frame at the true codec rate
+  if (header.frameSize === 160) return 8000;
+  if (header.frameSize === 320) return 16000;
+  if (header.frameSize === 640) return 32000;
+  return SPEEX_DECODER_RATES.reduce((best, r) =>
+    Math.abs(r - header.rate) < Math.abs(best - header.rate) ? r : best,
+  );
+}
+
 function parseSpeexIdHeader(packet: Buffer): SpeexIdHeader | null {
   if (packet.length < 80) return null;
   if (packet.toString("ascii", 0, 8) !== "Speex   ") return null;
   const rate = packet.readInt32LE(36);
+  const mode = packet.readInt32LE(40);
   const nbChannels = packet.readInt32LE(48);
   const frameSize = packet.readInt32LE(56);
   const framesPerPacket = packet.readInt32LE(64);
@@ -102,6 +129,7 @@ function parseSpeexIdHeader(packet: Buffer): SpeexIdHeader | null {
   if (rate <= 0 || frameSize <= 0) return null;
   return {
     rate,
+    mode,
     nbChannels: Math.max(1, nbChannels || 1),
     frameSize,
     framesPerPacket: Math.max(1, framesPerPacket || 1),
@@ -152,8 +180,9 @@ export async function oggSpeexToWav(input: Buffer): Promise<Buffer | null> {
   const header = parseSpeexIdHeader(packets[0]!);
   if (!header) return null;
 
+  const sampleRate = resolveDecoderSampleRate(header);
   const mod = await getSpeexWasm();
-  const handle = mod._speex_js_decoder_create(header.rate);
+  const handle = mod._speex_js_decoder_create(sampleRate);
   if (!handle) return null;
   try {
     const decFrameSize = mod._speex_js_decoder_frame_size(handle);
@@ -190,7 +219,8 @@ export async function oggSpeexToWav(input: Buffer): Promise<Buffer | null> {
         pcm.set(c, o);
         o += c.length;
       }
-      return encodeWavPcm16Mono(pcm, header.rate);
+      // WAV rate must match decoded PCM (not the possibly nonstandard ID header rate).
+      return encodeWavPcm16Mono(pcm, sampleRate);
     } finally {
       mod._free(framePtr);
       mod._free(pcmPtr);
