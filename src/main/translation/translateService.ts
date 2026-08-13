@@ -16,6 +16,7 @@ import {
   splitTextIntoTranslationChunks,
   translationMaxCharsForProvider,
 } from "@shared/translationChunk";
+import { reapplySourceLineIndents } from "@shared/translationIndent";
 import {
   addTokenUsage,
   extractUsageFromChatJson,
@@ -913,8 +914,9 @@ async function translateWithChunks(
 export async function translateText(
   req: TranslationRequest,
 ): Promise<TranslationResponse> {
-  const text = String(req.text ?? "").trim();
-  if (!text) return { ok: false, message: "没有可翻译的文本" };
+  // 勿对正文 trim：会去掉选区首行缩进；仅用 trim 判断是否为空
+  const text = String(req.text ?? "");
+  if (!text.trim()) return { ok: false, message: "没有可翻译的文本" };
   const settings = req.settings;
   const provider = settings.provider;
   const targetLang = settings.targetLang || "zh-CN";
@@ -925,7 +927,7 @@ export async function translateText(
       const r = await translateAi(text, targetLang, settings, sourceLang);
       return {
         ok: true,
-        translated: r.text,
+        translated: reapplySourceLineIndents(text, r.text),
         provider,
         tokenUsage: r.tokenUsage,
         tokenUsageAvailable: r.tokenUsageAvailable,
@@ -938,7 +940,11 @@ export async function translateText(
       settings,
       sourceLang,
     );
-    return { ok: true, translated, provider };
+    return {
+      ok: true,
+      translated: reapplySourceLineIndents(text, translated),
+      provider,
+    };
   } catch (e) {
     return { ok: false, message: errMsg(e) };
   }

@@ -11,6 +11,7 @@ import AiTokenUsageBanner from "./AiTokenUsageBanner.vue";
 import LoadingDotsBounce from "./LoadingDotsBounce.vue";
 import { isPointerOnAppModalAbove, registerModal } from "../utils/modalStack";
 import type { AITokenUsageTotals } from "@shared/aiTokenUsage";
+import { reapplySourceLineIndents } from "@shared/translationIndent";
 import {
   TRANSLATION_PROVIDER_IDS,
   TRANSLATION_PROVIDER_LABELS,
@@ -143,8 +144,8 @@ function patchSettings(partial: Partial<TranslationSettings>) {
 }
 
 async function runTranslate() {
-  const text = sourceText.value.trim();
-  if (!text) {
+  const text = sourceText.value;
+  if (!text.trim()) {
     errorMessage.value = "没有可翻译的文本";
     translated.value = "";
     return;
@@ -166,7 +167,7 @@ async function runTranslate() {
       errorMessage.value = res.message || "翻译失败";
       return;
     }
-    translated.value = res.translated;
+    translated.value = reapplySourceLineIndents(text, res.translated);
     if (localSettings.value.provider === "ai") {
       tokenUsage.value = res.tokenUsage ?? {
         promptTokens: 0,

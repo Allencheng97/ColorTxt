@@ -665,8 +665,9 @@ export function useReaderAnnotations(opts: {
   function openTranslatePopupFromToolbar() {
     const text = draftText.value.trim();
     if (!text) bindDraftFromSelection();
-    const quote = draftText.value.trim();
-    if (!quote) return;
+    // 保留行首缩进；仅用 trim 判断是否有可译内容
+    const quote = draftText.value;
+    if (!quote.trim()) return;
     translatePopupText.value = quote;
     applyTranslatePopupPlacement();
     translatePopupOpen.value = true;
@@ -901,8 +902,11 @@ export function useReaderAnnotations(opts: {
     if (!e || !m) return false;
     const sel = e.getSelection();
     if (!sel || sel.isEmpty()) return false;
-    const text = m.getValueInRange(sel).trim();
-    if (!text) return false;
+
+    // 严格按选区取文；勿 trim、勿自动补行首缩进（未选中的空白不算选区）
+    const text = m.getValueInRange(sel);
+    if (!text.trim()) return false;
+
     const phys = monacoRangeToPhysicalRange(
       sel,
       displayToPhysical,
