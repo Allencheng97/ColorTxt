@@ -141,7 +141,6 @@ export function useReaderAnnotations(opts: {
   /** 按阅读区可用空间钳制，避免贴顶/贴底被截断 */
   const dictionaryPopupMaxHeight = ref(420);
   const dictionaryPopupRootRef = ref<HTMLElement | null>(null);
-  let dictionaryPopupResizeObserver: ResizeObserver | null = null;
   const translatePopupOpen = ref(false);
   const translatePopupText = ref("");
   const translatePopupCenterX = ref(0);
@@ -486,26 +485,16 @@ export function useReaderAnnotations(opts: {
   const DICT_POPUP_W = 360;
   const DICT_POPUP_MAX_H = 420;
   const DICT_POPUP_MIN_H = 140;
-  const DICT_POPUP_ESTIMATE_H = 280;
 
-  function disconnectDictionaryPopupResizeObserver() {
-    dictionaryPopupResizeObserver?.disconnect();
-    dictionaryPopupResizeObserver = null;
-  }
-
-  function applyDictionaryPopupPlacement(measuredHeight?: number) {
+  /**
+   * 打开时按「最大可用高度」定一次位置与 maxHeight，之后不再随内容伸缩重算。
+   * 否则查词/内部跳转导致高度变化时会改 top / 上下翻转，带动阅读区视觉抖动。
+   */
+  function applyDictionaryPopupPlacement() {
     const anchor = getAnchor();
     const editorClip = getEditorClipRect();
     const floatWidth = DICT_POPUP_W;
-
-    let floatHeight =
-      measuredHeight && measuredHeight > 0
-        ? measuredHeight
-        : DICT_POPUP_ESTIMATE_H;
-    floatHeight = Math.min(
-      DICT_POPUP_MAX_H,
-      Math.max(DICT_POPUP_MIN_H, floatHeight),
-    );
+    const floatHeight = DICT_POPUP_MAX_H;
 
     if (anchor) {
       const spaceAbove = Math.max(
@@ -517,13 +506,13 @@ export function useReaderAnnotations(opts: {
         editorClip.bottom - FLOAT_MARGIN - (anchor.lineBottom + FLOAT_GAP),
       );
       const maxAvail = Math.max(spaceAbove, spaceBelow, DICT_POPUP_MIN_H);
-      floatHeight = Math.min(floatHeight, maxAvail);
+      const placeHeight = Math.min(floatHeight, maxAvail);
 
       const base = {
         selectionCenterX: anchor.selectionCenterX,
         anchorTop: anchor.anchorTop,
         lineBottom: anchor.lineBottom,
-        floatHeight,
+        floatHeight: placeHeight,
         floatWidth,
         gap: FLOAT_GAP,
         margin: FLOAT_MARGIN,
@@ -544,24 +533,17 @@ export function useReaderAnnotations(opts: {
         });
       }
 
-      if (Math.abs(dictionaryPopupCenterX.value - placed.centerX) > 0.5) {
-        dictionaryPopupCenterX.value = placed.centerX;
-      }
-      if (Math.abs(dictionaryPopupTop.value - placed.rootTop) > 0.5) {
-        dictionaryPopupTop.value = placed.rootTop;
-      }
+      dictionaryPopupCenterX.value = placed.centerX;
+      dictionaryPopupTop.value = placed.rootTop;
       dictionaryPopupOpenDownward.value = placed.openDownward;
 
       const avail = placed.openDownward
         ? editorClip.bottom - FLOAT_MARGIN - placed.rootTop
         : placed.rootTop - (editorClip.top + FLOAT_MARGIN);
-      const nextMax = Math.min(
+      dictionaryPopupMaxHeight.value = Math.min(
         DICT_POPUP_MAX_H,
         Math.max(DICT_POPUP_MIN_H, avail),
       );
-      if (Math.abs(dictionaryPopupMaxHeight.value - nextMax) > 0.5) {
-        dictionaryPopupMaxHeight.value = nextMax;
-      }
       return;
     }
 
@@ -578,18 +560,6 @@ export function useReaderAnnotations(opts: {
     );
   }
 
-  function observeDictionaryPopupSize() {
-    disconnectDictionaryPopupResizeObserver();
-    const el = dictionaryPopupRootRef.value?.querySelector(".dictPopup");
-    if (!(el instanceof HTMLElement)) return;
-    dictionaryPopupResizeObserver = new ResizeObserver(() => {
-      if (!dictionaryPopupOpen.value) return;
-      const h = el.getBoundingClientRect().height;
-      if (h > 0) applyDictionaryPopupPlacement(h);
-    });
-    dictionaryPopupResizeObserver.observe(el);
-  }
-
   function openDictionaryPopupFromToolbar() {
     const text = draftText.value.trim();
     if (!text) {
@@ -602,18 +572,9 @@ export function useReaderAnnotations(opts: {
     dictionaryPopupOpen.value = true;
     closeToolbarUi();
     suppressToolbarUntilMs = Date.now() + 300;
-    void nextTick(() => {
-      observeDictionaryPopupSize();
-      const el = dictionaryPopupRootRef.value?.querySelector(".dictPopup");
-      if (el instanceof HTMLElement) {
-        const h = el.getBoundingClientRect().height;
-        if (h > 0) applyDictionaryPopupPlacement(h);
-      }
-    });
   }
 
   function closeDictionaryPopup() {
-    disconnectDictionaryPopupResizeObserver();
     dictionaryPopupOpen.value = false;
     dictionaryPopupWord.value = "";
   }

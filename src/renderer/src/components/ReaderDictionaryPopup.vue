@@ -3,6 +3,7 @@ import { computed, nextTick, onBeforeUnmount, ref, toRaw, watch } from "vue";
 import { icons } from "../icons";
 import { dictionaryDisplayName } from "../constants/dictionarySettings";
 import LoadingDotsBounce from "./LoadingDotsBounce.vue";
+import DictHtmlFrame from "./DictHtmlFrame.vue";
 import { isPointerOnAppModalAbove, registerModal } from "../utils/modalStack";
 import type { DictionarySettings } from "@shared/dictionaryTypes";
 import type { DictionaryLookupResultItem } from "@shared/dictionaryTypes";
@@ -82,29 +83,12 @@ function playDictSoundDataUrl(dataUrl: string) {
   });
 }
 
-function onDictHtmlClick(ev: MouseEvent, providerId: string) {
-  const t = ev.target;
-  if (!(t instanceof Element)) return;
+function onDictHtmlNavigate(providerId: string, target: string) {
+  void navigateInSlot(providerId, target);
+}
 
-  const soundLink = t.closest("a.dictSound, a[data-dict-sound]");
-  if (soundLink instanceof HTMLAnchorElement) {
-    const href = soundLink.getAttribute("href") || "";
-    if (/^data:audio\//i.test(href)) {
-      ev.preventDefault();
-      ev.stopPropagation();
-      playDictSoundDataUrl(href);
-      return;
-    }
-  }
-
-  const entryLink = t.closest("a.dictEntry, a[data-dict-entry]");
-  if (entryLink instanceof HTMLAnchorElement) {
-    const target = (entryLink.getAttribute("data-dict-entry") || "").trim();
-    if (!target) return;
-    ev.preventDefault();
-    ev.stopPropagation();
-    void navigateInSlot(providerId, target);
-  }
+function onDictHtmlPlaySound(dataUrl: string) {
+  playDictSoundDataUrl(dataUrl);
 }
 
 function slotCanGoBack(slot: DictSlot): boolean {
@@ -449,7 +433,8 @@ watch(
       modalUnregister = reg.unregister;
       bindOutsideClose();
       await nextTick();
-      queryInputRef.value?.focus();
+      // 勿滚动页面：fixed 浮层里 focus 默认可能 scrollIntoView 带动整页跳动
+      queryInputRef.value?.focus({ preventScroll: true });
       queryInputRef.value?.select();
       void runLookup(queryWord.value);
     } else {
@@ -584,17 +569,13 @@ onBeforeUnmount(() => {
               查询中<LoadingDotsBounce />
             </div>
             <template v-else-if="slot.result">
-              <div
+              <DictHtmlFrame
                 v-if="slot.result.contentFormat === 'html'"
-                class="dictCardContent dictCardContent--html"
-                :class="{
-                  'dictCardContent--legacyPad': needsLegacyLightPad(
-                    slot.result.content,
-                  ),
-                }"
-                v-html="sanitizeHtml(slot.result.content)"
-                @click="onDictHtmlClick($event, slot.providerId)"
-              ></div>
+                :html="sanitizeHtml(slot.result.content)"
+                :legacy-pad="needsLegacyLightPad(slot.result.content)"
+                @navigate="onDictHtmlNavigate(slot.providerId, $event)"
+                @play-sound="onDictHtmlPlaySound"
+              />
               <pre
                 v-else
                 class="dictCardContent dictCardContent--text"
@@ -885,143 +866,7 @@ onBeforeUnmount(() => {
   word-break: break-word;
 }
 
-.dictCardContent--html {
-  white-space: normal;
-}
-
-.dictCardContent--html :deep(a) {
-  color: var(--accent, #3b82f6);
-}
-
-.dictCardContent--html :deep(a.dictSound),
-.dictCardContent--html :deep(a[data-dict-sound]) {
-  cursor: pointer;
-  text-decoration: none;
-}
-
-.dictCardContent--html :deep(a.dictSound:hover),
-.dictCardContent--html :deep(a[data-dict-sound]:hover) {
-  text-decoration: underline;
-}
-
-.dictCardContent--html :deep(a.dictEntry),
-.dictCardContent--html :deep(a[data-dict-entry]) {
-  cursor: pointer;
-  color: var(--accent, #3b82f6);
-  text-decoration: underline;
-}
-
-.dictCardContent--html :deep(img) {
-  max-width: 100%;
-  height: auto;
-  vertical-align: middle;
-}
-
-.dictCardContent--html :deep(.dictZhWord) {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.dictCardContent--html :deep(.dictZhPinyin) {
-  margin: 2px 0 0;
-  font-size: 13px;
-  font-style: italic;
-  color: var(--muted-fg, color-mix(in srgb, var(--fg) 70%, transparent));
-}
-
-.dictCardContent--html :deep(.dictZhLang) {
-  margin: 2px 0 8px;
-  font-size: 12px;
-  font-style: italic;
-  color: var(--muted-fg, color-mix(in srgb, var(--fg) 62%, transparent));
-}
-
-.dictCardContent--html :deep(.dictWtPos) {
-  margin: 0 0 4px;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.dictCardContent--html :deep(.dictZhDefs) {
-  margin: 0 0 10px;
-  padding-left: 1.25em;
-}
-
-.dictCardContent--html :deep(.dictZhDefs:last-child) {
-  margin-bottom: 0;
-}
-
-.dictCardContent--html :deep(.dictZhDefs li) {
-  margin: 0.2em 0;
-}
-
-.dictCardContent--html :deep(.dictWikiTitle) {
-  margin: 0 0 10px;
-  padding: 10px 12px;
-  border-radius: 6px;
-  color: #fff;
-  font-size: 15px;
-  font-weight: 700;
-  background: color-mix(in srgb, #000 45%, var(--fg) 12%);
-  min-height: 48px;
-}
-
-.dictCardContent--html :deep(.dictWikiDesc) {
-  margin: 6px 0 0;
-  font-size: 12px;
-  font-weight: 400;
-  opacity: 0.9;
-}
-
-.dictCardContent--html :deep(.dictWikiExtract) {
-  font-size: 13px;
-  line-height: 1.45;
-}
-
-.dictCardContent--html :deep(.dictWikiExtract p) {
-  margin: 0;
-}
-
-.dictCardContent--html :deep(.dictWikiExtract b),
-.dictCardContent--html :deep(.dictWikiExtract strong) {
-  font-weight: 700;
-}
-
 .dictCardContent--text {
   font-family: inherit;
-}
-</style>
-
-<!--
-  暗色浅底板：仅 legacyPad（词库硬编码浅底色）。
-  Wiki / Wiktionary 等应用自绘 HTML 不套，避免与亮色主题不一致。
-  勿写进 scoped：`:global(html.dark) .foo` 会被误编成 `html.dark {…}`。
--->
-<style>
-html.dark .dictPopup .dictCardContent--html.dictCardContent--legacyPad {
-  color-scheme: light;
-  color: #1c1917;
-  background: #f5f5f4;
-  border-radius: 8px;
-  padding: 8px 10px;
-}
-
-html.dark
-  .dictPopup
-  .dictCardContent--html.dictCardContent--legacyPad
-  a {
-  color: #2563eb;
-}
-
-html.dark
-  .dictPopup
-  .dictCardContent--html.dictCardContent--legacyPad
-  a.dictEntry,
-html.dark
-  .dictPopup
-  .dictCardContent--html.dictCardContent--legacyPad
-  a[data-dict-entry] {
-  color: #2563eb;
 }
 </style>
