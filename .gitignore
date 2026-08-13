@@ -9,3 +9,7 @@ release
 .tmp-bundle-est/
 .tmp-electron-*/
 tmp-*.json
+tmp-*.mjs
+tmp-*.wav
+tmp-*.spx
+tmp-*.png
