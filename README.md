@@ -105,6 +105,9 @@
 
 内置 `Wiktionary`、`Wikipedia` 网络词典，支持导入本地词典 `StarDict` / `MDict` / `DICT` / `Slob` / `BGL`。
 
+<details>
+<summary>词典下载</summary>
+
 > 实用建议：优先 `StarDict` 和 `MDict`；要离线维基/维基词典可用 `Slob`；要开源多语对译可用 `FreeDict`。
 
 - **StarDict**（`.ifo` / `.idx` / `.dict.dz`）
@@ -117,6 +120,8 @@
 - **DICT**（dictd，常为 `.index` + `.dict.dz`）
 - **BGL**（Babylon）
 - https://freedict.org/downloads/ — FreeDict，多语双向，提供 `StarDict` / `Slob` / `Dictd` 词典下载
+
+</details>
 
 ### 关于「翻译」
 
