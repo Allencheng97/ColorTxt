@@ -321,3 +321,7 @@ ColorTxt/
 - 基于 [OpenCC](https://github.com/byvoid/opencc) 实现简繁互转
 - 划线/笔记功能的交互，参考了 [微信读书网页版](https://weread.qq.com/)
 - 书源解析逻辑参考：[legado-E（阅读Sigma）](https://github.com/Luoyacheng/legado-E)
+
+## 其他
+
+- [LINUX DO](https://linux.do/)
