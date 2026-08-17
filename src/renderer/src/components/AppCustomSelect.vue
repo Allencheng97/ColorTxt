@@ -65,6 +65,9 @@ const props = withDefaults(
     ariaLabel: string;
     /** 中间区域最大高度（px） */
     scrollMaxHeight?: number;
+    /** 在滚动区顶部显示本地下拉过滤输入框 */
+    searchable?: boolean;
+    searchPlaceholder?: string;
     /** 下拉最小宽度（px），默认与触发器同宽 */
     minPanelWidth?: number;
     /** 为 true 时用左侧 3px 色块表示分类色（排序项带 prefixHtml 时不显示色块） */
@@ -76,6 +79,8 @@ const props = withDefaults(
     triggerPrefixHtml: "",
     categoryColorMarks: false,
     placeholder: "",
+    searchable: false,
+    searchPlaceholder: "搜索",
   },
 );
 
@@ -91,6 +96,8 @@ const open = ref(false);
 const triggerRef = useTemplateRef<HTMLButtonElement>("triggerRef");
 const panelRef = useTemplateRef<HTMLElement>("panelRef");
 const scrollAreaRef = useTemplateRef<HTMLElement>("scrollAreaRef");
+const searchInputRef = useTemplateRef<HTMLInputElement>("searchInputRef");
+const searchQuery = ref("");
 /** 仅在实际出现纵向滚动条时加右侧内边距 */
 const scrollAreaHasScrollbar = ref(false);
 let scrollAreaResizeObserver: ResizeObserver | null = null;
@@ -182,6 +189,43 @@ function close() {
   open.value = false;
 }
 
+function searchItemMatches(
+  item: Extract<CustomSelectItem, { kind: "item" }>,
+  query: string,
+): boolean {
+  return [item.label, item.id, item.description, item.labelSuffix].some(
+    (value) => value?.toLocaleLowerCase().includes(query),
+  );
+}
+
+const filteredScrollItems = computed((): readonly CustomSelectItem[] => {
+  const query = searchQuery.value.trim().toLocaleLowerCase();
+  if (!props.searchable || !query) return props.scrollItems;
+
+  const filtered: CustomSelectItem[] = [];
+  let currentGroup: Extract<CustomSelectItem, { kind: "groupLabel" }> | null =
+    null;
+  let currentGroupMatches = false;
+  let currentGroupEmitted = false;
+
+  for (const raw of props.scrollItems) {
+    if (raw.kind === "groupLabel") {
+      currentGroup = raw;
+      currentGroupMatches = raw.label.toLocaleLowerCase().includes(query);
+      currentGroupEmitted = false;
+      continue;
+    }
+    if (raw.kind !== "item") continue;
+    if (!currentGroupMatches && !searchItemMatches(raw, query)) continue;
+    if (currentGroup && !currentGroupEmitted) {
+      filtered.push(currentGroup);
+      currentGroupEmitted = true;
+    }
+    filtered.push(raw);
+  }
+  return filtered;
+});
+
 function selectItem(it: Extract<CustomSelectItem, { kind: "item" }>) {
   if (it.actionOnly) {
     emit("action", it.id);
@@ -216,12 +260,14 @@ watch(
       await nextTick();
       await positionPanel();
       await nextTick();
+      searchInputRef.value?.focus();
       updateScrollAreaScrollbarFlag();
       bindScrollAreaResizeObserver();
       requestAnimationFrame(() => {
         updateScrollAreaScrollbarFlag();
       });
     } else {
+      searchQuery.value = "";
       unbindScrollAreaResizeObserver();
       scrollAreaHasScrollbar.value = false;
     }
@@ -230,11 +276,12 @@ watch(
 );
 
 watch(
-  () => [props.scrollItems.length, props.scrollMaxHeight] as const,
+  () => [filteredScrollItems.value.length, props.scrollMaxHeight] as const,
   async () => {
     if (!open.value) return;
     await nextTick();
     updateScrollAreaScrollbarFlag();
+    applyPanelPosition();
   },
 );
 
@@ -358,6 +405,22 @@ const triggerMainText = computed(() => {
         }"
         @click.stop
       >
+        <label v-if="searchable" class="customSelectSearch">
+          <span
+            class="customSelectSearchIcon"
+            aria-hidden="true"
+            v-html="icons.find"
+          />
+          <input
+            ref="searchInputRef"
+            v-model="searchQuery"
+            type="search"
+            :placeholder="searchPlaceholder"
+            :aria-label="searchPlaceholder"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </label>
         <div class="customSelectSection">
           <template v-for="(raw, idx) in fixedTopItems" :key="'t' + idx">
             <div v-if="raw.kind === 'divider'" class="appShellMenuDivider" />
@@ -424,7 +487,10 @@ const triggerMainText = computed(() => {
           }"
           :style="{ maxHeight: `${scrollMaxHeight}px` }"
         >
-          <template v-for="(raw, idx) in scrollItems" :key="'s' + idx">
+          <template
+            v-for="(raw, idx) in filteredScrollItems"
+            :key="'s' + idx"
+          >
             <div v-if="raw.kind === 'divider'" class="appShellMenuDivider" />
             <div
               v-else-if="raw.kind === 'groupLabel'"
@@ -480,6 +546,12 @@ const triggerMainText = computed(() => {
               </span>
             </button>
           </template>
+          <div
+            v-if="searchable && filteredScrollItems.length === 0"
+            class="customSelectEmpty"
+          >
+            无匹配项
+          </div>
         </div>
         <div class="customSelectSection">
           <template v-for="(raw, idx) in fixedBottomItems" :key="'b' + idx">
@@ -647,6 +719,55 @@ const triggerMainText = computed(() => {
   z-index: 7200;
   box-sizing: border-box;
   min-width: 140px;
+}
+.customSelectSearch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px;
+  padding: 0 7px;
+  min-width: 0;
+  height: 30px;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+}
+.customSelectSearch:focus-within {
+  border-color: var(--accent);
+}
+.customSelectSearchIcon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  width: 14px;
+  height: 14px;
+  color: var(--muted);
+}
+.customSelectSearchIcon :deep(svg) {
+  width: 14px;
+  height: 14px;
+}
+.customSelectSearchIcon :deep(path) {
+  fill: currentColor;
+}
+.customSelectSearch input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  color: var(--fg);
+  background: transparent;
+  font: inherit;
+}
+.customSelectSearch input::placeholder {
+  color: var(--muted);
+}
+.customSelectEmpty {
+  padding: 10px 12px;
+  color: var(--muted);
+  text-align: center;
 }
 /* 与字体列表 / 历史会话一致：相邻项间距 4px（全局 .appShellMenuItem 为 1px），行高统一 */
 .customSelectPanel :deep(.appShellMenuItem + .appShellMenuItem) {

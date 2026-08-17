@@ -1555,7 +1555,13 @@ export class VoiceReadLinePlayer {
       ) {
         return;
       }
-      this.scheduleDashChunkPlayback(sessionId, prepared.pcm, index, total);
+      this.scheduleDashChunkPlayback(
+        sessionId,
+        prepared.pcm,
+        prepared.sampleRate,
+        index,
+        total,
+      );
     } catch (e) {
       if (
         !this.isPlaybackSessionCurrent(sessionId) ||
@@ -1639,6 +1645,7 @@ export class VoiceReadLinePlayer {
   private scheduleDashChunkPlayback(
     sessionId: number,
     pcm: Uint8Array,
+    sampleRate: number,
     index: number,
     total: number,
   ): void {
@@ -1656,7 +1663,7 @@ export class VoiceReadLinePlayer {
 
     const ctx = this.dashAudioCtx;
     const gain = this.dashGain;
-    const audioBuffer = ctx.createBuffer(1, numSamples, DASH_PCM_SAMPLE_RATE);
+    const audioBuffer = ctx.createBuffer(1, numSamples, sampleRate);
     const channelData = audioBuffer.getChannelData(0);
     const view = new DataView(pcm.buffer, pcm.byteOffset, pcm.byteLength);
     for (let i = 0; i < numSamples; i++) {
@@ -1723,7 +1730,7 @@ export class VoiceReadLinePlayer {
     }
 
     const numSamples = Math.floor(pcm.length / 2);
-    if (numSamples === 0) throw new Error("通义语音合成返回的音频数据无效");
+    if (numSamples === 0) throw new Error("语音合成返回的音频数据无效");
 
     const ctx = this.dashAudioCtx;
     const audioBuffer = ctx.createBuffer(1, numSamples, sampleRate);

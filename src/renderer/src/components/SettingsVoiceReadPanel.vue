@@ -295,6 +295,21 @@ async function runMimoConnectionTest(): Promise<ConnectionTestResult | null> {
     : { ok: false, error: r.result.message ?? "连接失败" };
 }
 
+async function runVolcengineConnectionTest(): Promise<ConnectionTestResult | null> {
+  if (!draft.value.engineConfig.volcengineApiKey?.trim()) {
+    await appAlert("请先填写火山引擎 API Key");
+    return null;
+  }
+  const r = await healthCheckVoiceReadViaIpc(
+    "volcengine",
+    draft.value.engineConfig,
+  );
+  if (!r.ok) return { ok: false, error: r.error };
+  return r.result.ok
+    ? { ok: true }
+    : { ok: false, error: r.result.message ?? "连接失败" };
+}
+
 const previewText = ref(VOICE_READ_DIALOGUE_GENDER_PREVIEW_DEFAULT);
 
 type PreviewPhase = "idle" | "ai" | "synthesizing" | "playing";
@@ -305,6 +320,7 @@ const previewDownload = ref<VoiceReadPreviewDownload | null>(null);
 const showDashScopeKey = ref(false);
 const showMiniMaxKey = ref(false);
 const showMimoKey = ref(false);
+const showVolcengineKey = ref(false);
 
 const minimaxConnectionFingerprint = computed(
   () => draft.value.engineConfig.minimaxApiKey?.trim() ?? "",
@@ -317,6 +333,9 @@ const dashscopeConnectionFingerprint = computed(
     draft.value.engineConfig.dashscopeApiKey?.trim() ??
     draft.value.dashscopeApiKey?.trim() ??
     "",
+);
+const volcengineConnectionFingerprint = computed(
+  () => draft.value.engineConfig.volcengineApiKey?.trim() ?? "",
 );
 const previewPlayer = new VoiceReadLinePlayer();
 let previewRunId = 0;
@@ -565,6 +584,13 @@ const mimoApiKeyModel = computed({
   get: () => draft.value.engineConfig.mimoApiKey ?? "",
   set: (value: string) => {
     patchEngineConfig({ mimoApiKey: value });
+  },
+});
+
+const volcengineApiKeyModel = computed({
+  get: () => draft.value.engineConfig.volcengineApiKey ?? "",
+  set: (value: string) => {
+    patchEngineConfig({ volcengineApiKey: value });
   },
 });
 
@@ -1094,6 +1120,51 @@ onUnmounted(() => {
             每次合成都会上传参考音频，长文连读可能较慢。
           </p>
         </div>
+        <div v-if="draft.engine === 'volcengine'" class="settingsRow">
+          <div class="settingsRowMain settingsRowMain--baseline">
+            <span class="settingsLabel short">API Key</span>
+            <div class="aiRowField">
+              <div class="settingsPasswordRow aiPasswordRow">
+                <input
+                  v-model="volcengineApiKeyModel"
+                  class="settingsStretchInput settingsPasswordRow__input"
+                  :type="showVolcengineKey ? 'text' : 'password'"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+                <button
+                  type="button"
+                  class="btn iconOnly"
+                  :title="showVolcengineKey ? '隐藏' : '显示'"
+                  :aria-label="
+                    showVolcengineKey ? '隐藏 API Key' : '显示 API Key'
+                  "
+                  @click="showVolcengineKey = !showVolcengineKey"
+                >
+                  <span
+                    class="iconSvg"
+                    v-html="showVolcengineKey ? icons.view : icons.viewOff"
+                  />
+                </button>
+                <AppConnectionTestButton
+                  :fingerprint="volcengineConnectionFingerprint"
+                  :on-test="runVolcengineConnectionTest"
+                  title="合成极短测试音频以校验 API Key，可能产生少量费用"
+                />
+              </div>
+            </div>
+          </div>
+          <p class="settingsHint">{{ secretStorageHint }}</p>
+          <p class="settingsHint">
+            使用
+            <a
+              href="https://console.volcengine.com/speech/new/setting/apikeys?projectName=default"
+              target="_blank"
+              rel="noreferrer"
+              >语音技术控制台</a
+            >创建的新版 API Key；音频以 48 kHz PCM 合成。
+          </p>
+        </div>
       </template>
 
       <div class="settingsRowMain">
@@ -1189,6 +1260,8 @@ onUnmounted(() => {
             :scroll-items="voiceScrollItems"
             :fixed-bottom-items="selectListsEmpty"
             :scroll-max-height="voiceScrollMaxHeight"
+            :searchable="draft.engine === 'volcengine'"
+            search-placeholder="搜索音色名称或 ID"
             ariaLabel="旁白语音"
             @update:model-value="patchMultiVoice({ narrationVoiceId: $event })"
           />
@@ -1208,6 +1281,8 @@ onUnmounted(() => {
             :scroll-items="voiceScrollItems"
             :fixed-bottom-items="selectListsEmpty"
             :scroll-max-height="voiceScrollMaxHeight"
+            :searchable="draft.engine === 'volcengine'"
+            search-placeholder="搜索音色名称或 ID"
             ariaLabel="对白语音"
             @update:model-value="patchMultiVoice({ dialogueVoiceId: $event })"
           />
@@ -1260,6 +1335,8 @@ onUnmounted(() => {
               :scroll-items="voiceScrollItems"
               :fixed-bottom-items="selectListsEmpty"
               :scroll-max-height="voiceScrollMaxHeight"
+              :searchable="draft.engine === 'volcengine'"
+              search-placeholder="搜索音色名称或 ID"
               ariaLabel="对白男声"
               @update:model-value="patchMultiVoice({ dialogueMaleVoiceId: $event })"
             />
@@ -1278,6 +1355,8 @@ onUnmounted(() => {
               :scroll-items="voiceScrollItems"
               :fixed-bottom-items="selectListsEmpty"
               :scroll-max-height="voiceScrollMaxHeight"
+              :searchable="draft.engine === 'volcengine'"
+              search-placeholder="搜索音色名称或 ID"
               ariaLabel="对白女声"
               @update:model-value="
                 patchMultiVoice({ dialogueFemaleVoiceId: $event })
@@ -1301,6 +1380,8 @@ onUnmounted(() => {
           :scroll-items="voiceScrollItems"
           :fixed-bottom-items="selectListsEmpty"
           :scroll-max-height="voiceScrollMaxHeight"
+          :searchable="draft.engine === 'volcengine'"
+          search-placeholder="搜索音色名称或 ID"
           ariaLabel="音色"
           @update:model-value="patchSingleVoice({ voiceId: $event })"
         />

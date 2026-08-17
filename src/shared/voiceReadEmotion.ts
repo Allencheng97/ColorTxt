@@ -99,6 +99,7 @@ const EMOTION_ENGINE_SUPPORT = new Set<VoiceReadEngineId>([
   "minimax",
   "dashscope",
   "mimo",
+  "volcengine",
 ]);
 
 export function voiceReadEngineSupportsEmotion(
@@ -140,7 +141,7 @@ const DASHSCOPE_EMOTION_INSTRUCTIONS: Record<VoiceReadEmotionLabel, string> = {
   whisper: "语气低语、轻声，像在说悄悄话。",
 };
 
-/** 将情绪转为通义 instruct / MiMo 等自然语言引擎可用的 instructions */
+/** 将情绪转为支持自然语言语音指令的引擎可用文本 */
 export function mapEmotionForNaturalLanguageEngine(
   emotion: VoiceReadEmotionId | undefined,
 ): string | undefined {

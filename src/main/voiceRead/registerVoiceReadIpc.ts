@@ -1,5 +1,6 @@
 import { ipcMain } from "electron";
 import {
+  VOICE_READ_IPC_CANCEL_SYNTHESIS,
   VOICE_READ_IPC_HEALTH_CHECK,
   VOICE_READ_IPC_LIST_VOICES,
   VOICE_READ_IPC_SYNTHESIZE,
@@ -23,6 +24,21 @@ import {
   listVoiceReadVoices,
   synthesizeVoiceReadAudio,
 } from "./providerRegistry";
+
+const synthesisAbortControllers = new Map<string, AbortController>();
+
+function parseSynthesisRequestId(raw: unknown): string | null {
+  if (!raw || typeof raw !== "object") return null;
+  const requestId = (raw as Record<string, unknown>).requestId;
+  if (typeof requestId !== "string") return null;
+  const normalized = requestId.trim();
+  if (!normalized || normalized.length > 80) return null;
+  return /^[A-Za-z0-9_-]+$/.test(normalized) ? normalized : null;
+}
+
+function synthesisAbortKey(senderId: number, requestId: string): string {
+  return `${senderId}:${requestId}`;
+}
 
 function parseSynthesisRequest(raw: unknown): VoiceReadSynthesisRequest | null {
   if (!raw || typeof raw !== "object") return null;
@@ -66,10 +82,16 @@ function parseEngineConfigPayload(
 export function registerVoiceReadIpcHandlers(): void {
   ipcMain.handle(
     VOICE_READ_IPC_SYNTHESIZE,
-    async (_evt, raw: unknown): Promise<VoiceReadSynthesizeIpcResult> => {
+    async (evt, raw: unknown): Promise<VoiceReadSynthesizeIpcResult> => {
       const req = parseSynthesisRequest(raw);
-      if (!req) return { ok: false, error: "无效请求" };
+      const requestId = parseSynthesisRequestId(raw);
+      if (!req || !requestId) return { ok: false, error: "无效请求" };
       const ac = new AbortController();
+      const key = synthesisAbortKey(evt.sender.id, requestId);
+      synthesisAbortControllers.get(key)?.abort();
+      synthesisAbortControllers.set(key, ac);
+      const abortOnSenderDestroyed = () => ac.abort();
+      evt.sender.once("destroyed", abortOnSenderDestroyed);
       try {
         const result = normalizeSynthesisResultForIpc(
           await synthesizeVoiceReadAudio(req, ac.signal),
@@ -80,9 +102,24 @@ export function registerVoiceReadIpcHandlers(): void {
           ok: false,
           error: e instanceof Error ? e.message : String(e),
         };
+      } finally {
+        evt.sender.removeListener("destroyed", abortOnSenderDestroyed);
+        if (synthesisAbortControllers.get(key) === ac) {
+          synthesisAbortControllers.delete(key);
+        }
       }
     },
   );
+
+  ipcMain.handle(VOICE_READ_IPC_CANCEL_SYNTHESIS, (evt, raw: unknown) => {
+    const requestId = parseSynthesisRequestId(raw);
+    if (requestId) {
+      const key = synthesisAbortKey(evt.sender.id, requestId);
+      synthesisAbortControllers.get(key)?.abort();
+      synthesisAbortControllers.delete(key);
+    }
+    return { ok: true as const };
+  });
 
   ipcMain.handle(
     VOICE_READ_IPC_LIST_VOICES,

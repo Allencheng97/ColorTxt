@@ -65,7 +65,7 @@
 - **工具调用轮数**：**`chat.maxToolRounds`**（设置页 **工具调用轮数**，默认见 **`DEFAULT_MAX_TOOL_ROUNDS`**）限制单次 Agent 提问内模型↔工具往返次数；复杂任务可适当调高。
 - **未单独适配**：仍可使用对话与 Agent 工具，但不保证思考开关与思考流展示正常；自定义地址若与上表某行 **Base URL 一致**，保存后会自动匹配为对应预设项。
 - **向量嵌入**另有一套来源（**设置 → 向量模型 → 内置本地 / 远程 API**），见下节「内置向量模型与缓存目录」；**不**使用上表对话服务商下拉。
-- **文生图**（本地 A1111 / ComfyUI 与云端图像 API）与 **语音朗读**（Edge TTS / 系统语音 / 通义 Qwen3-TTS / MiniMax TTS / **小米 MiMo TTS**，见 **「语音朗读」**）为独立配置，亦不在上表；文生图预设见下节。
+- **文生图**（本地 A1111 / ComfyUI 与云端图像 API）与 **语音朗读**（Edge TTS / 系统语音 / 通义 Qwen3-TTS / MiniMax TTS / **小米 MiMo TTS** / **火山引擎豆包语音合成大模型 2.0**，见 **「语音朗读」**）为独立配置，亦不在上表；文生图预设见下节。火山朗读 engine id 为 **`volcengine`**，使用新版 **`X-Api-Key`** + **`X-Api-Resource-Id: seed-tts-2.0`** 鉴权、官方 **444 个音色**（2.0 主表 293 + 多语种 151，含中文、英文及其他多语种）与 **48 kHz PCM**；连接测试会合成一个汉字并产生极少量用量。
 
 ### 文生图服务商
 
@@ -323,7 +323,7 @@ cardShellWrap（悬停抬高 z-index）
 | **`ai.embedding.apiKey`** | 向量嵌入远程 API 单密钥（非按方案） |
 | **`ai.chatProfileKeys`** | 对话方案密钥 JSON：`{ [profileId]: apiKey }` |
 | **`ai.txt2imgProfileKeys`** | 文生图方案密钥 JSON：`{ [profileId]: apiKey }` |
-| **`voiceRead.profileKeys`** | 朗读方案密钥 JSON：`{ [profileId]: { dashscopeApiKey?, minimaxApiKey?, mimoApiKey? } }` |
+| **`voiceRead.profileKeys`** | 朗读方案密钥 JSON：`{ [profileId]: { dashscopeApiKey?, minimaxApiKey?, mimoApiKey?, volcengineApiKey? } }` |
 | **`translation.providerKeys`** | 选区翻译服务凭证 JSON（DeepL / 百度 / 有道 / 腾讯 / 火山 / 阿里等密钥与签名用标识；AI 翻译为 **`aiProfileKeys`** 按方案映射；见 [基础功能.md](./基础功能.md) →「选区翻译」） |
 
 **已废弃 slot**（仅启动迁移时 **`getDeprecatedSecret`** 读一次，迁入 profile 映射后 **`purgeDeprecatedSecretSlots`** 删除，不再写入）：
@@ -343,7 +343,7 @@ cardShellWrap（悬停抬高 z-index）
 | 选区翻译 | 翻译设置变更 / 设置 **确定** → **`persistTranslationSecretsToVault`**（**`secrets:setTranslationSecrets`**）；启动 **`hydrateTranslationSecretsFromVault`** |
 | 启动灌回 | **`hydrateApiKeysFromVault`**（AI）、**`hydrateVoiceReadSecretsFromVault`**（语音）、**`hydrateTranslationSecretsFromVault`**（翻译）；若 profile id 与映射不对齐，**`reconcileOrphanProfileKeys`** 将孤儿密钥挂回当前活跃方案 |
 
-**localStorage**：**`colorTxt.ui.settings`** 中 **`voiceRead`** 及各方案 **`engineConfig`** **不含**密钥明文；根级 **`engineConfig`** 亦经 **`stripVoiceReadSettingsApiKeysForDisk`** 剥除。运行时内存中保留密钥供合成/对话使用。
+**localStorage**：**`colorTxt.ui.settings`** 中 **`voiceRead`** 及各方案 **`engineConfig`** **不含**密钥明文；根级 **`engineConfig`** 亦经 **`stripVoiceReadSettingsApiKeysForDisk`** 剥除。火山 `volcengineApiKey` 与其他朗读密钥一样进入系统凭据库，运行时才灌回内存供合成使用，**不会写入 `localStorage`**。
 
 **多方案与多密钥**：同一 slot 内的 JSON 按 **方案 id** 索引，**不是**按服务商；同服务商多套方案、多套密钥可并存，互不同步覆盖。
 
@@ -371,7 +371,7 @@ cardShellWrap（悬停抬高 z-index）
 | `SettingsTxt2ImgPanel.vue` | 「角色卡」：服务商 + 地址（含 **MiniMax** `minimax_images`）；云端 Key/**测试连接**/模型建议；**固定尺寸**或 **自由宽高**；OpenAI 画质；A1111/Comfy 参数；**立绘缓存目录** |
 | `AppConnectionTestButton.vue` | 设置页共用测试连接按钮（`useConnectionTest`） |
 | `SettingsSkillsPanel.vue` | 「技能」：内置技能开关与覆盖、自定义技能列表；footer「添加技能」打开 **`SettingsSkillEditModal`** |
-| `SettingsVoiceReadPanel.vue` | 「语音朗读」：朗读方案、引擎（含 **MiMo**）、单/多音色、AI 识别、**情绪标注**、通义/MiniMax/MiMo 密钥与测试连接；见 **「语音朗读」** |
+| `SettingsVoiceReadPanel.vue` | 「语音朗读」：朗读方案、引擎（含 **MiMo**、**火山引擎 `volcengine`**）、单/多音色、AI 识别、**情绪标注**、通义/MiniMax/MiMo/火山密钥与测试连接；火山接入豆包语音合成大模型 2.0、444 个官方音色与 48 kHz PCM，连接测试会合成一个汉字并产生极少量用量；见 **「语音朗读」** |
 | `VoiceReadToolbar.vue` | 顶栏朗读控制条（含 **音量** 滑块；设置内 **音调** 为合成参数）；与 **定时滚动** 互斥 |
 | `SettingsSkillEditModal.vue` | 自定义技能新建/编辑弹窗 |
 | `AppPullFlashButton.vue` | 设置面板内刷新模型/采样器列表等，完成态闪光反馈 |
