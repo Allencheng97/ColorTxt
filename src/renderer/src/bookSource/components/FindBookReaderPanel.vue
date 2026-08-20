@@ -403,13 +403,44 @@ const readerPaneWrapRef = useTemplateRef<HTMLElement>("readerPaneWrapRef");
 const {
   fullscreenReaderPaneStyle,
   onLayoutMouseDown: onFullscreenLayoutMouseDown,
-  onLayoutWheel,
+  onLayoutWheel: onFullscreenLayoutWheel,
 } = useAppFullscreenReaderLayout({
   isFullscreenView,
   readerRef,
   fullscreenSidebarOverlayRef,
   fullscreenReaderWidthPercent,
   readerPaneWrapRef,
+});
+
+let wheelAdvanceTimer: number | null = null;
+
+/**
+ * 书架在线阅读：正文已经到达本章底部后，用户再次向下滚动时进入下一章。
+ * 只处理正文区域，避免滚动章节侧栏时意外跳章；定时滚动和语音朗读仍走各自逻辑。
+ */
+function onLayoutWheel(ev: WheelEvent) {
+  onFullscreenLayoutWheel(ev);
+  if (ev.deltaY <= 0 || !readerPaneWrapRef.value) return;
+  if (!(ev.target instanceof Node) || !readerPaneWrapRef.value.contains(ev.target)) return;
+  if (!viewportAtBottom.value || !canGoNextChapter.value) return;
+  if (
+    chapterContentBusy.value ||
+    readerEditMode.value ||
+    voiceRead.isVoiceReadNavigationBlocked.value
+  ) {
+    return;
+  }
+
+  // 一个连续滚轮手势可能产生多个 wheel 事件，只允许合并后的动作触发一次。
+  if (wheelAdvanceTimer !== null) return;
+  wheelAdvanceTimer = window.setTimeout(() => {
+    wheelAdvanceTimer = null;
+    advanceToNextChapterForAutoRead();
+  }, 80);
+}
+
+onBeforeUnmount(() => {
+  if (wheelAdvanceTimer !== null) window.clearTimeout(wheelAdvanceTimer);
 });
 
 const sidebarShellVisible = computed(() =>
