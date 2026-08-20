@@ -413,7 +413,11 @@ const {
   readerPaneWrapRef,
 });
 
+const CHAPTER_ADVANCE_WHEEL_THRESHOLD = 260;
 let wheelAdvanceTimer: number | null = null;
+let wheelDeltaResetTimer: number | null = null;
+let accumulatedWheelDelta = 0;
+let accumulatedWheelDirection: 1 | -1 | 0 = 0;
 
 /**
  * 书架在线阅读：正文已经到达本章底部后，用户再次向下滚动时进入下一章。
@@ -434,7 +438,24 @@ function onLayoutWheel(ev: WheelEvent) {
 
   // 一个连续滚轮手势可能产生多个 wheel 事件，只允许合并后的动作触发一次。
   if (wheelAdvanceTimer !== null) return;
-  const goingDown = ev.deltaY > 0;
+  const direction: 1 | -1 = ev.deltaY > 0 ? 1 : -1;
+  if (accumulatedWheelDirection !== direction) {
+    accumulatedWheelDirection = direction;
+    accumulatedWheelDelta = 0;
+  }
+  accumulatedWheelDelta += Math.abs(ev.deltaY);
+
+  if (wheelDeltaResetTimer !== null) window.clearTimeout(wheelDeltaResetTimer);
+  wheelDeltaResetTimer = window.setTimeout(() => {
+    wheelDeltaResetTimer = null;
+    accumulatedWheelDelta = 0;
+    accumulatedWheelDirection = 0;
+  }, 180);
+
+  // 小幅滚动只用于阅读，不触发章节切换；需要明显的大幅度连续滚动。
+  if (accumulatedWheelDelta < CHAPTER_ADVANCE_WHEEL_THRESHOLD) return;
+
+  const goingDown = direction === 1;
   const atBoundary = goingDown
     ? viewportAtBottom.value && canGoNextChapter.value
     : viewportTopLine.value <= 1 && canGoPrevChapter.value;
@@ -442,6 +463,12 @@ function onLayoutWheel(ev: WheelEvent) {
 
   wheelAdvanceTimer = window.setTimeout(() => {
     wheelAdvanceTimer = null;
+    if (wheelDeltaResetTimer !== null) {
+      window.clearTimeout(wheelDeltaResetTimer);
+      wheelDeltaResetTimer = null;
+    }
+    accumulatedWheelDelta = 0;
+    accumulatedWheelDirection = 0;
     const targetIndex = displayIndexForReadingOrder(
       currentReadingOrderIndex.value + (goingDown ? 1 : -1),
       displayChapters.value.length,
@@ -457,6 +484,9 @@ function onLayoutWheel(ev: WheelEvent) {
 
 onBeforeUnmount(() => {
   if (wheelAdvanceTimer !== null) window.clearTimeout(wheelAdvanceTimer);
+  if (wheelDeltaResetTimer !== null) window.clearTimeout(wheelDeltaResetTimer);
+  accumulatedWheelDelta = 0;
+  accumulatedWheelDirection = 0;
 });
 
 const sidebarShellVisible = computed(() =>
