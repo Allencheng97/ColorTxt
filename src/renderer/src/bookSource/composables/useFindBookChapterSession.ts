@@ -637,7 +637,10 @@ export function useFindBookChapterSession(deps: FindBookChapterSessionDeps) {
     } finally {
       loading.value = false;
       showChapterLoadingUi.value = false;
-      await ensureChapterScrollAtTop();
+      // 无缝追加已经保留了当前视口；只有普通章节跳转才回到新章节顶部。
+      if (!options?.appendToCurrent) {
+        await ensureChapterScrollAtTop();
+      }
     }
   }
 
