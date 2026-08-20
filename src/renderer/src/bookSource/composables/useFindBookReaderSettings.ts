@@ -383,6 +383,7 @@ function createFindBookReaderSettingsStore() {
     fastScrollSensitivity: fb.fastScrollSensitivity,
     stickyChapterTitleEnabled: fb.stickyChapterTitleEnabled,
     chapterNavToolbarEnabled: fb.chapterNavToolbarEnabled,
+    findBookChapterAdvanceMode: fb.findBookChapterAdvanceMode,
     selectionToolbarButtons: fb.selectionToolbarButtons,
     dictionarySettings: fb.dictionarySettings,
     webSearchSettings: fb.webSearchSettings,

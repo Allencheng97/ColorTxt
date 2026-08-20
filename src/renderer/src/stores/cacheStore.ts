@@ -48,6 +48,7 @@ import {
   mergeAiSkillsEnabled,
 } from "@shared/aiSkills";
 import type { VoiceReadSettings } from "../constants/voiceRead";
+import type { FindBookChapterAdvanceMode } from "../constants/findBookChapterAdvance";
 import {
   mergeTimedScrollSettings,
   type TimedScrollSettings,
@@ -130,6 +131,8 @@ export type PersistedSettingsData = {
   stickyChapterTitleEnabled?: boolean;
   /** 阅读区底部「上一章 / 下一章」工具栏 */
   chapterNavToolbarEnabled?: boolean;
+  /** 找书阅读器章节末尾向下滚动的续章方式 */
+  findBookChapterAdvanceMode?: FindBookChapterAdvanceMode;
   /** 编辑模式下是否显示行号 */
   readerEditShowLineNumbers?: boolean;
   /** 编辑模式下是否显示小地图 */

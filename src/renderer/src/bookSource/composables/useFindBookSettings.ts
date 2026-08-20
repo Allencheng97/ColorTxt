@@ -59,6 +59,7 @@ function createFindBookSettingsStore() {
   const fastScrollSensitivity = ref(initial.fastScrollSensitivity);
   const stickyChapterTitleEnabled = ref(initial.stickyChapterTitleEnabled);
   const chapterNavToolbarEnabled = ref(initial.chapterNavToolbarEnabled);
+  const findBookChapterAdvanceMode = ref(initial.findBookChapterAdvanceMode);
   const readerEditShowLineNumbers = ref(initial.readerEditShowLineNumbers);
   const readerEditMinimap = ref(initial.readerEditMinimap);
   const fullscreenReaderWidthPercent = ref(initial.fullscreenReaderWidthPercent);
@@ -119,6 +120,7 @@ function createFindBookSettingsStore() {
       fastScrollSensitivity: fastScrollSensitivity.value,
       stickyChapterTitleEnabled: stickyChapterTitleEnabled.value,
       chapterNavToolbarEnabled: chapterNavToolbarEnabled.value,
+      findBookChapterAdvanceMode: findBookChapterAdvanceMode.value,
       readerEditShowLineNumbers: readerEditShowLineNumbers.value,
       readerEditMinimap: readerEditMinimap.value,
       fullscreenReaderWidthPercent: fullscreenReaderWidthPercent.value,
@@ -283,6 +285,7 @@ function createFindBookSettingsStore() {
     fastScrollSensitivity,
     stickyChapterTitleEnabled,
     chapterNavToolbarEnabled,
+    findBookChapterAdvanceMode,
     readerEditShowLineNumbers,
     readerEditMinimap,
     fullscreenReaderWidthPercent,

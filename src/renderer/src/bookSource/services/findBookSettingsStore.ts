@@ -59,6 +59,11 @@ import type { DictionarySettings } from "@shared/dictionaryTypes";
 import type { WebSearchSettings } from "@shared/webSearchTypes";
 import { READER_EDITOR_DEFAULT_FONT_FAMILY } from "../../monaco/readerEditorOptions";
 import {
+  DEFAULT_FIND_BOOK_CHAPTER_ADVANCE_MODE,
+  isFindBookChapterAdvanceMode,
+  type FindBookChapterAdvanceMode,
+} from "../../constants/findBookChapterAdvance";
+import {
   resolveDefaultBookSourceDownloadDirSync,
   resolveDefaultBookSourceChapterCacheDirSync,
 } from "../../utils/defaultCacheDirs";
@@ -203,6 +208,7 @@ export type SharedReaderSettingsSnapshot = {
   fastScrollSensitivity: number;
   stickyChapterTitleEnabled: boolean;
   chapterNavToolbarEnabled: boolean;
+  findBookChapterAdvanceMode: FindBookChapterAdvanceMode;
   readerEditShowLineNumbers: boolean;
   readerEditMinimap: boolean;
   fullscreenReaderWidthPercent: number;
@@ -304,6 +310,11 @@ export function sharedReaderSettingsFromMainData(
       typeof data.chapterNavToolbarEnabled === "boolean"
         ? data.chapterNavToolbarEnabled
         : defaultChapterNavToolbarEnabled,
+    findBookChapterAdvanceMode: isFindBookChapterAdvanceMode(
+      data.findBookChapterAdvanceMode,
+    )
+      ? data.findBookChapterAdvanceMode
+      : DEFAULT_FIND_BOOK_CHAPTER_ADVANCE_MODE,
     readerEditShowLineNumbers:
       typeof data.readerEditShowLineNumbers === "boolean"
         ? data.readerEditShowLineNumbers
@@ -360,6 +371,7 @@ export function snapshotSharedReaderSettingsForMain(
     fastScrollSensitivity: state.fastScrollSensitivity,
     stickyChapterTitleEnabled: state.stickyChapterTitleEnabled,
     chapterNavToolbarEnabled: state.chapterNavToolbarEnabled,
+    findBookChapterAdvanceMode: state.findBookChapterAdvanceMode,
     readerEditShowLineNumbers: state.readerEditShowLineNumbers,
     readerEditMinimap: state.readerEditMinimap,
     fullscreenReaderWidthPercent: state.fullscreenReaderWidthPercent,

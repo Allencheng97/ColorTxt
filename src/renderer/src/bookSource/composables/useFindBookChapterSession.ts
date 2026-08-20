@@ -519,7 +519,11 @@ export function useFindBookChapterSession(deps: FindBookChapterSessionDeps) {
 
   async function loadChapterAtDisplayIndex(
     index: number,
-    options?: { smoothScroll?: boolean; preferCache?: boolean },
+    options?: {
+      smoothScroll?: boolean;
+      preferCache?: boolean;
+      appendToCurrent?: boolean;
+    },
   ) {
     const ch = deps.displayChapters.value[index];
     if (!ch) return;
@@ -559,7 +563,7 @@ export function useFindBookChapterSession(deps: FindBookChapterSessionDeps) {
     cancelChapterLoad();
     // 先启动侧栏居中动画，避免与 Monaco 正文写入抢主线程导致卡顿
     const scrollDone = deps.scrollChapterListToCurrent({ smooth: wantSmooth });
-    if (!fromCache) {
+    if (!fromCache && !options?.appendToCurrent) {
       // 未缓存 / 强制刷新：遮罩盖住旧正文，切章期间不做 Monaco 清空（避免卡列表动画）
       readerContentKey.value = null;
       lastChapterTitle.value = "";
@@ -616,9 +620,17 @@ export function useFindBookChapterSession(deps: FindBookChapterSessionDeps) {
       deps.markChapterCached(ch.url);
       readerContentKey.value = `findbook://${d.bookUrl}#${ch.url}`;
       // IPC 返回缓存/联网原文；文本替换在 renderChapterText 中与「转换」一并套用
-      lastChapterTitle.value = displayTitle || ch.title;
-      lastChapterBody.value = body;
-      await renderChapterText(lastChapterTitle.value, body);
+      const nextTitle = displayTitle || ch.title;
+      if (options?.appendToCurrent && lastChapterBody.value) {
+        // 保留当前滚动位置，把下一章正文追加到现有内容末尾，实现连续阅读。
+        lastChapterBody.value = `${lastChapterBody.value}\n\n${nextTitle}\n${body}`;
+        lastChapterTitle.value = "";
+        await renderChapterText("", lastChapterBody.value, { resetScroll: false });
+      } else {
+        lastChapterTitle.value = nextTitle;
+        lastChapterBody.value = body;
+        await renderChapterText(lastChapterTitle.value, body);
+      }
       if (deps.isInBookshelf(d.bookUrl, it.origin)) {
         deps.updateReadProgress(d.bookUrl, it.origin, contentIndex, ch.title);
       }

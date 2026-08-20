@@ -231,6 +231,7 @@ const {
   fastScrollSensitivity,
   stickyChapterTitleEnabled,
   chapterNavToolbarEnabled,
+  findBookChapterAdvanceMode,
   selectionToolbarButtons,
   dictionarySettings,
   webSearchSettings,
@@ -420,9 +421,9 @@ let wheelAdvanceTimer: number | null = null;
  */
 function onLayoutWheel(ev: WheelEvent) {
   onFullscreenLayoutWheel(ev);
-  if (ev.deltaY <= 0 || !readerPaneWrapRef.value) return;
+  if (!readerPaneWrapRef.value || ev.deltaY === 0) return;
   if (!(ev.target instanceof Node) || !readerPaneWrapRef.value.contains(ev.target)) return;
-  if (!viewportAtBottom.value || !canGoNextChapter.value) return;
+  if (findBookChapterAdvanceMode.value === "default") return;
   if (
     chapterContentBusy.value ||
     readerEditMode.value ||
@@ -433,9 +434,24 @@ function onLayoutWheel(ev: WheelEvent) {
 
   // 一个连续滚轮手势可能产生多个 wheel 事件，只允许合并后的动作触发一次。
   if (wheelAdvanceTimer !== null) return;
+  const goingDown = ev.deltaY > 0;
+  const atBoundary = goingDown
+    ? viewportAtBottom.value && canGoNextChapter.value
+    : viewportTopLine.value <= 1 && canGoPrevChapter.value;
+  if (!atBoundary) return;
+
   wheelAdvanceTimer = window.setTimeout(() => {
     wheelAdvanceTimer = null;
-    advanceToNextChapterForAutoRead();
+    const targetIndex = displayIndexForReadingOrder(
+      currentReadingOrderIndex.value + (goingDown ? 1 : -1),
+      displayChapters.value.length,
+      chapterSortDesc.value,
+    );
+    void loadChapterAtDisplayIndex(targetIndex, {
+      appendToCurrent:
+        findBookChapterAdvanceMode.value === "seamless" && goingDown,
+      smoothScroll: findBookChapterAdvanceMode.value !== "seamless",
+    });
   }, 80);
 }
 
