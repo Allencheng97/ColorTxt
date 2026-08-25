@@ -153,6 +153,11 @@
 | Qwen3-TTS | 阿里云通义（DashScope） |                                                 |
 | MiniMax   | MiniMax                 |                                                 |
 | 小米 MiMo | MiMo                    | 支持 **音色定制** 和 **音色克隆**，**目前限免** |
+| 豆包语音合成大模型 2.0 | 火山引擎 | 内置官方 **444 个音色**（中文、英文和其他多语种）；48 kHz PCM |
+
+火山引擎 TTS 使用控制台创建的新版 API Key，通过 `X-Api-Key` 与
+`X-Api-Resource-Id: seed-tts-2.0` 鉴权。连接测试会合成一个汉字并产生极少量用量；
+API Key 进入系统凭据库，不会写入 `localStorage`。
 
 支持「单音色」或「旁白/对白多音色」。
 

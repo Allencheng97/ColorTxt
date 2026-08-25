@@ -1161,6 +1161,8 @@ defineExpose({
                   :scroll-items="charVoiceReadScrollItems"
                   :fixed-bottom-items="[]"
                   :scroll-max-height="charVoiceReadScrollMaxHeight"
+                  :searchable="voiceReadEngine === 'volcengine'"
+                  search-placeholder="搜索音色名称或 ID"
                   ariaLabel="朗读语音"
                   @update:model-value="draftVoiceReadVoiceId = $event"
                 />

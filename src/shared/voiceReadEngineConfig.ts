@@ -14,6 +14,8 @@ export type VoiceReadEngineConfig = {
   minimaxModel?: string;
   mimoApiKey?: string;
   mimoModel?: string;
+  /** 火山引擎语音技术控制台签发的新版 API Key */
+  volcengineApiKey?: string;
   /** VoiceDesign 模型：音色/风格自然语言描述 */
   mimoVoiceDescription?: string;
   /** VoiceDesign 模型：是否对 assistant 原文做智能润色（optimize_text_preview） */
@@ -44,7 +46,11 @@ function hasOwnStringField(
 
 function mergeOptionalSecretField(
   src: Record<string, unknown>,
-  key: "dashscopeApiKey" | "minimaxApiKey" | "mimoApiKey",
+  key:
+    | "dashscopeApiKey"
+    | "minimaxApiKey"
+    | "mimoApiKey"
+    | "volcengineApiKey",
   fallback?: string,
 ): string | undefined {
   if (hasOwnStringField(src, key)) {
@@ -70,6 +76,7 @@ export function mergeVoiceReadEngineConfig(
     minimaxModel: normalizeMinimaxTtsModel(src.minimaxModel),
     mimoApiKey: mergeOptionalSecretField(src, "mimoApiKey"),
     mimoModel: normalizeMimoTtsModel(src.mimoModel),
+    volcengineApiKey: mergeOptionalSecretField(src, "volcengineApiKey"),
     mimoVoiceDescription: normalizeOptionalString(src.mimoVoiceDescription),
     mimoOptimizeTextPreview: normalizeOptionalBoolean(src.mimoOptimizeTextPreview),
     mimoReferenceAudioPath: normalizeOptionalString(src.mimoReferenceAudioPath),
@@ -87,6 +94,7 @@ export function engineConfigFingerprint(
     config.minimaxModel?.trim() ?? "",
     secretMark(config.mimoApiKey),
     config.mimoModel?.trim() ?? "",
+    secretMark(config.volcengineApiKey),
     config.mimoVoiceDescription?.trim() ?? "",
     isMimoTtsVoiceDesignModel(config.mimoModel?.trim() ?? "")
       ? config.mimoOptimizeTextPreview === true
@@ -101,6 +109,7 @@ export type VoiceReadProfileSecrets = {
   dashscopeApiKey?: string;
   minimaxApiKey?: string;
   mimoApiKey?: string;
+  volcengineApiKey?: string;
 };
 
 export function extractProfileSecrets(
@@ -113,6 +122,8 @@ export function extractProfileSecrets(
   if (m) out.minimaxApiKey = m;
   const mi = config.mimoApiKey?.trim();
   if (mi) out.mimoApiKey = mi;
+  const v = config.volcengineApiKey?.trim();
+  if (v) out.volcengineApiKey = v;
   return out;
 }
 
@@ -123,6 +134,9 @@ export function hydrateEngineConfigSecrets(
   if (secrets.dashscopeApiKey) config.dashscopeApiKey = secrets.dashscopeApiKey;
   if (secrets.minimaxApiKey) config.minimaxApiKey = secrets.minimaxApiKey;
   if (secrets.mimoApiKey) config.mimoApiKey = secrets.mimoApiKey;
+  if (secrets.volcengineApiKey) {
+    config.volcengineApiKey = secrets.volcengineApiKey;
+  }
 }
 
 export function parseProfileSecretsBlob(blob: string): Record<string, VoiceReadProfileSecrets> {
@@ -149,6 +163,12 @@ export function parseProfileSecretsBlob(blob: string): Record<string, VoiceReadP
       }
       if (typeof v.mimoApiKey === "string" && v.mimoApiKey.trim()) {
         secrets.mimoApiKey = v.mimoApiKey.trim();
+      }
+      if (
+        typeof v.volcengineApiKey === "string" &&
+        v.volcengineApiKey.trim()
+      ) {
+        secrets.volcengineApiKey = v.volcengineApiKey.trim();
       }
       if (Object.keys(secrets).length > 0) out[profileId] = secrets;
     }

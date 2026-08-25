@@ -27,7 +27,8 @@ export type VoiceReadEngineId =
   | "winSapi"
   | "dashscope"
   | "minimax"
-  | "mimo";
+  | "mimo"
+  | "volcengine";
 
 export type VoiceReadEngineKind = "browser" | "ipc";
 export type VoiceReadEngineAuth = "none" | "apiKey";
@@ -124,6 +125,18 @@ const ENGINE_LIST_BASE: VoiceReadEngineMetaBase[] = [
     audioFormat: "wav",
     shortChunks: false,
   },
+  {
+    id: "volcengine",
+    label: "火山引擎",
+    description: "豆包语音合成大模型 2.0，需要 API Key",
+    kind: "ipc",
+    auth: "apiKey",
+    supportsRate: true,
+    supportsPitch: false,
+    voiceSource: "static",
+    audioFormat: "pcm_s16le",
+    shortChunks: false,
+  },
 ];
 
 const ENGINE_LIST: VoiceReadEngineMeta[] = ENGINE_LIST_BASE.map((meta) => ({
@@ -192,6 +205,7 @@ export function voiceReadEngineRequiresApiKey(
   if (engine === "dashscope") return !config.dashscopeApiKey?.trim();
   if (engine === "minimax") return !config.minimaxApiKey?.trim();
   if (engine === "mimo") return !config.mimoApiKey?.trim();
+  if (engine === "volcengine") return !config.volcengineApiKey?.trim();
   return false;
 }
 
