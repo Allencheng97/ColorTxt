@@ -76,13 +76,13 @@ export const VOICE_READ_ENGINE_DEFAULTS: Record<
     },
   },
   volcengine: {
-    voiceId: "zh_female_vv_uranus_bigtts",
-    singleVoiceId: "zh_female_vv_uranus_bigtts",
+    voiceId: "zh_male_ruyaqingnian_uranus_bigtts",
+    singleVoiceId: "zh_male_ruyaqingnian_uranus_bigtts",
     multi: {
-      narrationVoiceId: "zh_female_vv_uranus_bigtts",
-      dialogueVoiceId: "zh_male_m191_uranus_bigtts",
-      dialogueMaleVoiceId: "zh_male_m191_uranus_bigtts",
-      dialogueFemaleVoiceId: "zh_female_cancan_uranus_bigtts",
+      narrationVoiceId: "zh_male_ruyaqingnian_uranus_bigtts",
+      dialogueVoiceId: "zh_male_linjiananhai_uranus_bigtts",
+      dialogueMaleVoiceId: "zh_male_huolixiaoge_uranus_bigtts",
+      dialogueFemaleVoiceId: "zh_female_meilinvyou_uranus_bigtts",
     },
   },
 };

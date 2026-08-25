@@ -37,10 +37,12 @@ import {
 } from "@shared/voiceReadMimoVoices";
 import {
   findVolcengineTtsVoice,
-  groupVolcengineTtsVoices,
+  VOLCENGINE_TTS_VOICE_GROUPS,
   VOLCENGINE_TTS_VOICES,
 } from "@shared/voiceReadVolcengineVoices";
-import { volcengineVoiceGroupsToSelectItems } from "./voiceReadVolcengineVoiceSelect";
+import {
+  VOLCENGINE_VOICE_SELECT_ITEMS,
+} from "./voiceReadVolcengineVoiceSelect";
 
 export type VoiceSelectOption = { id: string; label: string };
 
@@ -394,6 +396,15 @@ function groupWinSapiVoices(
     .map(([locale, options]) => [locale, options] as const);
 }
 
+const VOLCENGINE_VOICE_OPTION_GROUPS: VoiceOptionGroup[] =
+  VOLCENGINE_TTS_VOICE_GROUPS.map(
+    ([label, voices]) =>
+      [
+        label,
+        voices.map((voice) => ({ id: voice.id, label: voice.label })),
+      ] as const,
+  );
+
 export function getVoiceGroupsForEngine(
   engine: VoiceReadEngineId,
   systemVoices: SpeechSynthesisVoice[],
@@ -407,13 +418,7 @@ export function getVoiceGroupsForEngine(
     return groupMinimaxVoices(minimaxVoiceCatalog.value);
   }
   if (engine === "volcengine") {
-    return groupVolcengineTtsVoices().map(
-      ([label, voices]) =>
-        [
-          label,
-          voices.map((voice) => ({ id: voice.id, label: voice.label })),
-        ] as const,
-    );
+    return VOLCENGINE_VOICE_OPTION_GROUPS;
   }
   return "flat";
 }
@@ -430,7 +435,7 @@ export function voiceSelectItemsForEngine(
     return mimoVoiceGroupsToSelectItems();
   }
   if (engine === "volcengine") {
-    return volcengineVoiceGroupsToSelectItems();
+    return VOLCENGINE_VOICE_SELECT_ITEMS as CustomSelectItem[];
   }
   if (engine === "edge") {
     return edgeVoiceGroupsToSelectItems(

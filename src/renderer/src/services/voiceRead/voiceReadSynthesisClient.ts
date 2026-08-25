@@ -9,6 +9,7 @@ import {
 } from "@shared/voiceReadSynthesisIpc";
 import type { VoiceReadEngineConfig } from "@shared/voiceReadEngineConfig";
 import type { VoiceReadEngineId } from "@shared/voiceReadEngines";
+import type { VolcengineSpeechSlot } from "@shared/voiceReadVolcengineAudio";
 import {
   toPlainVoiceReadEngineConfig,
   toPlainVoiceReadHealthCheckPayload,
@@ -30,6 +31,8 @@ export function toVoiceReadSynthesisRequest(
   text: string,
   voiceId: string,
   emotion?: VoiceReadEmotionId,
+  speechSlot?: VolcengineSpeechSlot,
+  speechMode?: { language?: string; dialect?: string },
 ): VoiceReadSynthesisRequest {
   return toPlainVoiceReadSynthesisRequest({
     engine: settings.engine,
@@ -38,6 +41,9 @@ export function toVoiceReadSynthesisRequest(
     rate: settings.rate,
     pitch: settings.pitch,
     emotion,
+    volcengineSpeechSlot: speechSlot,
+    volcengineLanguage: speechMode ? speechMode.language : undefined,
+    volcengineDialect: speechMode ? speechMode.dialect : undefined,
     engineConfig: toPlainVoiceReadEngineConfig(
       settings.engineConfig,
       settings.dashscopeApiKey,

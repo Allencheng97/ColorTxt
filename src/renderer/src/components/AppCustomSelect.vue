@@ -10,6 +10,18 @@ import {
 } from "vue";
 import { icons } from "../icons";
 
+export type CustomSelectItemTagTone =
+  | "language"
+  | "dialect"
+  | "scene"
+  | "capability"
+  | "note";
+
+export type CustomSelectItemTag = {
+  label: string;
+  tone: CustomSelectItemTagTone;
+};
+
 export type CustomSelectItem =
   | {
       kind: "item";
@@ -29,6 +41,8 @@ export type CustomSelectItem =
       labelSuffix?: string;
       /** 主标签下方的第二行说明（如引擎简介） */
       description?: string;
+      /** 说明下方的彩色标签（语种 / 方言 / 场景等） */
+      tags?: readonly CustomSelectItemTag[];
       /** 追加到 `appShellMenuItemPrefix` 容器上的 class（如旋转动画） */
       prefixWrapperClass?: string;
       /** 追加到菜单按钮上的 class（如 `appShellMenuItem--success`） */
@@ -180,6 +194,23 @@ async function positionPanel() {
   });
 }
 
+function scrollSelectedIntoView() {
+  const area = scrollAreaRef.value;
+  const id = props.modelValue;
+  if (!area || !id) return;
+  const escaped =
+    typeof CSS !== "undefined" && typeof CSS.escape === "function"
+      ? CSS.escape(id)
+      : id.replace(/["\\]/g, "\\$&");
+  const el = area.querySelector<HTMLElement>(`[data-select-id="${escaped}"]`);
+  if (!el) return;
+  const areaRect = area.getBoundingClientRect();
+  const elRect = el.getBoundingClientRect();
+  const delta =
+    elRect.top - areaRect.top - (area.clientHeight - el.offsetHeight) / 2;
+  area.scrollTop += delta;
+}
+
 function toggle() {
   open.value = !open.value;
   if (open.value) void positionPanel();
@@ -193,9 +224,21 @@ function searchItemMatches(
   item: Extract<CustomSelectItem, { kind: "item" }>,
   query: string,
 ): boolean {
-  return [item.label, item.id, item.description, item.labelSuffix].some(
-    (value) => value?.toLocaleLowerCase().includes(query),
+  if (
+    [item.label, item.id, item.description, item.labelSuffix].some((value) =>
+      value?.toLocaleLowerCase().includes(query),
+    )
+  ) {
+    return true;
+  }
+  return (
+    item.tags?.some((tag) => tag.label.toLocaleLowerCase().includes(query)) ===
+    true
   );
+}
+
+function itemHasDetail(it: Extract<CustomSelectItem, { kind: "item" }>): boolean {
+  return Boolean(it.description?.trim() || it.tags?.length);
 }
 
 const filteredScrollItems = computed((): readonly CustomSelectItem[] => {
@@ -265,6 +308,11 @@ watch(
       bindScrollAreaResizeObserver();
       requestAnimationFrame(() => {
         updateScrollAreaScrollbarFlag();
+        scrollSelectedIntoView();
+        requestAnimationFrame(() => {
+          scrollSelectedIntoView();
+          applyPanelPosition();
+        });
       });
     } else {
       searchQuery.value = "";
@@ -318,7 +366,7 @@ function itemButtonClass(it: Extract<CustomSelectItem, { kind: "item" }>) {
   if (it.danger) c.push("appShellMenuItem--danger");
   if (it.itemClass?.trim()) c.push(it.itemClass.trim());
   if (!it.actionOnly && it.id === props.modelValue) c.push("is-active");
-  if (it.description?.trim()) c.push("appShellMenuItem--stacked");
+  if (itemHasDetail(it)) c.push("appShellMenuItem--stacked");
   return c.join(" ");
 }
 
@@ -435,6 +483,7 @@ const triggerMainText = computed(() => {
               v-else-if="raw.kind === 'item'"
               type="button"
               role="option"
+              :data-select-id="raw.actionOnly ? undefined : raw.id"
               :aria-selected="!raw.actionOnly && raw.id === modelValue"
               :class="itemButtonClass(raw)"
               :disabled="raw.disabled"
@@ -458,8 +507,7 @@ const triggerMainText = computed(() => {
                   <span
                     class="appShellMenuItemLabelBlock"
                     :class="{
-                      'appShellMenuItemLabelBlock--stacked':
-                        raw.description?.trim(),
+                      'appShellMenuItemLabelBlock--stacked': itemHasDetail(raw),
                     }"
                   >
                     <span class="appShellMenuItemLabelText">{{ raw.label }}</span>
@@ -468,6 +516,18 @@ const triggerMainText = computed(() => {
                       class="appShellMenuItemDescription"
                       >{{ raw.description }}</span
                     >
+                    <span
+                      v-if="raw.tags?.length"
+                      class="appShellMenuItemTags"
+                    >
+                      <span
+                        v-for="tag in raw.tags"
+                        :key="`${tag.tone}-${tag.label}`"
+                        class="appShellMenuItemTag"
+                        :data-tone="tag.tone"
+                        >{{ tag.label }}</span
+                      >
+                    </span>
                   </span>
                   <span
                     v-if="raw.labelSuffix?.trim()"
@@ -503,6 +563,7 @@ const triggerMainText = computed(() => {
               v-else-if="raw.kind === 'item'"
               type="button"
               role="option"
+              :data-select-id="raw.actionOnly ? undefined : raw.id"
               :aria-selected="!raw.actionOnly && raw.id === modelValue"
               :class="itemButtonClass(raw)"
               :disabled="raw.disabled"
@@ -526,8 +587,7 @@ const triggerMainText = computed(() => {
                   <span
                     class="appShellMenuItemLabelBlock"
                     :class="{
-                      'appShellMenuItemLabelBlock--stacked':
-                        raw.description?.trim(),
+                      'appShellMenuItemLabelBlock--stacked': itemHasDetail(raw),
                     }"
                   >
                     <span class="appShellMenuItemLabelText">{{ raw.label }}</span>
@@ -536,6 +596,18 @@ const triggerMainText = computed(() => {
                       class="appShellMenuItemDescription"
                       >{{ raw.description }}</span
                     >
+                    <span
+                      v-if="raw.tags?.length"
+                      class="appShellMenuItemTags"
+                    >
+                      <span
+                        v-for="tag in raw.tags"
+                        :key="`${tag.tone}-${tag.label}`"
+                        class="appShellMenuItemTag"
+                        :data-tone="tag.tone"
+                        >{{ tag.label }}</span
+                      >
+                    </span>
                   </span>
                   <span
                     v-if="raw.labelSuffix?.trim()"
@@ -567,6 +639,7 @@ const triggerMainText = computed(() => {
               v-else-if="raw.kind === 'item'"
               type="button"
               role="option"
+              :data-select-id="raw.actionOnly ? undefined : raw.id"
               :aria-selected="!raw.actionOnly && raw.id === modelValue"
               :class="itemButtonClass(raw)"
               :disabled="raw.disabled"
@@ -590,8 +663,7 @@ const triggerMainText = computed(() => {
                   <span
                     class="appShellMenuItemLabelBlock"
                     :class="{
-                      'appShellMenuItemLabelBlock--stacked':
-                        raw.description?.trim(),
+                      'appShellMenuItemLabelBlock--stacked': itemHasDetail(raw),
                     }"
                   >
                     <span class="appShellMenuItemLabelText">{{ raw.label }}</span>
@@ -600,6 +672,18 @@ const triggerMainText = computed(() => {
                       class="appShellMenuItemDescription"
                       >{{ raw.description }}</span
                     >
+                    <span
+                      v-if="raw.tags?.length"
+                      class="appShellMenuItemTags"
+                    >
+                      <span
+                        v-for="tag in raw.tags"
+                        :key="`${tag.tone}-${tag.label}`"
+                        class="appShellMenuItemTag"
+                        :data-tone="tag.tone"
+                        >{{ tag.label }}</span
+                      >
+                    </span>
                   </span>
                   <span
                     v-if="raw.labelSuffix?.trim()"
@@ -724,7 +808,7 @@ const triggerMainText = computed(() => {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin: 4px;
+  margin-bottom: 6px;
   padding: 0 7px;
   min-width: 0;
   height: 30px;
@@ -760,6 +844,7 @@ const triggerMainText = computed(() => {
   color: var(--fg);
   background: transparent;
   font: inherit;
+  font-size: 13px;
 }
 .customSelectSearch input::placeholder {
   color: var(--muted);

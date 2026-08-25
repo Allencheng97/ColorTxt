@@ -20,6 +20,11 @@ import {
 } from "@shared/voiceReadIpcSerialize";
 import type { VoiceReadSynthesisRequest } from "@shared/voiceReadSynthesis";
 import {
+  normalizeVolcengineExplicitDialect,
+  normalizeVolcengineExplicitLanguage,
+  parseVolcengineSpeechSlot,
+} from "@shared/voiceReadVolcengineAudio";
+import {
   healthCheckVoiceReadEngine,
   listVoiceReadVoices,
   synthesizeVoiceReadAudio,
@@ -64,6 +69,15 @@ function parseSynthesisRequest(raw: unknown): VoiceReadSynthesisRequest | null {
     pitch,
     engineConfig,
     emotion: emotion === "auto" ? undefined : emotion,
+    volcengineSpeechSlot: parseVolcengineSpeechSlot(o.volcengineSpeechSlot),
+    volcengineLanguage:
+      o.volcengineLanguage === undefined
+        ? undefined
+        : normalizeVolcengineExplicitLanguage(o.volcengineLanguage),
+    volcengineDialect:
+      o.volcengineDialect === undefined
+        ? undefined
+        : normalizeVolcengineExplicitDialect(o.volcengineDialect),
   };
 }
 

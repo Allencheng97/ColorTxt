@@ -1,6 +1,6 @@
 import type { CustomSelectItem } from "../components/AppCustomSelect.vue";
 import {
-  groupVolcengineTtsVoices,
+  VOLCENGINE_TTS_VOICE_GROUPS,
   type VolcengineTtsVoice,
 } from "@shared/voiceReadVolcengineVoices";
 import { voiceReadGenderPrefixHtml } from "./voiceReadGenderPrefixHtml";
@@ -13,13 +13,13 @@ export function volcengineVoiceToSelectItem(
     id: voice.id,
     label: voice.label,
     description: voice.description,
+    tags: voice.tags,
     prefixHtml: voiceReadGenderPrefixHtml(voice.gender),
   };
 }
 
-export function volcengineVoiceGroupsToSelectItems(
-  groups: ReturnType<typeof groupVolcengineTtsVoices> =
-    groupVolcengineTtsVoices(),
+function buildVolcengineVoiceSelectItems(
+  groups: typeof VOLCENGINE_TTS_VOICE_GROUPS,
 ): CustomSelectItem[] {
   const items: CustomSelectItem[] = [];
   for (const [groupLabel, voices] of groups) {
@@ -29,4 +29,17 @@ export function volcengineVoiceGroupsToSelectItems(
     }
   }
   return items;
+}
+
+/** 444 项下拉数据只构建一次；AppCustomSelect 按只读列表过滤，不会改这份数组 */
+export const VOLCENGINE_VOICE_SELECT_ITEMS: readonly CustomSelectItem[] =
+  buildVolcengineVoiceSelectItems(VOLCENGINE_TTS_VOICE_GROUPS);
+
+export function volcengineVoiceGroupsToSelectItems(
+  groups: typeof VOLCENGINE_TTS_VOICE_GROUPS = VOLCENGINE_TTS_VOICE_GROUPS,
+): CustomSelectItem[] {
+  if (groups === VOLCENGINE_TTS_VOICE_GROUPS) {
+    return VOLCENGINE_VOICE_SELECT_ITEMS as CustomSelectItem[];
+  }
+  return buildVolcengineVoiceSelectItems(groups);
 }

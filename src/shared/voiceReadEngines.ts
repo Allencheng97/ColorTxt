@@ -132,7 +132,7 @@ const ENGINE_LIST_BASE: VoiceReadEngineMetaBase[] = [
     kind: "ipc",
     auth: "apiKey",
     supportsRate: true,
-    supportsPitch: false,
+    supportsPitch: true,
     voiceSource: "static",
     audioFormat: "pcm_s16le",
     shortChunks: false,
@@ -194,6 +194,13 @@ export function voiceReadEngineUsesPcmPlayback(
   engine: VoiceReadEngineId,
 ): boolean {
   return getVoiceReadEngineMeta(engine).audioFormat === "pcm_s16le";
+}
+
+/** 语速已写入合成请求时，PCM 播放必须用 1.0，避免再叠一层 playbackRate */
+export function voiceReadEngineBakesSpeechRate(
+  engine: VoiceReadEngineId,
+): boolean {
+  return engine === "volcengine";
 }
 
 export function voiceReadEngineRequiresApiKey(

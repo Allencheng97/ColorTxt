@@ -2,15 +2,25 @@ import { randomUUID } from "node:crypto";
 
 import type { VoiceReadEngineConfig } from "@shared/voiceReadEngineConfig";
 import { defaultSingleVoiceIdForEngine } from "@shared/voiceReadEngineDefaults";
-import { mapEmotionForNaturalLanguageEngine } from "@shared/voiceReadEmotion";
+import { mapEmotionForVolcengine } from "@shared/voiceReadEmotion";
 import { arrayBufferForIpc } from "@shared/voiceReadIpcSerialize";
 import type { VoiceReadSynthesisRequest } from "@shared/voiceReadSynthesis";
+import {
+  normalizeVolcengineTtsSampleRate,
+  resolveVolcengineSpeechMode,
+  storedVolcengineSlotSpeechMode,
+  normalizeVolcenginePitch,
+  volcengineSpeechRateFromPlaybackRate,
+} from "@shared/voiceReadVolcengineAudio";
+import { findVolcengineTtsVoice } from "@shared/voiceReadVolcengineVoices";
 import type { VoiceReadTtsProvider } from "./types";
+import { fetchVolcengineTts } from "./volcengineSynthQueue";
 
 const VOLCENGINE_TTS_URL =
   "https://openspeech.bytedance.com/api/v3/tts/unidirectional";
 const VOLCENGINE_RESOURCE_ID = "seed-tts-2.0";
-const VOLCENGINE_PCM_SAMPLE_RATE = 48000;
+/** 健康检查无更轻鉴权接口，用最低采样率减小下行体积 */
+const HEALTH_CHECK_SAMPLE_RATE = 8000;
 
 const VOLCENGINE_AUDIO_EVENT_CODE = 0;
 const VOLCENGINE_COMPLETE_EVENT_CODE = 20000000;
@@ -405,6 +415,11 @@ async function synthesizeVolcenginePcm(options: {
   text: string;
   voiceId: string;
   emotion?: VoiceReadSynthesisRequest["emotion"];
+  speechSlot?: VoiceReadSynthesisRequest["volcengineSpeechSlot"];
+  language?: string;
+  dialect?: string;
+  rate?: number;
+  sampleRate?: number;
   signal?: AbortSignal;
 }): Promise<ArrayBuffer> {
   throwIfAborted(options.signal);
@@ -415,32 +430,67 @@ async function synthesizeVolcenginePcm(options: {
     options.voiceId.trim() || defaultSingleVoiceIdForEngine("volcengine");
   if (!speaker) throw new Error("火山引擎音色 ID 不能为空");
 
+  const sampleRate = normalizeVolcengineTtsSampleRate(options.sampleRate);
+  const speechRate = volcengineSpeechRateFromPlaybackRate(options.rate ?? 1);
+  const pitch = normalizeVolcenginePitch(options.config.volcenginePitch);
   const reqParams: Record<string, unknown> = {
     text: options.text,
     speaker,
     audio_params: {
       format: "pcm",
-      sample_rate: VOLCENGINE_PCM_SAMPLE_RATE,
+      sample_rate: sampleRate,
+      speech_rate: speechRate,
     },
   };
-  const emotionInstruction = mapEmotionForNaturalLanguageEngine(
-    options.emotion,
+  const voice = findVolcengineTtsVoice(speaker);
+  const storedMode = storedVolcengineSlotSpeechMode(
+    options.config,
+    options.speechSlot,
   );
-  if (emotionInstruction) reqParams.context_texts = [emotionInstruction];
+  const requestedLanguage =
+    options.language !== undefined ? options.language : storedMode.language;
+  const requestedDialect =
+    options.dialect !== undefined ? options.dialect : storedMode.dialect;
+  const speechMode = resolveVolcengineSpeechMode({
+    voiceLanguages: voice?.languages ?? [],
+    voiceDialects: voice?.dialects ?? [],
+    requestedLanguage,
+    requestedDialect,
+  });
+  const additions: Record<string, unknown> = {};
+  if (speechMode.explicitLanguage) {
+    additions.explicit_language = speechMode.explicitLanguage;
+  }
+  if (speechMode.explicitDialect) {
+    additions.explicit_dialect = speechMode.explicitDialect;
+  }
+  if (pitch !== 0) {
+    additions.post_process = { pitch };
+  }
+  const emotionInstruction = mapEmotionForVolcengine(options.emotion);
+  if (emotionInstruction) {
+    additions.context_texts = [emotionInstruction];
+  }
+  if (Object.keys(additions).length > 0) {
+    reqParams.additions = JSON.stringify(additions);
+  }
 
   let response: Response;
   try {
-    response = await fetch(VOLCENGINE_TTS_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Api-Key": apiKey,
-        "X-Api-Resource-Id": VOLCENGINE_RESOURCE_ID,
-        "X-Api-Request-Id": randomUUID(),
+    response = await fetchVolcengineTts(
+      VOLCENGINE_TTS_URL,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Api-Key": apiKey,
+          "X-Api-Resource-Id": VOLCENGINE_RESOURCE_ID,
+          "X-Api-Request-Id": randomUUID(),
+        },
+        body: JSON.stringify({ req_params: reqParams }),
       },
-      body: JSON.stringify({ req_params: reqParams }),
-      signal: options.signal,
-    });
+      options.signal,
+    );
   } catch (error) {
     if (options.signal?.aborted || isAbortError(error)) {
       throw interruptedError();
@@ -466,17 +516,25 @@ export const volcengineTtsProvider: VoiceReadTtsProvider = {
   engineId: "volcengine",
 
   async synthesize(req, signal) {
+    const sampleRate = normalizeVolcengineTtsSampleRate(
+      req.engineConfig.volcengineSampleRate,
+    );
     const pcm = await synthesizeVolcenginePcm({
       config: req.engineConfig,
       text: req.text,
       voiceId: req.voiceId,
       emotion: req.emotion,
+      speechSlot: req.volcengineSpeechSlot,
+      language: req.volcengineLanguage,
+      dialect: req.volcengineDialect,
+      rate: req.rate,
+      sampleRate,
       signal,
     });
     return {
       format: "pcm_s16le",
       data: arrayBufferForIpc(pcm),
-      sampleRate: VOLCENGINE_PCM_SAMPLE_RATE,
+      sampleRate,
     };
   },
 
@@ -493,6 +551,8 @@ export const volcengineTtsProvider: VoiceReadTtsProvider = {
         config,
         text: HEALTH_CHECK_TEXT,
         voiceId: defaultSingleVoiceIdForEngine("volcengine"),
+        rate: 1,
+        sampleRate: HEALTH_CHECK_SAMPLE_RATE,
         signal,
       });
       return { ok: true, message: `连接成功；${HEALTH_CHECK_USAGE_NOTICE}` };

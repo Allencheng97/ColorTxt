@@ -26,11 +26,26 @@ export type VolcengineTtsVoiceGroup =
   | "vietnamese"
   | "italian";
 
+export type VolcengineTtsVoiceTagTone =
+  | "language"
+  | "dialect"
+  | "scene"
+  | "capability"
+  | "note";
+
+export type VolcengineTtsVoiceTag = {
+  label: string;
+  tone: VolcengineTtsVoiceTagTone;
+};
+
 export type VolcengineTtsVoice = {
   id: string;
   name: string;
   label: string;
   description: string;
+  tags: readonly VolcengineTtsVoiceTag[];
+  languages: readonly string[];
+  dialects: readonly string[];
   gender: VolcengineTtsVoiceGender;
   locale: string;
   group: VolcengineTtsVoiceGroup;
@@ -535,9 +550,18 @@ const LANGUAGE_LOCALES: Readonly<Record<string, string>> = {
   菲律宾语: "fil-PH",
   越南语: "vi-VN",
   意大利语: "it-IT",
+  日文: "ja-JP",
+  印尼: "id-ID",
+  墨西哥西班牙语: "es-MX",
 };
 
 function inferLocale(id: string, language: string): string {
+  const parsed = parseVoiceLanguageField(language);
+  const firstLang = parsed.languages[0];
+  if (firstLang) {
+    const fromFirst = LANGUAGE_LOCALES[firstLang];
+    if (fromFirst) return fromFirst;
+  }
   const direct = LANGUAGE_LOCALES[language];
   if (direct) return direct;
 
@@ -587,26 +611,95 @@ function inferGender(id: string): VolcengineTtsVoiceGender {
   throw new Error(`火山引擎音色 ID 未包含明确性别：${id}`);
 }
 
+function splitVoiceList(raw: string): string[] {
+  return raw
+    .split(/[、,，]/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function parseVoiceLanguageField(language: string): {
+  languages: string[];
+  dialects: string[];
+} {
+  const trimmed = language.trim();
+  if (!trimmed) return { languages: [], dialects: [] };
+
+  const dialectMatch = trimmed.match(/方言[：:]([^；;]*)/);
+  const langMatch = trimmed.match(/语种[：:]([^；;]*)/);
+  const dialects = dialectMatch ? splitVoiceList(dialectMatch[1] ?? "") : [];
+  if (langMatch) {
+    return { languages: splitVoiceList(langMatch[1] ?? ""), dialects };
+  }
+
+  const withoutDialect = trimmed.replace(/[；;]?\s*方言[：:].*$/, "").trim();
+  return { languages: splitVoiceList(withoutDialect), dialects };
+}
+
+function parseVoiceNote(note: string): {
+  blurb: string;
+  tags: string[];
+} {
+  const trimmed = note.trim().replace(/[；;]+$/, "");
+  if (!trimmed) return { blurb: "", tags: [] };
+  const tagMatch = trimmed.match(/^标签[：:]\s*(.*)$/);
+  if (tagMatch) return { blurb: "", tags: splitVoiceList(tagMatch[1] ?? "") };
+  return { blurb: trimmed, tags: [] };
+}
+
+function buildVoiceTags(options: {
+  languages: readonly string[];
+  dialects: readonly string[];
+  scene: string;
+  capabilities: string;
+  noteTags: readonly string[];
+}): VolcengineTtsVoiceTag[] {
+  const seen = new Set<string>();
+  const tags: VolcengineTtsVoiceTag[] = [];
+  const push = (label: string, tone: VolcengineTtsVoiceTagTone): void => {
+    const key = `${tone}:${label}`;
+    if (!label || seen.has(key)) return;
+    seen.add(key);
+    tags.push({ label, tone });
+  };
+
+  for (const language of options.languages) push(language, "language");
+  for (const dialect of options.dialects) push(dialect, "dialect");
+  for (const scene of splitVoiceList(options.scene)) {
+    if (options.languages.includes(scene)) continue;
+    push(scene, "scene");
+  }
+  for (const capability of splitVoiceList(options.capabilities)) {
+    push(capability, "capability");
+  }
+  for (const note of options.noteTags) push(note, "note");
+  return tags;
+}
+
 function createVoice(
   row: VolcengineTtsVoiceTuple,
 ): VolcengineTtsVoice {
-  const [id, name, language, scene, inferenceMode, capabilities, note] = row;
-  const locale = inferLocale(id, language);
-  const description = [
-    language,
-    scene ? `场景：${scene}` : "",
-    inferenceMode ? `推理模式：${inferenceMode}` : "",
+  const [id, name, language, scene, _inferenceMode, capabilities, note] = row;
+  const { languages, dialects } = parseVoiceLanguageField(language);
+  const { blurb, tags: noteTags } = parseVoiceNote(note);
+  const tags = buildVoiceTags({
+    languages,
+    dialects,
+    scene,
     capabilities,
-    note,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+    noteTags,
+  });
+  const locale = inferLocale(id, language);
+  const extra = blurb;
 
   return {
     id,
     name,
-    label: `${name} (${id})`,
-    description,
+    label: name,
+    description: extra,
+    tags,
+    languages,
+    dialects,
     gender: inferGender(id),
     locale,
     group: groupFromLocale(locale),
@@ -627,9 +720,17 @@ export function findVolcengineTtsVoice(
   return VOLCENGINE_TTS_VOICE_BY_ID.get(id.trim());
 }
 
+let cachedDefaultVoiceGroups:
+  | [string, readonly VolcengineTtsVoice[]][]
+  | undefined;
+
 export function groupVolcengineTtsVoices(
   voices: readonly VolcengineTtsVoice[] = VOLCENGINE_TTS_VOICES,
 ): [string, readonly VolcengineTtsVoice[]][] {
+  if (voices === VOLCENGINE_TTS_VOICES && cachedDefaultVoiceGroups) {
+    return cachedDefaultVoiceGroups;
+  }
+
   const grouped = new Map<VolcengineTtsVoiceGroup, VolcengineTtsVoice[]>();
 
   for (const voice of voices) {
@@ -638,8 +739,17 @@ export function groupVolcengineTtsVoices(
     grouped.set(voice.group, bucket);
   }
 
-  return [...grouped].map(([group, groupVoices]) => [
+  const groups = [...grouped].map(([group, groupVoices]) => [
     VOLCENGINE_TTS_VOICE_GROUP_LABELS[group],
     groupVoices,
   ] as [string, readonly VolcengineTtsVoice[]]);
+
+  if (voices === VOLCENGINE_TTS_VOICES) cachedDefaultVoiceGroups = groups;
+  return groups;
 }
+
+/** 官方主表分组一次缓存，避免设置页每次下拉重建 */
+export const VOLCENGINE_TTS_VOICE_GROUPS: readonly [
+  string,
+  readonly VolcengineTtsVoice[],
+][] = groupVolcengineTtsVoices();
