@@ -231,7 +231,7 @@ const {
   fastScrollSensitivity,
   stickyChapterTitleEnabled,
   chapterNavToolbarEnabled,
-  findBookChapterAdvanceMode,
+  findBookChapterAdvanceEnabled,
   selectionToolbarButtons,
   dictionarySettings,
   webSearchSettings,
@@ -414,20 +414,68 @@ const {
 });
 
 const CHAPTER_ADVANCE_WHEEL_THRESHOLD = 260;
-let wheelAdvanceTimer: number | null = null;
+let chapterAdvanceLockTimer: number | null = null;
 let wheelDeltaResetTimer: number | null = null;
 let accumulatedWheelDelta = 0;
 let accumulatedWheelDirection: 1 | -1 | 0 = 0;
 
+function resetChapterAdvanceWheelAccumulation() {
+  if (wheelDeltaResetTimer !== null) {
+    window.clearTimeout(wheelDeltaResetTimer);
+    wheelDeltaResetTimer = null;
+  }
+  accumulatedWheelDelta = 0;
+  accumulatedWheelDirection = 0;
+}
+
 /**
- * 书架在线阅读：正文已经到达本章底部后，用户再次向下滚动时进入下一章。
- * 只处理正文区域，避免滚动章节侧栏时意外跳章；定时滚动和语音朗读仍走各自逻辑。
+ * 已在章节边界时，用户再次向下/向上滚动或翻页则切章。
+ * 滚轮、空格、PageDown/PageUp、方向键共用；定时滚动和语音朗读仍走各自逻辑。
+ */
+function tryAdvanceChapterFromOverscroll(direction: 1 | -1): boolean {
+  if (!findBookChapterAdvanceEnabled.value) return false;
+  if (chapterAdvanceLockTimer !== null) return false;
+  if (
+    chapterContentBusy.value ||
+    readerEditMode.value ||
+    voiceRead.isVoiceReadNavigationBlocked.value
+  ) {
+    return false;
+  }
+  const goingDown = direction === 1;
+  const atBoundary = goingDown
+    ? viewportAtBottom.value && canGoNextChapter.value
+    : viewportTopLine.value <= 1 && canGoPrevChapter.value;
+  if (!atBoundary) return false;
+
+  chapterAdvanceLockTimer = window.setTimeout(() => {
+    chapterAdvanceLockTimer = null;
+  }, 80);
+  resetChapterAdvanceWheelAccumulation();
+  const targetIndex = displayIndexForReadingOrder(
+    currentReadingOrderIndex.value + direction,
+    displayChapters.value.length,
+    chapterSortDesc.value,
+  );
+  void loadChapterAtDisplayIndex(targetIndex, {
+    scrollTo: goingDown ? "top" : "bottom",
+  });
+  return true;
+}
+
+function onFindBookSpacePageDown(): boolean {
+  return tryAdvanceChapterFromOverscroll(1);
+}
+
+/**
+ * 书架在线阅读：正文已经到达本章边界后，用户再次滚动时进入邻章。
+ * 只处理正文区域，避免滚动章节侧栏时意外跳章。
  */
 function onLayoutWheel(ev: WheelEvent) {
   onFullscreenLayoutWheel(ev);
   if (!readerPaneWrapRef.value || ev.deltaY === 0) return;
   if (!(ev.target instanceof Node) || !readerPaneWrapRef.value.contains(ev.target)) return;
-  if (findBookChapterAdvanceMode.value === "default") return;
+  if (!findBookChapterAdvanceEnabled.value) return;
   if (
     chapterContentBusy.value ||
     readerEditMode.value ||
@@ -437,7 +485,7 @@ function onLayoutWheel(ev: WheelEvent) {
   }
 
   // 一个连续滚轮手势可能产生多个 wheel 事件，只允许合并后的动作触发一次。
-  if (wheelAdvanceTimer !== null) return;
+  if (chapterAdvanceLockTimer !== null) return;
   const direction: 1 | -1 = ev.deltaY > 0 ? 1 : -1;
   if (accumulatedWheelDirection !== direction) {
     accumulatedWheelDirection = direction;
@@ -454,39 +502,12 @@ function onLayoutWheel(ev: WheelEvent) {
 
   // 小幅滚动只用于阅读，不触发章节切换；需要明显的大幅度连续滚动。
   if (accumulatedWheelDelta < CHAPTER_ADVANCE_WHEEL_THRESHOLD) return;
-
-  const goingDown = direction === 1;
-  const atBoundary = goingDown
-    ? viewportAtBottom.value && canGoNextChapter.value
-    : viewportTopLine.value <= 1 && canGoPrevChapter.value;
-  if (!atBoundary) return;
-
-  wheelAdvanceTimer = window.setTimeout(() => {
-    wheelAdvanceTimer = null;
-    if (wheelDeltaResetTimer !== null) {
-      window.clearTimeout(wheelDeltaResetTimer);
-      wheelDeltaResetTimer = null;
-    }
-    accumulatedWheelDelta = 0;
-    accumulatedWheelDirection = 0;
-    const targetIndex = displayIndexForReadingOrder(
-      currentReadingOrderIndex.value + (goingDown ? 1 : -1),
-      displayChapters.value.length,
-      chapterSortDesc.value,
-    );
-    void loadChapterAtDisplayIndex(targetIndex, {
-      appendToCurrent:
-        findBookChapterAdvanceMode.value === "seamless" && goingDown,
-      smoothScroll: findBookChapterAdvanceMode.value !== "seamless",
-    });
-  }, 80);
+  tryAdvanceChapterFromOverscroll(direction);
 }
 
 onBeforeUnmount(() => {
-  if (wheelAdvanceTimer !== null) window.clearTimeout(wheelAdvanceTimer);
-  if (wheelDeltaResetTimer !== null) window.clearTimeout(wheelDeltaResetTimer);
-  accumulatedWheelDelta = 0;
-  accumulatedWheelDirection = 0;
+  if (chapterAdvanceLockTimer !== null) window.clearTimeout(chapterAdvanceLockTimer);
+  resetChapterAdvanceWheelAccumulation();
 });
 
 const sidebarShellVisible = computed(() =>
@@ -1075,6 +1096,7 @@ const { shortcutBindings } = useFindBookReaderShortcuts({
   isVoiceReadScrollLocked,
   isVoiceReadBlocksFind,
   toggleReaderEdit: onToggleReaderEdit,
+  tryAdvanceChapterOnScroll: tryAdvanceChapterFromOverscroll,
 });
 
 const isMacPlatform = /mac|iphone|ipad|ipod/i.test(navigator.platform || "");
@@ -2148,6 +2170,7 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
             class="readerPane findBookReaderMain"
             :stream-loading="readerBootLoading || showChapterLoadingUi"
             :voice-read-scroll-locked="isVoiceReadScrollLocked"
+            :intercept-readonly-space-page-down="onFindBookSpacePageDown"
             :voice-read-paused="isVoiceReadActive && voiceRead.mode.value === 'paused'"
             :voice-read-blocks-find="isVoiceReadBlocksFind"
             @voice-read-resume="voiceRead.togglePlayPause"

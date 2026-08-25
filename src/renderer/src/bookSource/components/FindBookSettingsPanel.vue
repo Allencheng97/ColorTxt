@@ -168,7 +168,7 @@ const draftMouseWheelScrollSensitivity = ref(
 const draftFastScrollSensitivity = ref(defaultFastScrollSensitivity);
 const draftStickyChapterTitleEnabled = ref(defaultStickyChapterTitleEnabled);
 const draftChapterNavToolbarEnabled = ref(defaultChapterNavToolbarEnabled);
-const draftFindBookChapterAdvanceMode = ref(fbReaderSettings.findBookChapterAdvanceMode.value);
+const draftFindBookChapterAdvanceEnabled = ref(fbReaderSettings.findBookChapterAdvanceEnabled.value);
 const draftReaderEditShowLineNumbers = ref(defaultReaderEditShowLineNumbers);
 const draftReaderEditMinimap = ref(defaultReaderEditMinimap);
 const draftChapterTitleBlankMode = ref(
@@ -279,7 +279,7 @@ function syncSharedReaderDraftFromStore() {
   );
   draftStickyChapterTitleEnabled.value = fb.stickyChapterTitleEnabled.value;
   draftChapterNavToolbarEnabled.value = fb.chapterNavToolbarEnabled.value;
-  draftFindBookChapterAdvanceMode.value = fb.findBookChapterAdvanceMode.value;
+  draftFindBookChapterAdvanceEnabled.value = fb.findBookChapterAdvanceEnabled.value;
   draftReaderEditShowLineNumbers.value = fb.readerEditShowLineNumbers.value;
   draftReaderEditMinimap.value = fb.readerEditMinimap.value;
   draftChapterTitleBlankMode.value =
@@ -537,7 +537,7 @@ async function onConfirm() {
   );
   fb.stickyChapterTitleEnabled.value = draftStickyChapterTitleEnabled.value;
   fb.chapterNavToolbarEnabled.value = draftChapterNavToolbarEnabled.value;
-  fb.findBookChapterAdvanceMode.value = draftFindBookChapterAdvanceMode.value;
+  fb.findBookChapterAdvanceEnabled.value = draftFindBookChapterAdvanceEnabled.value;
   fb.readerEditShowLineNumbers.value = draftReaderEditShowLineNumbers.value;
   fb.readerEditMinimap.value = draftReaderEditMinimap.value;
   fb.chapterTitleBlankMode.value =
@@ -683,7 +683,7 @@ watch(draftFontSize, (size) => {
               v-model:draft-fast-scroll-sensitivity="draftFastScrollSensitivity"
               v-model:draft-sticky-chapter-title-enabled="draftStickyChapterTitleEnabled"
               v-model:draft-chapter-nav-toolbar-enabled="draftChapterNavToolbarEnabled"
-              v-model:draft-find-book-chapter-advance-mode="draftFindBookChapterAdvanceMode"
+              v-model:draft-find-book-chapter-advance-enabled="draftFindBookChapterAdvanceEnabled"
               v-model:draft-chapter-title-blank-mode="draftChapterTitleBlankMode"
               v-model:draft-compress-blank-keep-one-blank="draftCompressBlankKeepOneBlank"
               v-model:draft-txtr-delimited-match-cross-line="draftTxtrDelimitedMatchCrossLine"
@@ -701,6 +701,7 @@ watch(draftFontSize, (size) => {
               :show-find-target-option="false"
               :show-annotation-tools="false"
               :show-ask-ai="false"
+              :show-find-book-chapter-advance-option="true"
               :monaco-custom-highlight="fb.monacoCustomHighlight.value"
               @open-dictionary-manage="showDictionaryManagePanel = true"
               @open-web-search-manage="showWebSearchManagePanel = true"

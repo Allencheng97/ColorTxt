@@ -50,6 +50,10 @@ export function useFindBookReaderShortcuts(deps: {
   isVoiceReadScrollLocked?: Ref<boolean>;
   isVoiceReadBlocksFind?: Ref<boolean>;
   toggleReaderEdit: () => void | Promise<void>;
+  /**
+   * 已在章节边界时再次翻页/逐行滚动：切章并返回 true，调用方不再滚动正文。
+   */
+  tryAdvanceChapterOnScroll?: (direction: 1 | -1) => boolean;
 }) {
   const shortcutBindings = ref<ShortcutBindingMap>(
     mergeShortcutBindings(defaultShortcutBindings, loadMainShortcutBindings()),
@@ -107,10 +111,22 @@ export function useFindBookReaderShortcuts(deps: {
         editSelectedText: () => {
           deps.readerRef.value?.tryOpenPartialEditFromSelection?.();
         },
-        scrollDownLine: () => deps.readerRef.value?.scrollByLineStep?.(1),
-        scrollUpLine: () => deps.readerRef.value?.scrollByLineStep?.(-1),
-        scrollPageUp: () => deps.readerRef.value?.scrollByPageStep?.(-1),
-        scrollPageDown: () => deps.readerRef.value?.scrollByPageStep?.(1),
+        scrollDownLine: () => {
+          if (deps.tryAdvanceChapterOnScroll?.(1)) return;
+          deps.readerRef.value?.scrollByLineStep?.(1);
+        },
+        scrollUpLine: () => {
+          if (deps.tryAdvanceChapterOnScroll?.(-1)) return;
+          deps.readerRef.value?.scrollByLineStep?.(-1);
+        },
+        scrollPageUp: () => {
+          if (deps.tryAdvanceChapterOnScroll?.(-1)) return;
+          deps.readerRef.value?.scrollByPageStep?.(-1);
+        },
+        scrollPageDown: () => {
+          if (deps.tryAdvanceChapterOnScroll?.(1)) return;
+          deps.readerRef.value?.scrollByPageStep?.(1);
+        },
       },
       () => shortcutBindings.value,
       findBookReaderShortcutsShouldHandle,

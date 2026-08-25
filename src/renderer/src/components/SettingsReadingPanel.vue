@@ -48,10 +48,6 @@ import {
 import SettingsSelectionToolbarPreview from "./SettingsSelectionToolbarPreview.vue";
 import { computed } from "vue";
 import { icons } from "../icons.js";
-import {
-  FIND_BOOK_CHAPTER_ADVANCE_MODE_OPTIONS,
-  type FindBookChapterAdvanceMode,
-} from "../constants/findBookChapterAdvance";
 
 const props = withDefaults(
   defineProps<{
@@ -66,7 +62,7 @@ const props = withDefaults(
     draftFastScrollSensitivity: number;
     draftStickyChapterTitleEnabled: boolean;
     draftChapterNavToolbarEnabled: boolean;
-    draftFindBookChapterAdvanceMode?: FindBookChapterAdvanceMode;
+    draftFindBookChapterAdvanceEnabled?: boolean;
     draftChapterTitleBlankMode: ChapterTitleBlankMode;
     draftCompressBlankKeepOneBlank: boolean;
     draftTxtrDelimitedMatchCrossLine: boolean;
@@ -89,12 +85,15 @@ const props = withDefaults(
     showAnnotationTools?: boolean;
     /** 工具条预览是否展示「问 AI」；找书窗口为 false */
     showAskAi?: boolean;
+    /** 找书窗口显示「边界滚动切章」；主界面不展示 */
+    showFindBookChapterAdvanceOption?: boolean;
   }>(),
   {
     showFindTargetOption: true,
     showAnnotationTools: true,
     showAskAi: true,
-    draftFindBookChapterAdvanceMode: "default",
+    draftFindBookChapterAdvanceEnabled: true,
+    showFindBookChapterAdvanceOption: false,
   },
 );
 
@@ -110,7 +109,7 @@ defineEmits<{
   "update:draftFastScrollSensitivity": [v: number];
   "update:draftStickyChapterTitleEnabled": [v: boolean];
   "update:draftChapterNavToolbarEnabled": [v: boolean];
-  "update:draftFindBookChapterAdvanceMode": [v: FindBookChapterAdvanceMode];
+  "update:draftFindBookChapterAdvanceEnabled": [v: boolean];
   "update:draftChapterTitleBlankMode": [v: ChapterTitleBlankMode];
   "update:draftCompressBlankKeepOneBlank": [v: boolean];
   "update:draftTxtrDelimitedMatchCrossLine": [v: boolean];
@@ -140,13 +139,6 @@ const chapterTitleBlankSelectItems = computed<CustomSelectItem[]>(() =>
   })),
 );
 const selectListsEmpty: CustomSelectItem[] = [];
-const chapterAdvanceModeSelectItems = computed<CustomSelectItem[]>(() =>
-  FIND_BOOK_CHAPTER_ADVANCE_MODE_OPTIONS.map((o) => ({
-    kind: "item" as const,
-    id: o.id,
-    label: o.label,
-  })),
-);
 </script>
 
 <template>
@@ -304,25 +296,19 @@ const chapterAdvanceModeSelectItems = computed<CustomSelectItem[]>(() =>
         </p>
       </div>
 
-      <div class="settingsRow">
+      <div v-if="showFindBookChapterAdvanceOption" class="settingsRow">
         <div class="settingsRowMain">
-          <span class="settingsLabel">章节末尾向下滚动行为</span>
-          <AppCustomSelect
-            class="settingsSelect"
-            :model-value="draftFindBookChapterAdvanceMode"
-            :display-label="FIND_BOOK_CHAPTER_ADVANCE_MODE_OPTIONS.find((o) => o.id === draftFindBookChapterAdvanceMode)?.label ?? '默认设置'"
-            :fixed-top-items="selectListsEmpty"
-            :scroll-items="chapterAdvanceModeSelectItems"
-            :fixed-bottom-items="selectListsEmpty"
-            aria-label="章节末尾向下滚动行为"
-            ariaLabel="章节末尾向下滚动行为"
+          <span class="settingsLabel">边界滚动切章</span>
+          <SwitchToggle
+            :model-value="draftFindBookChapterAdvanceEnabled"
+            aria-label="边界滚动切章"
             @update:model-value="
-              $emit('update:draftFindBookChapterAdvanceMode', $event as FindBookChapterAdvanceMode)
+              $emit('update:draftFindBookChapterAdvanceEnabled', $event)
             "
           />
         </div>
         <p class="settingsHint">
-          找书 beta 阅读到章节末尾后再次向下滚动时：默认设置不自动续章；无缝衔接会把下一章接在当前内容后；当前的跳转逻辑会切换到下一章顶部。
+          阅读到章节边界后再次滚动（滚轮、空格、<code>PageUp</code> / <code>PageDown</code>、方向键）时跳转到邻章。
         </p>
       </div>
     </div>

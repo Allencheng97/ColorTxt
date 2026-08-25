@@ -493,6 +493,11 @@ const props = withDefaults(
     voiceReadBlocksFind?: boolean;
     /** 语音朗读播放中：禁止用户滚动（遮罩 + 滚轮拦截） */
     voiceReadScrollLocked?: boolean;
+    /**
+     * 只读空格翻页前调用。返回 true 表示已处理（例如找书在章节边界切章），
+     * 不再执行默认的 `scrollByPageStep`。
+     */
+    interceptReadonlySpacePageDown?: () => boolean;
     /** 语音朗读已暂停：显示视口中心开播指引线 */
     voiceReadPaused?: boolean;
     /** 编辑模式：Monaco 展示磁盘原文，不经阅读管线后处理 */
@@ -570,6 +575,7 @@ const props = withDefaults(
     beforeRevealFindWidget: undefined,
     voiceReadBlocksFind: false,
     voiceReadScrollLocked: false,
+    interceptReadonlySpacePageDown: undefined,
     voiceReadPaused: false,
     readerEditMode: false,
     readerEditRestoreAnchor: null,
@@ -3426,6 +3432,7 @@ onMounted(() => {
     const d3 = installReaderScrollKeyHandler(monaco, e, {
       onSpacePageDown: () => {
         if (props.voiceReadScrollLocked) return;
+        if (props.interceptReadonlySpacePageDown?.()) return;
         scrollByPageStep(1);
       },
       shouldInterceptReadOnlyKeys: () =>
