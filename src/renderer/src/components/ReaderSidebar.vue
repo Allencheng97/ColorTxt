@@ -340,6 +340,10 @@ const emit = defineEmits<{
   ];
 }>();
 
+const chapterListPanelRef = ref<InstanceType<typeof ChapterListPanel> | null>(
+  null,
+);
+
 const {
   chapterListRef,
   fileListRef,
@@ -354,7 +358,10 @@ const {
   scrollFileListToIndex,
   resetChapterListScroll,
   centerActiveChapterInList,
-} = useReaderSidebarLists(props, (e, chapter) => emit(e, chapter));
+} = useReaderSidebarLists(props, (e, chapter) => emit(e, chapter), {
+  resolveDisplayedChapterIndex: () =>
+    chapterListPanelRef.value?.displayedIndexOfActive(),
+});
 
 const activityBarWidthPx = `${SIDEBAR_ACTIVITY_BAR_WIDTH}px`;
 
@@ -542,9 +549,6 @@ const aiAssistantPanelRef = ref<{
 } | null>(null);
 const fileListPanelRef = ref<InstanceType<typeof FileListPanel> | null>(null);
 const filesHeaderMoreBtnRef = ref<HTMLButtonElement | null>(null);
-const chapterListPanelRef = ref<InstanceType<typeof ChapterListPanel> | null>(
-  null,
-);
 const chaptersHeaderMoreBtnRef = ref<HTMLButtonElement | null>(null);
 const searchPanelRef = ref<InstanceType<typeof SearchPanel> | null>(null);
 const searchHeaderMoreBtnRef = ref<HTMLButtonElement | null>(null);
@@ -941,6 +945,34 @@ defineExpose({
             "
           >
             <span class="svg" v-html="icons.tree" />
+          </button>
+          <button
+            v-if="
+              activeTab === 'chapters' &&
+              chapterListPanelRef?.hasNestedChapters
+            "
+            type="button"
+            class="aiReaderSidebarHeaderIconBtn"
+            :aria-label="
+              chapterListPanelRef?.allParentsCollapsed
+                ? '全部展开'
+                : '全部折叠'
+            "
+            :title="
+              chapterListPanelRef?.allParentsCollapsed
+                ? '全部展开'
+                : '全部折叠'
+            "
+            @click="chapterListPanelRef?.toggleExpandAll()"
+          >
+            <span
+              class="svg"
+              v-html="
+                chapterListPanelRef?.allParentsCollapsed
+                  ? icons.allExpand
+                  : icons.allCollapse
+              "
+            />
           </button>
           <button
             v-if="activeTab === 'chapters' && showEditChapterRefreshButton"
