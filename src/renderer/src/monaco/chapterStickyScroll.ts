@@ -112,9 +112,14 @@ function rangeEndLineForTocIndex(
   return maxLine;
 }
 
+/** Monaco 只为至少跨三行的 DocumentSymbol 创建 sticky candidate。 */
+function isMonacoStickyCandidateRange(start: number, end: number): boolean {
+  return end > start + 1;
+}
+
 /**
  * `lineNumber` 成为章节条下方第一行时，预测会保持粘性的章节层数。
- * 范围边界与上方 DocumentSymbol 保持一致，并对齐 Monaco 的 candidate 规则。
+ * 范围边界与 `buildChapterDocumentSymbols` 一致，并对齐 Monaco 的 candidate 规则。
  */
 function countStickyChapterRowsForLine(
   chapters: readonly ChapterStickyLine[],
@@ -130,8 +135,7 @@ function countStickyChapterRowsForLine(
     const start = sorted[i]!.lineNumber;
     if (start >= lineNumber || countedStartLines.has(start)) continue;
     const end = rangeEndLineForTocIndex(sorted, i, maxLine);
-    // Monaco 只为至少跨三行的 DocumentSymbol 创建 sticky candidate。
-    if (end > start + 1 && lineNumber <= end) {
+    if (isMonacoStickyCandidateRange(start, end) && lineNumber <= end) {
       countedStartLines.add(start);
       rows++;
     }
@@ -139,7 +143,10 @@ function countStickyChapterRowsForLine(
   return rows;
 }
 
-/** 预测指定行成为正文首行时，Monaco 粘性章节条的稳定高度。 */
+/**
+ * 预测指定行成为正文首行时，Monaco 粘性章节条的稳定高度。
+ * 可能与真实 DOM 差一行；翻页后应用 `getStickyChapterScrollHeight` 再校正。
+ */
 export function predictStickyChapterScrollHeight(
   editor: monaco.editor.ICodeEditor,
   chapters: readonly ChapterStickyLine[],
