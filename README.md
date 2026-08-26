@@ -321,12 +321,13 @@ ColorTxt/
 - 基于 [libmspack](https://github.com/kyz/libmspack) 移植了一套 JavaScript 实现，以支持对 `.chm` 格式的解析
 - 其他电子书格式的解析，主要参考 [foliate-js](https://github.com/johnfactotum/foliate-js) 的实现
 - AI 阅读助手和语音朗读的基础功能，参考了 [ReadAny](https://github.com/codedogQBY/ReadAny) 的实现
+- 词典功能参考了 [readest](https://github.com/readest/readest)
 - 角色卡 3D 卡片效果的实现思路及部分样式、贴图资源来源于 [pokemon-cards-css](https://github.com/simeydotme/pokemon-cards-css)
 - 基于 [@node-rs/jieba](https://github.com/napi-rs/node-rs/tree/main/packages/jieba) 实现中文分词，以支持词云生成
 - 基于 [OpenCC](https://github.com/byvoid/opencc) 实现简繁互转
 - 划线/笔记功能的交互，参考了 [微信读书网页版](https://weread.qq.com/)
 - 书源解析逻辑参考：[legado-E（阅读Sigma）](https://github.com/Luoyacheng/legado-E)
 
-## 其他
+## 链接
 
-- [LINUX DO](https://linux.do/)
+- [LINUX DO](https://linux.do/t/topic/2772329)
