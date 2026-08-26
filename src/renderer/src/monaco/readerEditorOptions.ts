@@ -221,7 +221,7 @@ export function buildReaderEditorReadOnlyModeChromeOptions(): ReaderMonacoConfig
 }
 
 /**
- * 编辑模式：保留光标、选区、缩进参考线等书写体验；关闭代码补全/行内建议（纯文本小说编辑不需要）。
+ * 编辑模式：保留光标、选区、缩进参考线等书写体验；关闭代码补全/行内建议与当前词高亮（纯文本小说编辑不需要）。
  * 字体、字号、行号列、minimap、主题仍由 {@link buildReaderEditorSharedCoreOptions} 与配色管线统一控制。
  */
 export function buildReaderEditorEditModeNativeChromeOptions(): ReaderMonacoConfigurableOptions {
@@ -238,7 +238,11 @@ export function buildReaderEditorEditModeNativeChromeOptions(): ReaderMonacoConf
       highlightActiveIndentation: true,
     },
     scrollBeyondLastLine: true,
-    occurrencesHighlight: "singleFile",
+    /**
+     * 当前词关掉：无空格中文会被当成整段词铺底。
+     * 选区出现次数仍开：选中「杨过」时其它「杨过」有浅底（只读关，避免阅读干扰）。
+     */
+    occurrencesHighlight: "off",
     selectionHighlight: true,
     unicodeHighlight: { ...READER_UNICODE_HIGHLIGHT_DISABLED },
     quickSuggestions: false,
@@ -276,7 +280,7 @@ export function buildReaderEditorReadOnlyInteractionOptions(): Pick<
   };
 }
 
-/** 可编辑：正常光标与当前行高亮 */
+/** 可编辑：正常光标；当前行不高亮（与只读一致，避免整行铺底） */
 export function buildReaderEditorEditableInteractionOptions(): Pick<
   editor.IEditorOptions,
   | "readOnly"
@@ -291,7 +295,7 @@ export function buildReaderEditorEditableInteractionOptions(): Pick<
     domReadOnly: false,
     cursorBlinking: "blink",
     cursorWidth: 2,
-    renderLineHighlight: "line",
+    renderLineHighlight: "none",
     hideCursorInOverviewRuler: false,
   };
 }

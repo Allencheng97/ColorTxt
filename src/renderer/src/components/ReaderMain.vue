@@ -4219,9 +4219,9 @@ watch(smartFormatReviewActive, (active) => {
   display: none !important;
 }
 
-/* 仅只读：弱化单词高亮装饰，避免「当前行」类视觉干扰阅读 */
-.content:not(.content--readerEdit) :deep(.monaco-editor .wordHighlight),
-.content:not(.content--readerEdit) :deep(.monaco-editor .wordHighlightStrong) {
+/* 只读/编辑都不用「当前词」高亮：无空格中文会被当成整段词铺底 */
+:deep(.monaco-editor .wordHighlight),
+:deep(.monaco-editor .wordHighlightStrong) {
   background: transparent !important;
 }
 
