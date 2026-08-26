@@ -88,9 +88,9 @@ function appendAnnotationMarkdownLines(
   const stale = ann.stale ? "[已失效] " : "";
   const noteContent = ann.note?.content?.trim();
   if (noteContent) {
-    lines.push(prefixFirstLine(`${stale}💡 `, noteContent));
+    lines.push(prefixFirstLine(`${stale}💡 `, quoteText));
     lines.push("");
-    lines.push(...blockquoteLines(quoteText));
+    lines.push(...blockquoteLines(noteContent));
     lines.push("");
     return;
   }
