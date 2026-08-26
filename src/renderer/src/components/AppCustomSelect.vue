@@ -853,6 +853,7 @@ const triggerMainText = computed(() => {
   padding: 10px 12px;
   color: var(--muted);
   text-align: center;
+  font-size: 13px;
 }
 /* 与字体列表 / 历史会话一致：相邻项间距 4px（全局 .appShellMenuItem 为 1px），行高统一 */
 .customSelectPanel :deep(.appShellMenuItem + .appShellMenuItem) {
