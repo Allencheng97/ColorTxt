@@ -2948,7 +2948,7 @@ function visualLineHeightPx(
   return h && Number.isFinite(h) && h > 0 ? h : fallback;
 }
 
-/** 粘性条下方第一条未被挡住的完整视觉行（可能不是 getVisibleRanges 的起点）。 */
+/** 粘性条下方第一条未被挡住的完整视觉行 */
 function firstCompletelyVisibleModelPositionBelowSticky(
   e: monaco.editor.ICodeEditor,
 ): monaco.IPosition | null {
@@ -3000,7 +3000,7 @@ function setScrollTopClamped(
   );
 }
 
-/** 把该模型位置所在视觉行的顶对齐到粘性条下（尊重「平滑滚动」）。 */
+/** 把该模型位置所在视觉行的顶对齐到粘性条下 */
 function alignLineBelowSticky(
   e: monaco.editor.ICodeEditor,
   position: monaco.IPosition,
@@ -3012,7 +3012,7 @@ function alignLineBelowSticky(
   setScrollTopClamped(e, lineTop - stickyHeight, wantSmooth);
 }
 
-/** 把该视觉行完整落在视口底部（向上翻页的重叠行）。 */
+/** 把该视觉行完整落在视口底部（向上翻页的重叠行） */
 function alignLineToViewportBottom(
   e: monaco.editor.ICodeEditor,
   position: monaco.IPosition,
