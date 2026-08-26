@@ -439,7 +439,7 @@ function onBindListRef(value: Element | ComponentPublicInstance | null) {
   flex-shrink: 0;
   width: 14px;
   height: 14px;
-  margin-right: 2px;
+  margin-right: 8px;
 }
 .itemName {
   flex: 1;
