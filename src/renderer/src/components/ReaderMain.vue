@@ -13,6 +13,8 @@ import kingHwaFontUrl from "../assets/KingHwa_OldSong1.0.ttf?url";
 import {
   type ChapterStickyLine,
   ensureStickyChapterBarClickDisabled,
+  getStickyChapterScrollHeight,
+  predictStickyChapterScrollHeight,
   refreshStickyChapterScrollWidget,
   registerChapterStickyScrollProviders,
 } from "../monaco/chapterStickyScroll";
@@ -2923,8 +2925,38 @@ function scrollByPageStep(direction: -1 | 1) {
     e.getOption(monaco.editor.EditorOption.lineHeight),
   );
   const viewportHeight = Math.max(1, e.getLayoutInfo().height);
-  // 预留两行，避免翻屏后阅读点跳得过猛。
-  const step = Math.max(lineHeight, viewportHeight - lineHeight * 2);
+
+  if (direction > 0) {
+    // getVisibleRanges 仅返回完整可见的视觉行；取最后一行并对齐到新页
+    // 粘性章节条下方。软换行边界列会映射到下一视觉行，故向前退一列。
+    const visibleRanges = e.getVisibleRanges();
+    const lastVisibleRange = visibleRanges[visibleRanges.length - 1];
+    if (lastVisibleRange) {
+      const lastCompleteLineTop = e.getScrolledVisiblePosition({
+        lineNumber: lastVisibleRange.endLineNumber,
+        column: Math.max(1, lastVisibleRange.endColumn - 1),
+      })?.top;
+      if (lastCompleteLineTop != null) {
+        // 落点处 sticky 可能增减行数，须按落点预测，不能复用当前 DOM 高度。
+        const stickyHeight = predictStickyChapterScrollHeight(
+          e,
+          chaptersSnapshot,
+          lastVisibleRange.endLineNumber,
+        );
+        // 视口过短、无法前进至少一行时，交给固定步长回退路径。
+        if (lastCompleteLineTop - stickyHeight >= lineHeight) {
+          scrollByDeltaY(lastCompleteLineTop - stickyHeight);
+          return;
+        }
+      }
+    }
+  }
+
+  // 回退步长：相邻两页共享一条视觉行。
+  const step = Math.max(
+    lineHeight,
+    viewportHeight - getStickyChapterScrollHeight(e) - lineHeight,
+  );
   scrollByDeltaY(direction * step);
 }
 
