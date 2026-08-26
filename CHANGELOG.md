@@ -26,6 +26,7 @@
 - 阅读器多行选区在列上重叠时背景不再连成一块（圆角内角抠图改用阅读底色） [#78](https://github.com/ssnangua/ColorTxt/issues/78)
 - 内嵌京華老宋体纯英文行选区错位问题（关闭 Monaco 等宽行渲染优化） [#22](https://github.com/ssnangua/ColorTxt/issues/22)
 - 笔记跨行时不再重复原文、也不再叠出多个悬停框；原文保留选区内的行首缩进（不再 trim）
+- 中文换行优化补上 `♡` `※` `☆` 等网文常用符号，避免右侧溢出 [#65](https://github.com/ssnangua/ColorTxt/issues/65)
 - EPUB / MOBI 转换时 `<br>` 被收成空格，整章并成一段；现按换行拆成独立行
 - PDF 转换问题
   - 打开中文 PDF 改为使用随包的 `pdfjs-dist` CMap / wasm（不会因 CSP 拦截 jsDelivr 卡在转换中）

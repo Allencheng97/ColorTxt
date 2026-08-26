@@ -225,7 +225,7 @@ export const defaultRestoreSessionOnStartup = true;
 export const defaultSyncCurrentFile = false;
 export const defaultMonacoAdvancedWrapping = false;
 /**
- * 简单换行下将 ——/…… 等按全角估算（Vite 包装 Monaco isFullWidthCharacter）。
+ * 简单换行下将 ——/……/♡/※/`=`/`→` 等按全角估算（Vite 包装 Monaco isFullWidthCharacter）。
  * 开启高级换行时运行时自动停用。
  */
 export const defaultMonacoCjkWrapOptimize = true;

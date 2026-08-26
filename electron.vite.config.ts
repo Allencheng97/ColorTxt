@@ -214,7 +214,7 @@ function monacoCjkWrapStringsPlugin() {
 
 /**
  * 简单换行优化（仅 renderer）：
- * - computeCharWidth：省略号/破折号强制全角列宽
+ * - computeCharWidth：省略号/破折号/♡※ 等强制全角列宽
  * - fontMeasurements：用「汉」测全角宽（避免 \uff4d ｍ 缺字回退估窄）
  * （不再改 canBreak：break-all 会把 ，。？ 等送到行首）
  */
