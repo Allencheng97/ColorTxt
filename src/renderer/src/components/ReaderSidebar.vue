@@ -784,6 +784,9 @@ defineExpose({
   reloadAiAssistantAfterChatHistoryCleared() {
     return aiAssistantPanelRef.value?.reloadUiAfterChatHistoryCleared?.();
   },
+  focusSidebarSearchInput() {
+    searchPanelRef.value?.focusSearchInput?.();
+  },
 });
 </script>
 

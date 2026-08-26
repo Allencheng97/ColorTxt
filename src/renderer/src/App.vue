@@ -3236,6 +3236,17 @@ function onSearchWithQuote(text: string) {
   searchQuery.value = q;
 }
 
+function openSidebarSearch() {
+  const sel = readerRef.value?.getSelectedText?.()?.trim() ?? "";
+  sidebarTab.value = "search";
+  showSidebar.value = true;
+  if (isFullscreenView.value) showFullscreenSidebar.value = true;
+  if (sel) searchQuery.value = sel;
+  void nextTick(() => {
+    readerSidebarRef.value?.focusSidebarSearchInput?.();
+  });
+}
+
 watch(readerEditMode, (edit) => {
   if (!edit) {
     clearChapterRefreshDebounce();
@@ -3496,6 +3507,7 @@ useAppWindowBindings({
   },
   openFindBook: openFindBookWindow,
   toggleFind: onToggleFind,
+  openSidebarSearch,
   toggleReaderEdit: () => {
     void onToggleReaderEdit();
   },

@@ -109,6 +109,7 @@ export function useFindBookReaderShortcuts(deps: {
           if (deps.isVoiceReadBlocksFind?.value) return;
           deps.readerRef.value?.toggleFindWidget?.();
         },
+        openSidebarSearch: () => {},
         toggleReaderEdit: () => {
           void deps.toggleReaderEdit();
         },

@@ -17,6 +17,7 @@ export type AppShortcutActions = {
   jumpToPrevChapter: () => void | Promise<void>;
   jumpToNextChapter: () => void | Promise<void>;
   toggleFind: () => void | Promise<void>;
+  openSidebarSearch: () => void | Promise<void>;
   toggleReaderEdit: () => void | Promise<void>;
   editSelectedText: () => void | Promise<void>;
   scrollDownLine: () => void | Promise<void>;
@@ -44,6 +45,7 @@ const ACTION_BY_ID: Record<string, ActionKey> = {
   decreaseLineHeight: "decreaseLineHeight",
   increaseLineHeight: "increaseLineHeight",
   toggleFind: "toggleFind",
+  openSidebarSearch: "openSidebarSearch",
   toggleReaderEdit: "toggleReaderEdit",
   editSelectedText: "editSelectedText",
   openChapterRules: "openChapterRules",
