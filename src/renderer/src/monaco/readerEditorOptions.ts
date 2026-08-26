@@ -124,6 +124,7 @@ export function buildReaderEditorSharedCoreOptions(
   | "maxTokenizationLineLength"
   | "stopRenderingLineAfter"
   | "largeFileOptimizations"
+  | "disableMonospaceOptimizations"
 > {
   const {
     fontSize,
@@ -184,6 +185,13 @@ export function buildReaderEditorSharedCoreOptions(
      * 网文转载 txt 常一行一句，行数易超 30 万；关闭此项以换取正确排版（更慢、更占内存）。
      */
     largeFileOptimizations: false,
+    /**
+     * 纯 ASCII 行默认走 FastRenderedViewLine（`spaceWidth × 列`）。
+     * 内嵌京華老宋体 `@font-face` 常被判成等宽，但拉丁字母实际非等宽，选区会左偏；
+     * 行内有汉字则 isBasicASCII=false，改测 DOM，所以不歪。系统安装的同款字体
+     * 往往因伪斜体/粗体字宽不一致而被判非等宽。阅读器一律关闭该优化。
+     */
+    disableMonospaceOptimizations: true,
   };
 }
 
