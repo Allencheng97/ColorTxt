@@ -69,11 +69,10 @@ export function parseReaderAnnotationsExportJson(
 }
 
 function prefixFirstLine(prefix: string, content: string): string {
-  const trimmed = content.trim();
-  if (!trimmed) return prefix.trimEnd();
-  const nl = trimmed.indexOf("\n");
-  if (nl === -1) return `${prefix}${trimmed}`;
-  return `${prefix}${trimmed.slice(0, nl)}\n${trimmed.slice(nl + 1)}`;
+  if (!content) return prefix.trimEnd();
+  const nl = content.indexOf("\n");
+  if (nl === -1) return `${prefix}${content}`;
+  return `${prefix}${content.slice(0, nl)}\n${content.slice(nl + 1)}`;
 }
 
 function blockquoteLines(text: string): string[] {
