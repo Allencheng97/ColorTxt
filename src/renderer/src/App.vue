@@ -2257,6 +2257,7 @@ const {
   compressBlankLines,
   persistFileMeta,
   isVoiceReadNavigationBlocked,
+  ensurePinBeforeRevealFindWidget,
 });
 
 afterStreamFullTextInstalled = async () => {
