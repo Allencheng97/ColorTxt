@@ -16,8 +16,8 @@
 - 空格 / `PageUp` / `PageDown` 翻页时相邻两页重叠一条完整行，避免被粘性章节标题盖住 [#80](https://github.com/ssnangua/ColorTxt/pull/80)
 - 语音朗读时，`空格`：暂停 / 播放，`←` / `→`：上一行 / 下一行 [#72](https://github.com/ssnangua/ColorTxt/issues/72)
 - 侧栏「笔记」项改为原文在上、笔记在下（注释块）；导出 Markdown 为 `💡` 原文 + `>` 笔记 [#73](https://github.com/ssnangua/ColorTxt/issues/73)
-- 主界面 `Ctrl+Shift+F` 打开侧栏「搜索」，阅读器有选区时自动搜索选中文本
 - 侧栏「书签」「笔记」跳转时自动激活书钉
+- 主界面 `Ctrl+Shift+F` 打开侧栏「搜索」，阅读器有选区时自动搜索选中文本
 - 内置 **京華老宋体** 更新为 3.0
 - 编辑模式不再高亮光标所在行
 
@@ -25,8 +25,8 @@
 
 - 阅读器多行选区在列上重叠时背景不再连成一块（圆角内角抠图改用阅读底色） [#78](https://github.com/ssnangua/ColorTxt/issues/78)
 - 内嵌京華老宋体纯英文行选区错位问题（关闭 Monaco 等宽行渲染优化） [#22](https://github.com/ssnangua/ColorTxt/issues/22)
-- 笔记跨行时不再重复原文、也不再叠出多个悬停框；原文保留选区内的行首缩进（不再 trim）
 - 中文换行优化补上 `♡` `※` `☆` 等网文常用符号，避免右侧溢出 [#65](https://github.com/ssnangua/ColorTxt/issues/65)
+- 笔记跨行时不再重复原文、也不再叠出多个悬停框；原文保留选区内的行首缩进（不再 trim）
 - EPUB / MOBI 转换时 `<br>` 被收成空格，整章并成一段；现按换行拆成独立行
 - PDF 转换问题
   - 打开中文 PDF 改为使用随包的 `pdfjs-dist` CMap / wasm（不会因 CSP 拦截 jsDelivr 卡在转换中）
