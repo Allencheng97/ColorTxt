@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import PomodoroFooterControl from "../../components/PomodoroFooterControl.vue";
+import LoadingDotsBounce from "../../components/LoadingDotsBounce.vue";
 import type {
   PomodoroDisplayMode,
   PomodoroPhase,
@@ -62,7 +63,9 @@ defineEmits<{
       />
     </div>
     <div class="findBookReaderFooterRight">
-      <span v-if="loading" class="findBookReaderFooterLoading">加载中...</span>
+      <span v-if="loading" class="findBookReaderFooterLoading">
+        加载中<LoadingDotsBounce />
+      </span>
       <template v-else-if="hasContent">
         <span>
           阅读进度：<span
@@ -119,6 +122,9 @@ defineEmits<{
 
 .findBookReaderFooterLoading {
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15em;
 }
 
 .findBookReaderFooterProgressPct {

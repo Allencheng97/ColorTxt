@@ -735,6 +735,8 @@ const ebookParsing = ref(false);
 const bookPackUnpacking = ref(false);
 /** 转换进行中的电子书原路径（底栏路径；早于 currentFile 更新） */
 const ebookConversionSourcePath = ref<string | null>(null);
+/** PDF 转换页进度（底栏 / 蒙层「转换中 12/480」） */
+const ebookConvertProgressText = ref("");
 
 const readerPaletteOverridesLight = ref<Partial<ReaderSurfacePalette>>({});
 const readerPaletteOverridesDark = ref<Partial<ReaderSurfacePalette>>({});
@@ -2018,6 +2020,7 @@ const fileSession = useAppFileSession({
   ebookParsing,
   bookPackUnpacking,
   ebookConversionSourcePath,
+  ebookConvertProgressText,
   fileMetaRecords,
   bookPackUnpackDir,
   bookPackPassword,
@@ -3994,6 +3997,7 @@ useAppShellThemeWatch({
         :loading="loading"
         :loading-progress-percent="loadingProgressPercent"
         :ebook-parsing="ebookParsing"
+        :ebook-convert-progress-text="ebookConvertProgressText"
         :current-file="currentFile"
         :path-caption="footerPathCaption"
         :reading-progress-percent-part="readingProgressParts.percentPart"
@@ -4128,6 +4132,7 @@ useAppShellThemeWatch({
       :dir-list-scanning="dirListScanning"
       :dir-list-current-name="dirListCurrentName"
       :ebook-parsing="ebookParsing"
+      :ebook-convert-progress-text="ebookConvertProgressText"
       :book-pack-unpacking="bookPackUnpacking"
       :shortcut-bindings="shortcutBindings"
       :default-shortcut-bindings="defaultShortcutBindings"

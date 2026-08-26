@@ -2,6 +2,7 @@
 import { computed, ref } from "vue";
 import AppContextMenu from "./AppContextMenu.vue";
 import PomodoroFooterControl from "./PomodoroFooterControl.vue";
+import LoadingDotsBounce from "./LoadingDotsBounce.vue";
 import type {
   PomodoroDisplayMode,
   PomodoroPhase,
@@ -15,6 +16,8 @@ const props = withDefaults(
     loadingProgressPercent: number | null;
     /** 电子书转为 txt 阶段 */
     ebookParsing?: boolean;
+    /** PDF 页进度，如 `12/480` */
+    ebookConvertProgressText?: string;
     currentFile: string | null;
     /** 底栏左侧路径展示（电子书为实际打开的转换结果 .txt 路径） */
     pathCaption: string;
@@ -53,6 +56,7 @@ const props = withDefaults(
   {
     loadingProgressPercent: null,
     ebookParsing: false,
+    ebookConvertProgressText: "",
     encodingActionsEnabled: false,
     pathMenuRevealEnabled: true,
     pathMenuReloadEnabled: false,
@@ -70,6 +74,11 @@ const props = withDefaults(
     pomodoroPaused: false,
   },
 );
+
+const ebookConvertingLabel = computed(() => {
+  const p = props.ebookConvertProgressText.trim();
+  return p ? `转换中 ${p}` : "转换中";
+});
 
 const emit = defineEmits<{
   pathRevealInFolder: [];
@@ -294,14 +303,16 @@ function onPathMenuSelect(id: string) {
     <div v-if="currentFile || ebookParsing" class="footer-right">
       <span v-if="loading || ebookParsing" class="footer-loading">
         <template v-if="ebookParsing">
-          <span class="footer-loading-ebook">转换中…</span>
+          <span class="footer-loading-ebook">
+            {{ ebookConvertingLabel }}<LoadingDotsBounce />
+          </span>
         </template>
         <template v-else-if="loadingProgressPercent != null">
           加载中：<span class="footer-loading-pct"
             >{{ loadingProgressPercent }}%</span
           >
         </template>
-        <template v-else>加载中...</template>
+        <template v-else>加载中<LoadingDotsBounce /></template>
       </span>
       <template v-else>
         <span v-if="editCursorLabel" class="footerEditCursor">{{
@@ -394,6 +405,9 @@ function onPathMenuSelect(id: string) {
 
 .footer-loading {
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15em;
 }
 
 .footer-loading-pct {
@@ -402,6 +416,9 @@ function onPathMenuSelect(id: string) {
 
 .footer-loading-ebook {
   color: var(--warning);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15em;
 }
 
 .footerPathWrap {

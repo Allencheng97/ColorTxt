@@ -2,9 +2,7 @@
 import {
   computed,
   inject,
-  onBeforeUnmount,
   ref,
-  watch,
   type ComponentPublicInstance,
 } from "vue";
 import type { ChapterMatchRule } from "../chapter";
@@ -39,6 +37,7 @@ import type { ShortcutBindingMap } from "../services/shortcutRegistry";
 import type { ReaderSurfacePalette } from "../constants/appUi";
 import type { ReaderSurfaceColorEnabled } from "../constants/readerPalette";
 import { readerEbookConvertingHintText, readerBookPackUnpackingHintText } from "../constants/appUi";
+import LoadingDotsBounce from "./LoadingDotsBounce.vue";
 
 const bookmarkNoteInputRef = inject(bookmarkNoteInputRefKey)!;
 
@@ -93,6 +92,8 @@ const props = defineProps<{
   dirListScanning: boolean;
   dirListCurrentName: string;
   ebookParsing: boolean;
+  /** PDF 页进度，如 `12/480` */
+  ebookConvertProgressText?: string;
   /** 彩读书包解包 / 解析中 */
   bookPackUnpacking?: boolean;
   shortcutBindings: ShortcutBindingMap;
@@ -203,8 +204,6 @@ const bookmarkNoteInput = defineModel<string>("bookmarkNoteInput", {
 });
 
 const appUpdateFlowRef = ref<InstanceType<typeof AppUpdateFlow> | null>(null);
-const convertingDotCount = ref(0);
-let convertingDotTimer: number | null = null;
 
 defineExpose({
   checkForUpdates: () => appUpdateFlowRef.value?.checkForUpdates(),
@@ -224,16 +223,6 @@ function onBookmarkNoteKeydown(e: KeyboardEvent) {
   emit("confirmAddBookmark");
 }
 
-const convertingHintText = computed(() => {
-  const baseText = readerEbookConvertingHintText.replace(/[.…]+$/u, "");
-  return `${baseText}${".".repeat(convertingDotCount.value)}`;
-});
-
-const unpackingHintText = computed(() => {
-  const baseText = readerBookPackUnpackingHintText.replace(/[.…]+$/u, "");
-  return `${baseText}${".".repeat(convertingDotCount.value)}`;
-});
-
 const showBusyOverlay = computed(
   () =>
     props.dirListScanning ||
@@ -242,37 +231,14 @@ const showBusyOverlay = computed(
 );
 
 const busyOverlayText = computed(() => {
-  if (props.ebookParsing) return convertingHintText.value;
-  if (props.bookPackUnpacking) return unpackingHintText.value;
-  return props.dirListCurrentName || "准备中…";
-});
-
-watch(
-  () => props.ebookParsing || Boolean(props.bookPackUnpacking),
-  (busy) => {
-    if (busy) {
-      convertingDotCount.value = 0;
-      if (convertingDotTimer == null) {
-        convertingDotTimer = window.setInterval(() => {
-          convertingDotCount.value = (convertingDotCount.value + 1) % 4;
-        }, 360);
-      }
-      return;
-    }
-    convertingDotCount.value = 0;
-    if (convertingDotTimer != null) {
-      window.clearInterval(convertingDotTimer);
-      convertingDotTimer = null;
-    }
-  },
-  { immediate: true },
-);
-
-onBeforeUnmount(() => {
-  if (convertingDotTimer != null) {
-    window.clearInterval(convertingDotTimer);
-    convertingDotTimer = null;
+  if (props.ebookParsing) {
+    const progress = props.ebookConvertProgressText?.trim();
+    return progress
+      ? `${readerEbookConvertingHintText} ${progress}`
+      : readerEbookConvertingHintText;
   }
+  if (props.bookPackUnpacking) return readerBookPackUnpackingHintText;
+  return props.dirListCurrentName || "准备中";
 });
 </script>
 
@@ -486,7 +452,9 @@ onBeforeUnmount(() => {
       aria-busy="true"
     >
       <p class="dirScanLine" :title="dirListCurrentName">
-        {{ busyOverlayText }}
+        <span class="dirScanHint">
+          {{ busyOverlayText }}<LoadingDotsBounce />
+        </span>
       </p>
     </div>
   </Transition>
@@ -513,6 +481,12 @@ onBeforeUnmount(() => {
   color: var(--fg);
   font-size: 12px;
   text-align: center;
+}
+
+.dirScanHint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15em;
 }
 
 .dirScanOverlay-enter-active,
