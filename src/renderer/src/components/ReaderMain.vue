@@ -9,7 +9,7 @@ import {
   nextTick,
 } from "vue";
 import * as monaco from "monaco-editor";
-import kingHwaFontUrl from "../assets/KingHwa_OldSong1.0.ttf?url";
+import kingHwaFontUrl from "../assets/KingHwa_OldSong_3.0.ttf?url";
 import {
   type ChapterStickyLine,
   ensureStickyChapterBarClickDisabled,
