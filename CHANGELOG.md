@@ -18,6 +18,7 @@
 - 内置 **京華老宋体** 更新为 3.0
 - 侧栏「章节」多层级目录支持折叠（默认全部展开）；标题旁可全部展开 / 全部折叠
 - 空格 / `PageUp` / `PageDown` 翻页时相邻两页重叠一条完整行，避免被粘性章节标题盖住 [#80](https://github.com/ssnangua/ColorTxt/pull/80)
+- 语音朗读时，`空格`：暂停/播放，`←`/`→`：上一行/下一行 [#72](https://github.com/ssnangua/ColorTxt/issues/72)
 
 修复：
 

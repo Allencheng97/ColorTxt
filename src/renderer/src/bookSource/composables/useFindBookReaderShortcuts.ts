@@ -49,6 +49,10 @@ export function useFindBookReaderShortcuts(deps: {
   toggleFullscreen: () => void | Promise<void>;
   isVoiceReadScrollLocked?: Ref<boolean>;
   isVoiceReadBlocksFind?: Ref<boolean>;
+  isVoiceReadActive?: Ref<boolean>;
+  onVoiceReadTogglePlayPause?: () => void;
+  onVoiceReadPlayPrevLine?: () => void;
+  onVoiceReadPlayNextLine?: () => void;
   toggleReaderEdit: () => void | Promise<void>;
   /**
    * 已在章节边界时再次翻页/逐行滚动：切章并返回 true，调用方不再滚动正文。
@@ -136,6 +140,12 @@ export function useFindBookReaderShortcuts(deps: {
       (action) =>
         Boolean(deps.isVoiceReadScrollLocked?.value) &&
         VOICE_READ_SCROLL_BLOCKED_ACTIONS.has(action),
+      {
+        isActive: () => Boolean(deps.isVoiceReadActive?.value),
+        togglePlayPause: () => deps.onVoiceReadTogglePlayPause?.(),
+        playPrevLine: () => deps.onVoiceReadPlayPrevLine?.(),
+        playNextLine: () => deps.onVoiceReadPlayNextLine?.(),
+      },
     );
   }
 

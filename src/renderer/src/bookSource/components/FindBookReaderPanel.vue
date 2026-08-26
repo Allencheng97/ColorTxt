@@ -1095,6 +1095,10 @@ const { shortcutBindings } = useFindBookReaderShortcuts({
   toggleFullscreen: () => void toggleFullscreen(),
   isVoiceReadScrollLocked,
   isVoiceReadBlocksFind,
+  isVoiceReadActive,
+  onVoiceReadTogglePlayPause: () => voiceRead.togglePlayPause(),
+  onVoiceReadPlayPrevLine: () => voiceRead.playPrevLine(),
+  onVoiceReadPlayNextLine: () => voiceRead.playNextLine(),
   toggleReaderEdit: onToggleReaderEdit,
   tryAdvanceChapterOnScroll: tryAdvanceChapterFromOverscroll,
 });

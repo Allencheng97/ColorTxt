@@ -3514,6 +3514,10 @@ useAppWindowBindings({
   handleWindowCloseRequest,
   readerEditMode,
   voiceReadScrollLocked: isVoiceReadScrollLocked,
+  isVoiceReadActive,
+  onVoiceReadTogglePlayPause: voiceReadTogglePlayPause,
+  onVoiceReadPlayPrevLine: voiceReadPlayPrevLine,
+  onVoiceReadPlayNextLine: voiceReadPlayNextLine,
 });
 
 useAppShellThemeWatch({

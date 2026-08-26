@@ -3884,8 +3884,11 @@ watch(
       if (!root) return;
       const t = ev.target;
       if (!(t instanceof Node) || !root.contains(t)) return;
+      if (t instanceof Element && t.closest(".find-widget")) return;
       const k = ev.key;
       if (
+        k === "ArrowLeft" ||
+        k === "ArrowRight" ||
         k === "ArrowUp" ||
         k === "ArrowDown" ||
         k === "PageUp" ||
