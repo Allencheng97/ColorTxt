@@ -13,6 +13,8 @@ import kingHwaFontUrl from "../assets/KingHwa_OldSong1.0.ttf?url";
 import {
   type ChapterStickyLine,
   ensureStickyChapterBarClickDisabled,
+  getStickyChapterScrollHeight,
+  predictStickyChapterScrollHeight,
   refreshStickyChapterScrollWidget,
   registerChapterStickyScrollProviders,
 } from "../monaco/chapterStickyScroll";
@@ -407,6 +409,9 @@ let chaptersSnapshot: ChapterStickyLine[] = [];
 /** `registerChapterStickyScrollProviders` 注入后赋值；`setChapters` 末尾触发折叠失效以刷新粘性条 */
 let notifyChapterStickyFoldingRanges: (() => void) | null = null;
 let stickyChapterScrollRefreshRaf: number | null = null;
+/** 向下翻页后按实际粘性条高校正目标行位置 */
+let pageTurnStickyAlignRaf: number | null = null;
+let pageTurnStickyAlignGen = 0;
 
 /** 上次已写入的章节标题行内装饰对应的「章节行号序列」键；相同时可跳过 `collection.set`（仅着色，不含留白） */
 let lastChapterTitleDecorationsLineKey = "";
@@ -2915,16 +2920,221 @@ function scrollByLineStep(direction: -1 | 1) {
   scrollByDeltaY(direction * lineHeight);
 }
 
+function cancelPageTurnStickyAlign() {
+  pageTurnStickyAlignGen++;
+  if (pageTurnStickyAlignRaf == null) return;
+  cancelAnimationFrame(pageTurnStickyAlignRaf);
+  pageTurnStickyAlignRaf = null;
+}
+
+/** 完整可见 view line 转成的模型位置；软换行边界列会映射到下一视觉行，故退一列。 */
+function lastCompletelyVisibleModelPosition(
+  e: monaco.editor.ICodeEditor,
+): monaco.IPosition | null {
+  const last = e.getVisibleRanges().at(-1);
+  if (!last) return null;
+  return {
+    lineNumber: last.endLineNumber,
+    column: Math.max(1, last.endColumn - 1),
+  };
+}
+
+function visualLineHeightPx(
+  e: monaco.editor.ICodeEditor,
+  position: monaco.IPosition,
+  fallback: number,
+): number {
+  const h = e.getScrolledVisiblePosition(position)?.height;
+  return h && Number.isFinite(h) && h > 0 ? h : fallback;
+}
+
+/** 粘性条下方第一条未被挡住的完整视觉行（可能不是 getVisibleRanges 的起点）。 */
+function firstCompletelyVisibleModelPositionBelowSticky(
+  e: monaco.editor.ICodeEditor,
+): monaco.IPosition | null {
+  const stickyHeight = getStickyChapterScrollHeight(e);
+  const dom = e.getDomNode();
+  if (!dom) return null;
+  const layout = e.getLayoutInfo();
+  const rect = dom.getBoundingClientRect();
+  const x = rect.left + layout.contentLeft + 4;
+  const viewportHeight = Math.max(1, layout.height);
+  const lineHeight = Math.max(
+    1,
+    e.getOption(monaco.editor.EditorOption.lineHeight),
+  );
+  let y = rect.top + stickyHeight + 1;
+  const yMax = rect.top + viewportHeight - 2;
+  while (y < yMax) {
+    const hit = e.getTargetAtClientPoint(x, y)?.position;
+    if (!hit) {
+      y += lineHeight;
+      continue;
+    }
+    const pos = { lineNumber: hit.lineNumber, column: hit.column };
+    const vis = e.getScrolledVisiblePosition(pos);
+    if (!vis) {
+      y += lineHeight;
+      continue;
+    }
+    if (vis.top + 0.5 < stickyHeight) {
+      const nextY = rect.top + vis.top + vis.height + 1;
+      y = nextY > y ? nextY : y + lineHeight;
+      continue;
+    }
+    if (vis.top + vis.height > viewportHeight + 0.5) return null;
+    return pos;
+  }
+  return null;
+}
+
+function setScrollTopClamped(
+  e: monaco.editor.ICodeEditor,
+  scrollTop: number,
+  wantSmooth: boolean,
+) {
+  const maxTop = Math.max(0, e.getScrollHeight() - e.getLayoutInfo().height);
+  e.setScrollTop(
+    Math.max(0, Math.min(maxTop, scrollTop)),
+    monacoScrollType(wantSmooth),
+  );
+}
+
+/** 把该模型位置所在视觉行的顶对齐到粘性条下（尊重「平滑滚动」）。 */
+function alignLineBelowSticky(
+  e: monaco.editor.ICodeEditor,
+  position: monaco.IPosition,
+  stickyHeight: number,
+  wantSmooth: boolean,
+) {
+  const lineTop = e.getTopForPosition(position.lineNumber, position.column);
+  if (!Number.isFinite(lineTop)) return;
+  setScrollTopClamped(e, lineTop - stickyHeight, wantSmooth);
+}
+
+/** 把该视觉行完整落在视口底部（向上翻页的重叠行）。 */
+function alignLineToViewportBottom(
+  e: monaco.editor.ICodeEditor,
+  position: monaco.IPosition,
+  lineHeightPx: number,
+  wantSmooth: boolean,
+) {
+  const lineTop = e.getTopForPosition(position.lineNumber, position.column);
+  if (!Number.isFinite(lineTop)) return;
+  const vp = Math.max(1, e.getLayoutInfo().height);
+  setScrollTopClamped(e, lineTop + lineHeightPx - vp, wantSmooth);
+}
+
+function scheduleAfterPageTurnScrollSettled(
+  e: monaco.editor.ICodeEditor,
+  correct: () => void,
+) {
+  cancelPageTurnStickyAlign();
+  const gen = pageTurnStickyAlignGen;
+  const startTop = e.getScrollTop();
+  let moved = !props.monacoSmoothScrolling;
+  let lastTop = startTop;
+  let stableFrames = 0;
+  let frames = 0;
+
+  const run = () => {
+    pageTurnStickyAlignRaf = null;
+    if (gen !== pageTurnStickyAlignGen) return;
+    if (editor.value !== e || !e.getDomNode()) return;
+    correct();
+  };
+
+  const tick = () => {
+    if (gen !== pageTurnStickyAlignGen) return;
+    frames++;
+    const top = e.getScrollTop();
+    if (top !== startTop) moved = true;
+    if (top === lastTop) stableFrames++;
+    else {
+      stableFrames = 0;
+      lastTop = top;
+    }
+    const canSettle = moved || frames >= 8;
+    if ((canSettle && stableFrames >= 2) || frames > 60) {
+      run();
+      return;
+    }
+    pageTurnStickyAlignRaf = requestAnimationFrame(tick);
+  };
+  pageTurnStickyAlignRaf = requestAnimationFrame(tick);
+}
+
 function scrollByPageStep(direction: -1 | 1) {
   const e = editor.value;
   if (!e) return;
+  cancelPageTurnStickyAlign();
   const lineHeight = Math.max(
     1,
     e.getOption(monaco.editor.EditorOption.lineHeight),
   );
   const viewportHeight = Math.max(1, e.getLayoutInfo().height);
-  // 预留两行，避免翻屏后阅读点跳得过猛。
-  const step = Math.max(lineHeight, viewportHeight - lineHeight * 2);
+
+  if (direction > 0) {
+    const lastPos = lastCompletelyVisibleModelPosition(e);
+    if (lastPos) {
+      const lineTop = e.getTopForPosition(lastPos.lineNumber, lastPos.column);
+      const stickyHeight = predictStickyChapterScrollHeight(
+        e,
+        chaptersSnapshot,
+        lastPos.lineNumber,
+      );
+      if (
+        Number.isFinite(lineTop) &&
+        lineTop - e.getScrollTop() - stickyHeight >= lineHeight
+      ) {
+        alignLineBelowSticky(e, lastPos, stickyHeight, true);
+        scheduleAfterPageTurnScrollSettled(e, () => {
+          const desired =
+            e.getTopForPosition(lastPos.lineNumber, lastPos.column) -
+            getStickyChapterScrollHeight(e);
+          if (!Number.isFinite(desired)) return;
+          if (Math.abs(desired - e.getScrollTop()) < 1) return;
+          setScrollTopClamped(e, desired, true);
+        });
+        return;
+      }
+    }
+  } else {
+    const firstPos = firstCompletelyVisibleModelPositionBelowSticky(e);
+    if (firstPos) {
+      const lineTop = e.getTopForPosition(firstPos.lineNumber, firstPos.column);
+      const h = visualLineHeightPx(e, firstPos, lineHeight);
+      const nextTop = lineTop + h - viewportHeight;
+      if (Number.isFinite(lineTop) && e.getScrollTop() - nextTop >= lineHeight) {
+        alignLineToViewportBottom(e, firstPos, h, true);
+        scheduleAfterPageTurnScrollSettled(e, () => {
+          const nh = visualLineHeightPx(e, firstPos, h);
+          const desired =
+            e.getTopForPosition(firstPos.lineNumber, firstPos.column) +
+            nh -
+            Math.max(1, e.getLayoutInfo().height);
+          if (!Number.isFinite(desired)) return;
+          if (Math.abs(desired - e.getScrollTop()) < 1) return;
+          setScrollTopClamped(e, desired, true);
+        });
+        return;
+      }
+    }
+  }
+
+  const lastPos = lastCompletelyVisibleModelPosition(e);
+  const reserveSticky =
+    direction > 0
+      ? predictStickyChapterScrollHeight(
+          e,
+          chaptersSnapshot,
+          lastPos?.lineNumber ?? 1,
+        )
+      : getStickyChapterScrollHeight(e);
+  const step = Math.max(
+    lineHeight,
+    viewportHeight - reserveSticky - lineHeight,
+  );
   scrollByDeltaY(direction * step);
 }
 
@@ -3601,6 +3811,7 @@ onBeforeUnmount(() => {
     cancelAnimationFrame(stickyChapterScrollRefreshRaf);
     stickyChapterScrollRefreshRaf = null;
   }
+  cancelPageTurnStickyAlign();
   notifyChapterStickyFoldingRanges = null;
   disposeEbookInternalLinks();
   cancelImageViewZoneScrollRender();
