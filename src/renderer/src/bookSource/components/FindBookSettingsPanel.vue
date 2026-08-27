@@ -2,6 +2,8 @@
 import { computed, nextTick, ref, useTemplateRef, watch } from "vue";
 import AppModal from "../../components/AppModal.vue";
 import SettingsReadingPanel from "../../components/SettingsReadingPanel.vue";
+import RangeSlider from "../../components/RangeSlider.vue";
+import SwitchToggle from "../../components/SwitchToggle.vue";
 import DictionaryManageModal from "../../components/DictionaryManageModal.vue";
 import WebSearchManageModal from "../../components/WebSearchManageModal.vue";
 import TranslateManageModal from "../../components/TranslateManageModal.vue";
@@ -110,6 +112,10 @@ import { confirmClearAllChapterCache } from "../services/clearBookChapterCache";
 import { appAlert } from "../../services/appDialog";
 import type { CharacterRosterEntry } from "@shared/characterTypes";
 import "../../styles/settingsPanel.css";
+import {
+  loadPrivacyModeSettings,
+  savePrivacyModeSettings,
+} from "../../constants/privacyMode";
 
 type SettingsVoiceReadPanelExpose = {
   cancelPreview?: () => void;
@@ -134,6 +140,25 @@ const emit = defineEmits<{
 const fb = useFindBookSettings();
 const fbReaderSettings = useFindBookReaderSettings();
 const activeTab = ref<FindBookSettingsTabId>("download");
+const initialPrivacySettings = loadPrivacyModeSettings();
+const privacyTransparency = ref(initialPrivacySettings.transparency);
+const privacyMiddleMouseHide = ref(initialPrivacySettings.middleMouseHide);
+
+function updatePrivacyTransparency(value: number) {
+  privacyTransparency.value = value;
+  savePrivacyModeSettings({
+    transparency: value,
+    middleMouseHide: privacyMiddleMouseHide.value,
+  });
+}
+
+function updatePrivacyMiddleMouseHide(value: boolean) {
+  privacyMiddleMouseHide.value = value;
+  savePrivacyModeSettings({
+    transparency: privacyTransparency.value,
+    middleMouseHide: value,
+  });
+}
 const voiceReadPanelRef =
   useTemplateRef<SettingsVoiceReadPanelExpose>("voiceReadPanelRef");
 
@@ -145,7 +170,9 @@ const draftDownloadAfterAction = ref<FindBookDownloadAfterAction>(
 const draftDownloadAddToMainFileList = ref(true);
 const draftDownloadDefaultCategory = ref(DEFAULT_FIND_BOOK_DOWNLOAD_CATEGORY);
 const draftProxyEnabled = ref(DEFAULT_FIND_BOOK_PROXY_SETTINGS.enabled);
-const draftProxyType = ref<FindBookProxyType>(DEFAULT_FIND_BOOK_PROXY_SETTINGS.type);
+const draftProxyType = ref<FindBookProxyType>(
+  DEFAULT_FIND_BOOK_PROXY_SETTINGS.type,
+);
 const draftProxyHost = ref(DEFAULT_FIND_BOOK_PROXY_SETTINGS.host);
 const draftProxyPort = ref(DEFAULT_FIND_BOOK_PROXY_SETTINGS.port);
 const draftProxyUsername = ref(DEFAULT_FIND_BOOK_PROXY_SETTINGS.username);
@@ -168,15 +195,19 @@ const draftMouseWheelScrollSensitivity = ref(
 const draftFastScrollSensitivity = ref(defaultFastScrollSensitivity);
 const draftStickyChapterTitleEnabled = ref(defaultStickyChapterTitleEnabled);
 const draftChapterNavToolbarEnabled = ref(defaultChapterNavToolbarEnabled);
-const draftFindBookChapterAdvanceEnabled = ref(fbReaderSettings.findBookChapterAdvanceEnabled.value);
+const draftFindBookChapterAdvanceEnabled = ref(
+  fbReaderSettings.findBookChapterAdvanceEnabled.value,
+);
 const draftReaderEditShowLineNumbers = ref(defaultReaderEditShowLineNumbers);
 const draftReaderEditMinimap = ref(defaultReaderEditMinimap);
-const draftChapterTitleBlankMode = ref(
-  defaultChapterTitleBlankMode,
-);
+const draftChapterTitleBlankMode = ref(defaultChapterTitleBlankMode);
 const draftCompressBlankKeepOneBlank = ref(defaultCompressBlankKeepOneBlank);
-const draftTxtrDelimitedMatchCrossLine = ref(defaultTxtrDelimitedMatchCrossLine);
-const draftFullscreenReaderWidthPercent = ref(defaultFullscreenReaderWidthPercent);
+const draftTxtrDelimitedMatchCrossLine = ref(
+  defaultTxtrDelimitedMatchCrossLine,
+);
+const draftFullscreenReaderWidthPercent = ref(
+  defaultFullscreenReaderWidthPercent,
+);
 const draftFullscreenShowSystemTime = ref(defaultFullscreenShowSystemTime);
 const draftPomodoroEnabled = ref(defaultPomodoroEnabled);
 const draftPomodoroFocusMinutes = ref(defaultPomodoroFocusMinutes);
@@ -214,7 +245,9 @@ async function onTranslationSettingsUpdate(v: TranslationSettings) {
   fb.persistReaderUiPrefs();
 }
 
-const draftVoiceRead = ref<VoiceReadSettings>(mergeVoiceReadSettings(undefined));
+const draftVoiceRead = ref<VoiceReadSettings>(
+  mergeVoiceReadSettings(undefined),
+);
 const draftVoiceReadProfiles = ref<VoiceReadProfile[]>([]);
 const draftActiveVoiceReadProfileId = ref("");
 const draftAiEnabled = ref(false);
@@ -279,21 +312,24 @@ function syncSharedReaderDraftFromStore() {
   );
   draftStickyChapterTitleEnabled.value = fb.stickyChapterTitleEnabled.value;
   draftChapterNavToolbarEnabled.value = fb.chapterNavToolbarEnabled.value;
-  draftFindBookChapterAdvanceEnabled.value = fb.findBookChapterAdvanceEnabled.value;
+  draftFindBookChapterAdvanceEnabled.value =
+    fb.findBookChapterAdvanceEnabled.value;
   draftReaderEditShowLineNumbers.value = fb.readerEditShowLineNumbers.value;
   draftReaderEditMinimap.value = fb.readerEditMinimap.value;
-  draftChapterTitleBlankMode.value =
-    fb.chapterTitleBlankMode.value;
+  draftChapterTitleBlankMode.value = fb.chapterTitleBlankMode.value;
   draftCompressBlankKeepOneBlank.value = fb.compressBlankKeepOneBlank.value;
   draftTxtrDelimitedMatchCrossLine.value = fb.txtrDelimitedMatchCrossLine.value;
-  draftFullscreenReaderWidthPercent.value = fb.fullscreenReaderWidthPercent.value;
+  draftFullscreenReaderWidthPercent.value =
+    fb.fullscreenReaderWidthPercent.value;
   draftFullscreenShowSystemTime.value = fb.fullscreenShowSystemTime.value;
   const pomodoroMerged = mergePomodoroSettings(fb.pomodoroSettings.value);
   draftPomodoroEnabled.value = pomodoroMerged.enabled;
   draftPomodoroFocusMinutes.value = pomodoroMerged.focusMinutes;
   draftPomodoroShortBreakMinutes.value = pomodoroMerged.shortBreakMinutes;
   draftPomodoroLongBreakMinutes.value = pomodoroMerged.longBreakMinutes;
-  const timedScrollMerged = mergeTimedScrollSettings(fb.timedScrollSettings.value);
+  const timedScrollMerged = mergeTimedScrollSettings(
+    fb.timedScrollSettings.value,
+  );
   draftTimedScrollRange.value = timedScrollMerged.range;
   draftTimedScrollIntervalMs.value = timedScrollMerged.intervalMs;
   draftSelectionToolbarButtons.value = mergeSelectionToolbarButtons(
@@ -366,8 +402,7 @@ function resetReadingDraft() {
   draftFastScrollSensitivity.value = defaultFastScrollSensitivity;
   draftStickyChapterTitleEnabled.value = defaultStickyChapterTitleEnabled;
   draftChapterNavToolbarEnabled.value = defaultChapterNavToolbarEnabled;
-  draftChapterTitleBlankMode.value =
-    defaultChapterTitleBlankMode;
+  draftChapterTitleBlankMode.value = defaultChapterTitleBlankMode;
   draftCompressBlankKeepOneBlank.value = defaultCompressBlankKeepOneBlank;
   draftTxtrDelimitedMatchCrossLine.value = defaultTxtrDelimitedMatchCrossLine;
   draftFullscreenReaderWidthPercent.value = defaultFullscreenReaderWidthPercent;
@@ -414,9 +449,7 @@ async function persistVoiceDraftToMain() {
     profiles.find((p) => p.id === draftActiveVoiceReadProfileId.value) ??
     profiles[0];
   const voiceReadMergedLocal = stripVoiceReadSettingsApiKeysForDisk(
-    mergeVoiceReadSettings(
-      activeLocal?.settings ?? draftVoiceRead.value,
-    ),
+    mergeVoiceReadSettings(activeLocal?.settings ?? draftVoiceRead.value),
   );
   const profilesForCompare = stripVoiceReadProfileApiKeysForDisk(profiles);
   const localVoicePayload: Record<string, unknown> = {
@@ -537,14 +570,15 @@ async function onConfirm() {
   );
   fb.stickyChapterTitleEnabled.value = draftStickyChapterTitleEnabled.value;
   fb.chapterNavToolbarEnabled.value = draftChapterNavToolbarEnabled.value;
-  fb.findBookChapterAdvanceEnabled.value = draftFindBookChapterAdvanceEnabled.value;
+  fb.findBookChapterAdvanceEnabled.value =
+    draftFindBookChapterAdvanceEnabled.value;
   fb.readerEditShowLineNumbers.value = draftReaderEditShowLineNumbers.value;
   fb.readerEditMinimap.value = draftReaderEditMinimap.value;
-  fb.chapterTitleBlankMode.value =
-    draftChapterTitleBlankMode.value;
+  fb.chapterTitleBlankMode.value = draftChapterTitleBlankMode.value;
   fb.compressBlankKeepOneBlank.value = draftCompressBlankKeepOneBlank.value;
   fb.txtrDelimitedMatchCrossLine.value = draftTxtrDelimitedMatchCrossLine.value;
-  fb.fullscreenReaderWidthPercent.value = draftFullscreenReaderWidthPercent.value;
+  fb.fullscreenReaderWidthPercent.value =
+    draftFullscreenReaderWidthPercent.value;
   fb.fullscreenShowSystemTime.value = draftFullscreenShowSystemTime.value;
   fb.pomodoroSettings.value = mergePomodoroSettings({
     enabled: draftPomodoroEnabled.value,
@@ -566,9 +600,7 @@ async function onConfirm() {
   try {
     await window.colorTxt.secrets.setWebDavPassword(draftWebDavPassword.value);
   } catch (e) {
-    await appAlert(
-      e instanceof Error ? e.message : "保存 WebDAV 密码失败",
-    );
+    await appAlert(e instanceof Error ? e.message : "保存 WebDAV 密码失败");
     return;
   }
   patchPersistedMainSettings({
@@ -662,7 +694,9 @@ watch(draftFontSize, (size) => {
               v-model:draft-download-add-to-main-file-list="
                 draftDownloadAddToMainFileList
               "
-              v-model:draft-download-default-category="draftDownloadDefaultCategory"
+              v-model:draft-download-default-category="
+                draftDownloadDefaultCategory
+              "
               @clear-cache="onClearCache"
             />
 
@@ -676,25 +710,49 @@ watch(draftFontSize, (size) => {
                 draftReaderHorizontalInsetPx
               "
               v-model:draft-monaco-smooth-scrolling="draftMonacoSmoothScrolling"
-              v-model:draft-monaco-cjk-wrap-optimize="draftMonacoCjkWrapOptimize"
+              v-model:draft-monaco-cjk-wrap-optimize="
+                draftMonacoCjkWrapOptimize
+              "
               v-model:draft-mouse-wheel-scroll-sensitivity="
                 draftMouseWheelScrollSensitivity
               "
               v-model:draft-fast-scroll-sensitivity="draftFastScrollSensitivity"
-              v-model:draft-sticky-chapter-title-enabled="draftStickyChapterTitleEnabled"
-              v-model:draft-chapter-nav-toolbar-enabled="draftChapterNavToolbarEnabled"
-              v-model:draft-find-book-chapter-advance-enabled="draftFindBookChapterAdvanceEnabled"
-              v-model:draft-chapter-title-blank-mode="draftChapterTitleBlankMode"
-              v-model:draft-compress-blank-keep-one-blank="draftCompressBlankKeepOneBlank"
-              v-model:draft-txtr-delimited-match-cross-line="draftTxtrDelimitedMatchCrossLine"
-              v-model:draft-fullscreen-reader-width-percent="draftFullscreenReaderWidthPercent"
-              v-model:draft-fullscreen-show-system-time="draftFullscreenShowSystemTime"
+              v-model:draft-sticky-chapter-title-enabled="
+                draftStickyChapterTitleEnabled
+              "
+              v-model:draft-chapter-nav-toolbar-enabled="
+                draftChapterNavToolbarEnabled
+              "
+              v-model:draft-find-book-chapter-advance-enabled="
+                draftFindBookChapterAdvanceEnabled
+              "
+              v-model:draft-chapter-title-blank-mode="
+                draftChapterTitleBlankMode
+              "
+              v-model:draft-compress-blank-keep-one-blank="
+                draftCompressBlankKeepOneBlank
+              "
+              v-model:draft-txtr-delimited-match-cross-line="
+                draftTxtrDelimitedMatchCrossLine
+              "
+              v-model:draft-fullscreen-reader-width-percent="
+                draftFullscreenReaderWidthPercent
+              "
+              v-model:draft-fullscreen-show-system-time="
+                draftFullscreenShowSystemTime
+              "
               v-model:draft-pomodoro-enabled="draftPomodoroEnabled"
               v-model:draft-pomodoro-focus-minutes="draftPomodoroFocusMinutes"
-              v-model:draft-pomodoro-short-break-minutes="draftPomodoroShortBreakMinutes"
-              v-model:draft-pomodoro-long-break-minutes="draftPomodoroLongBreakMinutes"
+              v-model:draft-pomodoro-short-break-minutes="
+                draftPomodoroShortBreakMinutes
+              "
+              v-model:draft-pomodoro-long-break-minutes="
+                draftPomodoroLongBreakMinutes
+              "
               v-model:draft-timed-scroll-range="draftTimedScrollRange"
-              v-model:draft-timed-scroll-interval-ms="draftTimedScrollIntervalMs"
+              v-model:draft-timed-scroll-interval-ms="
+                draftTimedScrollIntervalMs
+              "
               v-model:draft-selection-toolbar-buttons="
                 draftSelectionToolbarButtons
               "
@@ -707,6 +765,43 @@ watch(draftFontSize, (size) => {
               @open-web-search-manage="showWebSearchManagePanel = true"
               @open-translate-manage="openTranslateManageFromSettings"
             />
+
+            <div
+              v-show="activeTab === 'reading'"
+              class="settingsBody settingsBody--privacy"
+            >
+              <h3 class="settingsSectionTitle">摸鱼模式</h3>
+              <div class="settingsRow">
+                <div class="settingsRowMain">
+                  <span class="settingsLabel short"
+                    >背景透明度（{{ privacyTransparency }}%）</span
+                  >
+                  <RangeSlider
+                    :model-value="privacyTransparency"
+                    :min="0"
+                    :max="100"
+                    :step="1"
+                    :show-percent="false"
+                    aria-label="摸鱼模式背景透明度"
+                    @update:model-value="updatePrivacyTransparency"
+                  />
+                </div>
+                <p class="settingsHint">0% 为不透明，100% 为完全透明。</p>
+              </div>
+              <div class="settingsRow">
+                <div class="settingsRowMain">
+                  <span class="settingsLabel">鼠标中键隐藏应用</span>
+                  <SwitchToggle
+                    :model-value="privacyMiddleMouseHide"
+                    aria-label="鼠标中键隐藏应用"
+                    @update:model-value="updatePrivacyMiddleMouseHide"
+                  />
+                </div>
+                <p class="settingsHint">
+                  在应用任意区域按下鼠标中键，立即隐藏全部窗口。
+                </p>
+              </div>
+            </div>
 
             <SettingsEditPanel
               v-show="activeTab === 'edit'"

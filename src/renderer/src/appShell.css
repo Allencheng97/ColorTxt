@@ -14,6 +14,49 @@
   display: flex;
 }
 
+/* 摸鱼模式：只保留透明正文。Esc 由 App.vue 捕获并恢复完整界面。 */
+.app.privacyMode {
+  --reader-bg: transparent;
+  --reader-body-text: #111111;
+  --reader-chapter-title: #111111;
+  background: transparent !important;
+}
+
+.app.privacyMode .appHeaderWrap,
+.app.privacyMode .appFooterWrap,
+.app.privacyMode .sidebarPaneWrap,
+.app.privacyMode .resizer,
+.app.privacyMode .readerChapterNavBar {
+  display: none !important;
+}
+
+.app.privacyMode .layout,
+.app.privacyMode .readerPaneWrap,
+.app.privacyMode .readerPane,
+.app.privacyMode :deep(.monaco-editor),
+.app.privacyMode :deep(.monaco-editor-background),
+.app.privacyMode :deep(.margin),
+.app.privacyMode :deep(.overflow-guard) {
+  background: transparent !important;
+  background-color: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.app.privacyMode .layout {
+  background: rgba(
+    255,
+    255,
+    255,
+    var(--privacy-background-alpha, 0.2)
+  ) !important;
+}
+
+.app.privacyMode :deep(.view-line),
+.app.privacyMode :deep(.view-line span) {
+  color: #111111 !important;
+}
+
 /* 全屏阅读：鼠标静止一段时间后隐藏系统光标（子元素如 Monaco 可能自带 cursor，需通配覆盖） */
 .app.fullscreen.fullscreen--cursorHidden,
 .app.fullscreen.fullscreen--cursorHidden * {
@@ -112,7 +155,8 @@
 }
 
 /* readerPane 与 content--readerEditMinimap 同在 ReaderMain 根 <main>，须用复合选择器 */
-.app.fullscreen :deep(.readerPane.content--readerEditMinimap .monaco-editor .minimap) {
+.app.fullscreen
+  :deep(.readerPane.content--readerEditMinimap .monaco-editor .minimap) {
   position: fixed !important;
   /* Monaco 用 inline left（minimapLeft）定位；fixed 后须清掉，否则会落在居中正文中间 */
   left: auto !important;

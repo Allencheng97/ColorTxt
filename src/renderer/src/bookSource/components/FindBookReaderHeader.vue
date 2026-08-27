@@ -78,6 +78,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   changeTheme: [theme: string];
   toggleSidebar: [];
+  enterPrivacyMode: [];
   toggleFullscreen: [];
   setMonacoFont: [fontFamily: string];
   togglePinOtherFont: [fontName: string];
@@ -237,7 +238,9 @@ function onOpenTextReplace() {
           :can-increase-line-height="canIncreaseLineHeight"
           :can-decrease-line-height="canDecreaseLineHeight"
           @set-monaco-font="(fontFamily) => emit('setMonacoFont', fontFamily)"
-          @toggle-pin-other-font="(fontName) => emit('togglePinOtherFont', fontName)"
+          @toggle-pin-other-font="
+            (fontName) => emit('togglePinOtherFont', fontName)
+          "
           @increase-font-size="emit('increaseFontSize')"
           @decrease-font-size="emit('decreaseFontSize')"
           @increase-line-height="emit('increaseLineHeight')"
@@ -262,16 +265,30 @@ function onOpenTextReplace() {
           show-text-replace
           :text-replace-active="textReplaceActive"
           @select-text-convert-zh-read="emit('selectTextConvertZhRead', $event)"
-          @select-text-convert-letter-read="emit('selectTextConvertLetterRead', $event)"
-          @select-text-convert-digit-read="emit('selectTextConvertDigitRead', $event)"
+          @select-text-convert-letter-read="
+            emit('selectTextConvertLetterRead', $event)
+          "
+          @select-text-convert-digit-read="
+            emit('selectTextConvertDigitRead', $event)
+          "
           @apply-text-convert-zh-edit="emit('applyTextConvertZhEdit', $event)"
-          @apply-text-convert-letter-edit="emit('applyTextConvertLetterEdit', $event)"
-          @apply-text-convert-digit-edit="emit('applyTextConvertDigitEdit', $event)"
+          @apply-text-convert-letter-edit="
+            emit('applyTextConvertLetterEdit', $event)
+          "
+          @apply-text-convert-digit-edit="
+            emit('applyTextConvertDigitEdit', $event)
+          "
           @toggle-compress-blank-lines="emit('toggleCompressBlankLines')"
           @toggle-lead-indent-full-width="emit('toggleLeadIndentFullWidth')"
-          @format-edit-compress-blank-lines="emit('formatEditCompressBlankLines')"
-          @format-edit-lead-indent-full-width="emit('formatEditLeadIndentFullWidth')"
-          @toggle-monaco-advanced-wrapping="emit('toggleMonacoAdvancedWrapping')"
+          @format-edit-compress-blank-lines="
+            emit('formatEditCompressBlankLines')
+          "
+          @format-edit-lead-indent-full-width="
+            emit('formatEditLeadIndentFullWidth')
+          "
+          @toggle-monaco-advanced-wrapping="
+            emit('toggleMonacoAdvancedWrapping')
+          "
           @open-text-replace="onOpenTextReplace"
         />
         <span class="toolbarDivider" aria-hidden="true" />
@@ -287,7 +304,11 @@ function onOpenTextReplace() {
         />
         <IconButton
           :icon-html="currentTheme === 'vs' ? icons.light : icons.dark"
-          :title="currentTheme === 'vs' ? '当前亮色，点击切换暗色' : '当前暗色，点击切换亮色'"
+          :title="
+            currentTheme === 'vs'
+              ? '当前亮色，点击切换暗色'
+              : '当前暗色，点击切换亮色'
+          "
           @click="emit('changeTheme', currentTheme === 'vs' ? 'vs-dark' : 'vs')"
         />
         <IconButton
@@ -299,7 +320,15 @@ function onOpenTextReplace() {
           @click="emit('toggleSidebar')"
         />
         <IconButton
-          :icon-html="inFullscreen ? icons.leaveFullscreen : icons.enterFullscreen"
+          :icon-html="icons.fish"
+          title="摸鱼模式"
+          aria-label="进入摸鱼模式"
+          @click="emit('enterPrivacyMode')"
+        />
+        <IconButton
+          :icon-html="
+            inFullscreen ? icons.leaveFullscreen : icons.enterFullscreen
+          "
           :title="inFullscreen ? '退出全屏' : '全屏阅读'"
           @click="emit('toggleFullscreen')"
         />
@@ -349,8 +378,15 @@ function onOpenTextReplace() {
           :can-decrease-font="canDecreaseFont"
           :can-increase-line-height="canIncreaseLineHeight"
           :can-decrease-line-height="canDecreaseLineHeight"
-          @set-monaco-font="(fontFamily) => { emit('setMonacoFont', fontFamily); closeMoreMenu(); }"
-          @toggle-pin-other-font="(fontName) => emit('togglePinOtherFont', fontName)"
+          @set-monaco-font="
+            (fontFamily) => {
+              emit('setMonacoFont', fontFamily);
+              closeMoreMenu();
+            }
+          "
+          @toggle-pin-other-font="
+            (fontName) => emit('togglePinOtherFont', fontName)
+          "
           @increase-font-size="emit('increaseFontSize')"
           @decrease-font-size="emit('decreaseFontSize')"
           @increase-line-height="emit('increaseLineHeight')"
@@ -369,16 +405,30 @@ function onOpenTextReplace() {
           show-text-replace
           :text-replace-active="textReplaceActive"
           @select-text-convert-zh-read="emit('selectTextConvertZhRead', $event)"
-          @select-text-convert-letter-read="emit('selectTextConvertLetterRead', $event)"
-          @select-text-convert-digit-read="emit('selectTextConvertDigitRead', $event)"
+          @select-text-convert-letter-read="
+            emit('selectTextConvertLetterRead', $event)
+          "
+          @select-text-convert-digit-read="
+            emit('selectTextConvertDigitRead', $event)
+          "
           @apply-text-convert-zh-edit="emit('applyTextConvertZhEdit', $event)"
-          @apply-text-convert-letter-edit="emit('applyTextConvertLetterEdit', $event)"
-          @apply-text-convert-digit-edit="emit('applyTextConvertDigitEdit', $event)"
+          @apply-text-convert-letter-edit="
+            emit('applyTextConvertLetterEdit', $event)
+          "
+          @apply-text-convert-digit-edit="
+            emit('applyTextConvertDigitEdit', $event)
+          "
           @toggle-compress-blank-lines="emit('toggleCompressBlankLines')"
           @toggle-lead-indent-full-width="emit('toggleLeadIndentFullWidth')"
-          @format-edit-compress-blank-lines="emit('formatEditCompressBlankLines')"
-          @format-edit-lead-indent-full-width="emit('formatEditLeadIndentFullWidth')"
-          @toggle-monaco-advanced-wrapping="emit('toggleMonacoAdvancedWrapping')"
+          @format-edit-compress-blank-lines="
+            emit('formatEditCompressBlankLines')
+          "
+          @format-edit-lead-indent-full-width="
+            emit('formatEditLeadIndentFullWidth')
+          "
+          @toggle-monaco-advanced-wrapping="
+            emit('toggleMonacoAdvancedWrapping')
+          "
           @open-text-replace="onOpenTextReplace"
         />
       </div>

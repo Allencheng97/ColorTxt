@@ -33,7 +33,9 @@ type MainWindowMaps = {
   onMainWindowFocused?: (windowId: number) => void;
 };
 
-export function createMainWindowFactory(maps: MainWindowMaps): CreateMainWindow {
+export function createMainWindowFactory(
+  maps: MainWindowMaps,
+): CreateMainWindow {
   const {
     shouldRestoreSessionByWindowId,
     pendingOpenTxtByWindowId,
@@ -76,6 +78,8 @@ export function createMainWindowFactory(maps: MainWindowMaps): CreateMainWindow 
       y: initialBounds.y,
       minWidth: WINDOW_MIN_WIDTH,
       minHeight: WINDOW_MIN_HEIGHT,
+      transparent: true,
+      backgroundColor: "#00000000",
       icon: iconPath,
       webPreferences: {
         preload: path.join(__dirname, "../preload/index.js"),
@@ -118,9 +122,7 @@ export function createMainWindowFactory(maps: MainWindowMaps): CreateMainWindow 
     if (process.env.ELECTRON_RENDERER_URL) {
       const base = process.env.ELECTRON_RENDERER_URL.replace(/\/$/, "");
       win.loadURL(
-        openFindBook
-          ? `${base}/find-book.html${findBookQuery}`
-          : base,
+        openFindBook ? `${base}/find-book.html${findBookQuery}` : base,
       );
     } else {
       win.loadFile(
@@ -177,7 +179,9 @@ export function createMainWindowFactory(maps: MainWindowMaps): CreateMainWindow 
       win.webContents.send("window:fullscreen-changed", { isFullscreen: true });
     });
     win.on("leave-full-screen", () => {
-      win.webContents.send("window:fullscreen-changed", { isFullscreen: false });
+      win.webContents.send("window:fullscreen-changed", {
+        isFullscreen: false,
+      });
     });
 
     // `resize` / `move` 会在拖拽过程中高频触发，写文件会产生不必要的 IO。

@@ -5,6 +5,7 @@ import enterFullscreenIcon from "./assets/enter_fullscreen.svg?raw";
 import leaveFullscreenIcon from "./assets/leave_fullscreen.svg?raw";
 import paletteIcon from "./assets/palette.svg?raw";
 import moreIcon from "./assets/more.svg?raw";
+import fishIcon from "./assets/fish.svg?raw";
 import mindmapIcon from "./assets/mindmap.svg?raw";
 import wordcloudIcon from "./assets/wordcloud.svg?raw";
 import wordcloudAngleIcon from "./assets/wordcloud_angle.svg?raw";
@@ -125,11 +126,7 @@ import webDavUploadIcon from "./assets/WebDAV_upload.svg?raw";
 import webDavDownloadIcon from "./assets/WebDAV_download.svg?raw";
 
 /** 角色卡「语音」播放动画帧：speak_0 → speak_1 → speak */
-export const speakIconAnimFrames = [
-  speak0Icon,
-  speak1Icon,
-  speakIcon,
-] as const;
+export const speakIconAnimFrames = [speak0Icon, speak1Icon, speakIcon] as const;
 
 export const icons = {
   dark: darkIcon,
@@ -139,6 +136,8 @@ export const icons = {
   leaveFullscreen: leaveFullscreenIcon,
   palette: paletteIcon,
   more: moreIcon,
+  /** 摸鱼模式 */
+  fish: fishIcon,
   /** 书源列表行「登录」 */
   user: userIcon,
   /** VIP 章节购买 */

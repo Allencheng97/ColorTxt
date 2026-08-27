@@ -39,6 +39,7 @@ import {
 } from "./windowCloseGuard";
 import {
   getToggleVisibilityShortcut,
+  hideAppForMiddleMouse,
   resumeGlobalShortcutsAfterRecording,
   setToggleVisibilityShortcut,
   suspendGlobalShortcutsForRecording,
@@ -324,8 +325,7 @@ export function registerMainIpcHandlers(
       _evt,
       targetPathRaw: unknown,
     ): Promise<{ ok: true } | { ok: false; error: string }> => {
-      const raw =
-        typeof targetPathRaw === "string" ? targetPathRaw.trim() : "";
+      const raw = typeof targetPathRaw === "string" ? targetPathRaw.trim() : "";
       if (!raw) return { ok: false, error: "路径为空" };
       const resolved = path.resolve(raw);
       if (!resolved) return { ok: false, error: "路径无效" };
@@ -382,9 +382,7 @@ export function registerMainIpcHandlers(
 
   ipcMain.handle("window:openFileInMain", (_evt, filePath: unknown) => {
     const resolved =
-      typeof filePath === "string" && filePath.trim()
-        ? filePath.trim()
-        : null;
+      typeof filePath === "string" && filePath.trim() ? filePath.trim() : null;
     if (!resolved) return;
     openTxtInMainWindow({
       filePath: resolved,
@@ -398,6 +396,21 @@ export function registerMainIpcHandlers(
     const win = BrowserWindow.fromWebContents(evt.sender);
     if (!win || win.isDestroyed()) return;
     win.webContents.toggleDevTools();
+  });
+
+  ipcMain.on("window:hideAllStealth", () => {
+    // 保留应用在 Dock / 任务栏中的入口，用户可直接重新点开。
+    hideAppForMiddleMouse(BrowserWindow.getFocusedWindow());
+  });
+
+  ipcMain.on("window:setPrivacyPresentation", (evt, enabled: unknown) => {
+    const win = BrowserWindow.fromWebContents(evt.sender);
+    if (!win || win.isDestroyed()) return;
+    win.setBackgroundColor("#00000000");
+    win.setHasShadow(enabled !== true);
+    if (process.platform === "darwin") {
+      win.setWindowButtonVisibility(enabled !== true);
+    }
   });
 
   ipcMain.handle("window:shouldRestoreSession", (evt) => {
@@ -419,8 +432,7 @@ export function registerMainIpcHandlers(
       return;
     }
     evt.returnValue = {
-      shouldRestoreSession:
-        shouldRestoreSessionByWindowId.get(win.id) === true,
+      shouldRestoreSession: shouldRestoreSessionByWindowId.get(win.id) === true,
       hasPendingOpenTxt: pendingOpenTxtByWindowId.has(win.id),
       isFindBookWindow: findBookWindowByWindowId.get(win.id) === true,
       findBookInitialTab:
@@ -547,9 +559,12 @@ export function registerMainIpcHandlers(
     }
   });
 
-  ipcMain.handle("colortxtLocal:registerPath", async (_evt, filePath: string) => {
-    return registerLocalFileForColortxtUrl(String(filePath ?? ""));
-  });
+  ipcMain.handle(
+    "colortxtLocal:registerPath",
+    async (_evt, filePath: string) => {
+      return registerLocalFileForColortxtUrl(String(filePath ?? ""));
+    },
+  );
 
   ipcMain.handle("file:readFileAsBuffer", async (_evt, filePath: string) => {
     return readFile(path.resolve(filePath));
@@ -596,12 +611,7 @@ export function registerMainIpcHandlers(
 
   ipcMain.handle(
     "file:writeTextFile",
-    async (
-      _evt,
-      filePath: string,
-      content: string,
-      encodingRaw: unknown,
-    ) => {
+    async (_evt, filePath: string, content: string, encodingRaw: unknown) => {
       const resolved = path.resolve(String(filePath ?? "").trim());
       if (!resolved) {
         return { ok: false as const, message: "路径为空" };
@@ -676,7 +686,8 @@ export function registerMainIpcHandlers(
     }
     try {
       const st = await stat(root);
-      if (!st.isDirectory()) return { ok: true as const, files: [] as string[] };
+      if (!st.isDirectory())
+        return { ok: true as const, files: [] as string[] };
     } catch {
       return { ok: true as const, files: [] as string[] };
     }
@@ -876,8 +887,7 @@ export function registerMainIpcHandlers(
       sender.send("file:stream-error", {
         requestId,
         ...streamMeta,
-        message:
-          err instanceof Error ? err.message : "文件不存在或不可访问",
+        message: err instanceof Error ? err.message : "文件不存在或不可访问",
       });
       return;
     }
@@ -946,9 +956,11 @@ export function registerMainIpcHandlers(
 
   ipcMain.handle(
     "voiceRead:edgeTts",
-    async (_evt, raw: unknown): Promise<
-      | { ok: true; mp3: ArrayBuffer }
-      | { ok: false; error: string }
+    async (
+      _evt,
+      raw: unknown,
+    ): Promise<
+      { ok: true; mp3: ArrayBuffer } | { ok: false; error: string }
     > => {
       if (!raw || typeof raw !== "object") {
         return { ok: false, error: "无效请求" };
@@ -957,7 +969,8 @@ export function registerMainIpcHandlers(
       const text = typeof o.text === "string" ? o.text : "";
       const voice = typeof o.voice === "string" ? o.voice : "";
       const lang = typeof o.lang === "string" ? o.lang : "zh-CN";
-      const rate = typeof o.rate === "number" && Number.isFinite(o.rate) ? o.rate : 1;
+      const rate =
+        typeof o.rate === "number" && Number.isFinite(o.rate) ? o.rate : 1;
       const pitch =
         typeof o.pitch === "number" && Number.isFinite(o.pitch) ? o.pitch : 1;
       const req: VoiceReadEdgeTtsRequest = { text, voice, lang, rate, pitch };
@@ -973,15 +986,15 @@ export function registerMainIpcHandlers(
     },
   );
 
-function unknownQuoteAttributions(
-  count: number,
-): VoiceReadQuoteAttribution[] {
-  return Array.from({ length: count }, () => ({
-    kind: "unknown" as const,
-    speaker: null,
-    emotion: VOICE_READ_EMOTION_AUTO,
-  }));
-}
+  function unknownQuoteAttributions(
+    count: number,
+  ): VoiceReadQuoteAttribution[] {
+    return Array.from({ length: count }, () => ({
+      kind: "unknown" as const,
+      speaker: null,
+      emotion: VOICE_READ_EMOTION_AUTO,
+    }));
+  }
 
   ipcMain.handle(
     "voiceRead:attributeSpeakers",

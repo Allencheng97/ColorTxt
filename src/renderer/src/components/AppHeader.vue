@@ -135,6 +135,7 @@ const emit = defineEmits<{
   openShortcuts: [];
   openSettings: [];
   openColorScheme: [];
+  enterPrivacyMode: [];
   openFindBook: [];
   openNewWindow: [];
   openAbout: [];
@@ -171,9 +172,7 @@ const showFormatToolbarInMore = computed(() => compactFormatToolbar.value);
       :active="readerEditMode"
       :pressed="readerEditMode"
       :title="
-        smartFormatReviewActive
-          ? '排版预览中，请先应用或放弃'
-          : '编辑模式'
+        smartFormatReviewActive ? '排版预览中，请先应用或放弃' : '编辑模式'
       "
       aria-label="切换编辑模式"
       :disabled="
@@ -193,9 +192,7 @@ const showFormatToolbarInMore = computed(() => compactFormatToolbar.value);
       "
       @click="emit('saveReaderFile')"
     />
-    <template
-      v-if="readerEditMode && aiFeaturesEnabled && canUseAiSmartFormat"
-    >
+    <template v-if="readerEditMode && aiFeaturesEnabled && canUseAiSmartFormat">
       <span class="toolbarDivider" aria-hidden="true"></span>
       <IconButton
         :icon-html="icons.aiCompose"
@@ -269,7 +266,9 @@ const showFormatToolbarInMore = computed(() => compactFormatToolbar.value);
           :can-increase-line-height="canIncreaseLineHeight"
           :can-decrease-line-height="canDecreaseLineHeight"
           @set-monaco-font="(fontFamily) => emit('setMonacoFont', fontFamily)"
-          @toggle-pin-other-font="(fontName) => emit('togglePinOtherFont', fontName)"
+          @toggle-pin-other-font="
+            (fontName) => emit('togglePinOtherFont', fontName)
+          "
           @increase-font-size="emit('increaseFontSize')"
           @decrease-font-size="emit('decreaseFontSize')"
           @increase-line-height="emit('increaseLineHeight')"
@@ -304,12 +303,20 @@ const showFormatToolbarInMore = computed(() => compactFormatToolbar.value);
           @apply-text-convert-letter-edit="
             emit('applyTextConvertLetterEdit', $event)
           "
-          @apply-text-convert-digit-edit="emit('applyTextConvertDigitEdit', $event)"
+          @apply-text-convert-digit-edit="
+            emit('applyTextConvertDigitEdit', $event)
+          "
           @toggle-compress-blank-lines="emit('toggleCompressBlankLines')"
           @toggle-lead-indent-full-width="emit('toggleLeadIndentFullWidth')"
-          @format-edit-compress-blank-lines="emit('formatEditCompressBlankLines')"
-          @format-edit-lead-indent-full-width="emit('formatEditLeadIndentFullWidth')"
-          @toggle-monaco-advanced-wrapping="emit('toggleMonacoAdvancedWrapping')"
+          @format-edit-compress-blank-lines="
+            emit('formatEditCompressBlankLines')
+          "
+          @format-edit-lead-indent-full-width="
+            emit('formatEditLeadIndentFullWidth')
+          "
+          @toggle-monaco-advanced-wrapping="
+            emit('toggleMonacoAdvancedWrapping')
+          "
           @open-text-replace="emit('openTextReplace')"
         />
       </div>
@@ -352,6 +359,12 @@ const showFormatToolbarInMore = computed(() => compactFormatToolbar.value);
         @click="$emit('toggleSidebar')"
       />
       <IconButton
+        :icon-html="icons.fish"
+        title="摸鱼模式"
+        aria-label="进入摸鱼模式"
+        @click="$emit('enterPrivacyMode')"
+      />
+      <IconButton
         :icon-html="
           inFullscreen ? icons.leaveFullscreen : icons.enterFullscreen
         "
@@ -388,7 +401,9 @@ const showFormatToolbarInMore = computed(() => compactFormatToolbar.value);
               :can-decrease-font="canDecreaseFont"
               :can-increase-line-height="canIncreaseLineHeight"
               :can-decrease-line-height="canDecreaseLineHeight"
-              @set-monaco-font="(fontFamily) => emit('setMonacoFont', fontFamily)"
+              @set-monaco-font="
+                (fontFamily) => emit('setMonacoFont', fontFamily)
+              "
               @toggle-pin-other-font="
                 (fontName) => emit('togglePinOtherFont', fontName)
               "
@@ -418,7 +433,9 @@ const showFormatToolbarInMore = computed(() => compactFormatToolbar.value);
               @select-text-convert-digit-read="
                 emit('selectTextConvertDigitRead', $event)
               "
-              @apply-text-convert-zh-edit="emit('applyTextConvertZhEdit', $event)"
+              @apply-text-convert-zh-edit="
+                emit('applyTextConvertZhEdit', $event)
+              "
               @apply-text-convert-letter-edit="
                 emit('applyTextConvertLetterEdit', $event)
               "

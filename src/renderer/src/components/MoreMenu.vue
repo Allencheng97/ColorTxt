@@ -282,7 +282,11 @@ onBeforeUnmount(() => {
         <span class="appShellMenuLabel">设置</span>
         <span class="appShellMenuShortcut">{{ settingsShortcutLabel }}</span>
       </button>
-      <button class="appShellMenuItem" role="menuitem" @click="onOpenColorScheme">
+      <button
+        class="appShellMenuItem"
+        role="menuitem"
+        @click="onOpenColorScheme"
+      >
         <span
           class="appShellMenuIconSlot appShellMenuIconSlot--colorful"
           v-html="icons.palette"
@@ -296,11 +300,19 @@ onBeforeUnmount(() => {
         <span class="appShellMenuShortcut">{{ findBookShortcutLabel }}</span>
       </button>
       <div class="appShellMenuDivider" role="separator"></div>
-      <button class="appShellMenuItem" role="menuitem" @click="onCheckForUpdates">
+      <button
+        class="appShellMenuItem"
+        role="menuitem"
+        @click="onCheckForUpdates"
+      >
         <span class="appShellMenuIconSlot" v-html="icons.update"></span>
         <span class="appShellMenuLabel">检查更新</span>
       </button>
-      <button class="appShellMenuItem" role="menuitem" @click="onToggleDevTools">
+      <button
+        class="appShellMenuItem"
+        role="menuitem"
+        @click="onToggleDevTools"
+      >
         <span class="appShellMenuIconSlot" v-html="icons.devTools"></span>
         <span class="appShellMenuLabel">开发者工具</span>
       </button>
