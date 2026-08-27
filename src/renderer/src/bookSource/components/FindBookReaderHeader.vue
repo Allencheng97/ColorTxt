@@ -11,6 +11,10 @@ import {
   FIND_BOOK_READER_COMPACT_FORMAT_BREAKPOINT,
 } from "../../constants/appHeaderLayout";
 import { icons } from "../../icons";
+import {
+  readerClickModeButtonTitle,
+  readerSelectModeButtonTitle,
+} from "../../constants/appUi";
 import type {
   TextConvertWidthMode,
   TextConvertZhMode,
@@ -47,6 +51,8 @@ const props = withDefaults(
     /** 查找菜单项右侧快捷键文案 */
     findShortcutLabel?: string;
     readerEditMode?: boolean;
+    /** 阅读器点击翻页模式（false = 可选模式） */
+    readerClickMode?: boolean;
     canEnterReaderEditMode?: boolean;
     /** 保存章节缓存中 */
     readerChapterSaving?: boolean;
@@ -69,6 +75,7 @@ const props = withDefaults(
     colorSchemeShortcutLabel: "",
     findShortcutLabel: "",
     readerEditMode: false,
+    readerClickMode: false,
     canEnterReaderEditMode: false,
     readerChapterSaving: false,
     textReplaceActive: false,
@@ -104,11 +111,22 @@ const emit = defineEmits<{
   toggleFind: [];
   toggleBookshelf: [];
   toggleReaderEdit: [];
+  toggleReaderClickMode: [];
   saveReaderChapter: [];
   openTextReplace: [];
 }>();
 
 const vrFormatLock = computed(() => props.voiceReadHeaderLocked);
+const readerClickModeTitle = computed(() =>
+  props.readerClickMode
+    ? readerClickModeButtonTitle
+    : readerSelectModeButtonTitle,
+);
+const readerClickModeAriaLabel = computed(() =>
+  props.readerClickMode
+    ? "当前为「点击模式」，点击切换「可选模式」"
+    : "当前为「可选模式」，点击切换「点击模式」",
+);
 const { compactFontToolbar, compactFormatToolbar } = useAppHeaderLayout({
   compactFontBreakpoint: FIND_BOOK_READER_COMPACT_FONT_BREAKPOINT,
   compactFormatBreakpoint: FIND_BOOK_READER_COMPACT_FORMAT_BREAKPOINT,
@@ -189,6 +207,13 @@ function onOpenTextReplace() {
         aria-label="切换编辑模式"
         :disabled="!readerEditMode && !canEnterReaderEditMode"
         @click="emit('toggleReaderEdit')"
+      />
+      <IconButton
+        v-if="!readerEditMode"
+        :icon-html="readerClickMode ? icons.clickMode : icons.selectMode"
+        :title="readerClickModeTitle"
+        :aria-label="readerClickModeAriaLabel"
+        @click="emit('toggleReaderClickMode')"
       />
       <IconButton
         v-if="readerEditMode"

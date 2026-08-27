@@ -147,6 +147,7 @@ import {
   clampMouseWheelScrollSensitivity,
   clampFastScrollSensitivity,
   defaultStickyChapterTitleEnabled,
+  defaultReaderClickMode,
   defaultChapterNavToolbarEnabled,
   defaultReaderEditShowLineNumbers,
   defaultReaderEditMinimap,
@@ -638,6 +639,7 @@ const mouseWheelScrollSensitivity = ref(defaultMouseWheelScrollSensitivity);
 const fastScrollSensitivity = ref(defaultFastScrollSensitivity);
 /** 阅读区顶部粘性章节标题 */
 const stickyChapterTitleEnabled = ref(defaultStickyChapterTitleEnabled);
+const readerClickMode = ref(defaultReaderClickMode);
 const chapterNavToolbarEnabled = ref(defaultChapterNavToolbarEnabled);
 const readerEditShowLineNumbers = ref(defaultReaderEditShowLineNumbers);
 const readerEditMinimap = ref(defaultReaderEditMinimap);
@@ -1134,6 +1136,7 @@ const persistence = useAppPersistence({
   mouseWheelScrollSensitivity,
   fastScrollSensitivity,
   stickyChapterTitleEnabled,
+  readerClickMode,
   chapterNavToolbarEnabled,
   readerEditShowLineNumbers,
   readerEditMinimap,
@@ -2469,6 +2472,11 @@ async function onApplyPartialPhysicalEdit(payload: {
   }
 }
 
+function toggleReaderClickMode() {
+  readerClickMode.value = !readerClickMode.value;
+  persistSettings();
+}
+
 async function onToggleReaderEdit() {
   if (readerEditMode.value && aiSmartFormatReviewSession.value) {
     appToast("排版预览进行中，请先点击「应用」或「放弃」。", { kind: "info" });
@@ -3603,6 +3611,7 @@ useAppShellThemeWatch({
         :text-convert-letter="textConvertLetter"
         :text-convert-digit="textConvertDigit"
         :reader-edit-mode="readerEditMode"
+        :reader-click-mode="readerClickMode"
         :can-enter-reader-edit-mode="canEnterReaderEditMode"
         :shortcut-bindings="shortcutBindings"
         @open-file="openFileViaDialog"
@@ -3649,6 +3658,7 @@ useAppShellThemeWatch({
         @open-about="showAboutPanel = true"
         @quit-app="quitApp"
         @toggle-reader-edit="onToggleReaderEdit"
+        @toggle-reader-click-mode="toggleReaderClickMode"
         @save-reader-file="onSaveReaderFile"
         :ai-features-enabled="aiFeaturesEnabled"
         :can-use-ai-smart-format="canUseAiSmartFormat"
@@ -3868,6 +3878,7 @@ useAppShellThemeWatch({
           :mouse-wheel-scroll-sensitivity="mouseWheelScrollSensitivity"
           :fast-scroll-sensitivity="fastScrollSensitivity"
           :sticky-chapter-title-enabled="stickyChapterTitleEnabled"
+          :reader-click-mode="readerClickMode"
           :selection-toolbar-buttons="selectionToolbarButtons"
           :dictionary-settings="dictionarySettings"
           :web-search-settings="webSearchSettings"

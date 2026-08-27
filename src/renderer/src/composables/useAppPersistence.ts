@@ -260,6 +260,7 @@ export function useAppPersistence(deps: {
   mouseWheelScrollSensitivity: Ref<number>;
   fastScrollSensitivity: Ref<number>;
   stickyChapterTitleEnabled: Ref<boolean>;
+  readerClickMode: Ref<boolean>;
   chapterNavToolbarEnabled: Ref<boolean>;
   readerEditShowLineNumbers: Ref<boolean>;
   readerEditMinimap: Ref<boolean>;
@@ -405,6 +406,7 @@ export function useAppPersistence(deps: {
       mouseWheelScrollSensitivity: deps.mouseWheelScrollSensitivity.value,
       fastScrollSensitivity: deps.fastScrollSensitivity.value,
       stickyChapterTitleEnabled: deps.stickyChapterTitleEnabled.value,
+      readerClickMode: deps.readerClickMode.value,
       chapterNavToolbarEnabled: deps.chapterNavToolbarEnabled.value,
       readerEditShowLineNumbers: deps.readerEditShowLineNumbers.value,
       readerEditMinimap: deps.readerEditMinimap.value,
@@ -1315,6 +1317,9 @@ export function useAppPersistence(deps: {
       }
       if (typeof data.stickyChapterTitleEnabled === "boolean") {
         deps.stickyChapterTitleEnabled.value = data.stickyChapterTitleEnabled;
+      }
+      if (typeof data.readerClickMode === "boolean") {
+        deps.readerClickMode.value = data.readerClickMode;
       }
       if (typeof data.chapterNavToolbarEnabled === "boolean") {
         deps.chapterNavToolbarEnabled.value = data.chapterNavToolbarEnabled;

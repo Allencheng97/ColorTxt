@@ -231,6 +231,7 @@ const {
   mouseWheelScrollSensitivity,
   fastScrollSensitivity,
   stickyChapterTitleEnabled,
+  readerClickMode,
   chapterNavToolbarEnabled,
   findBookChapterAdvanceEnabled,
   selectionToolbarButtons,
@@ -1148,6 +1149,11 @@ stopTimedScroll = () => timedScroll.stopTimedScroll();
 const isTimedScrollActive = timedScroll.isTimedScrollActive;
 const canStartTimedScroll = timedScroll.canStartTimedScroll;
 
+function toggleReaderClickMode() {
+  readerClickMode.value = !readerClickMode.value;
+  persistReaderUiPrefs();
+}
+
 async function toggleCompressBlankLines() {
   if (readerEditMode.value) {
     void readerRef.value?.applyEditFormatCompressBlankLines?.(
@@ -2012,6 +2018,7 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
           :color-scheme-shortcut-label="colorSchemeShortcutLabel"
           :find-shortcut-label="findShortcutLabel"
           :reader-edit-mode="readerEditMode"
+          :reader-click-mode="readerClickMode"
           :can-enter-reader-edit-mode="canEnterReaderEditMode"
           :reader-chapter-saving="readerChapterSaving"
           :text-replace-active="textReplaceActive"
@@ -2044,6 +2051,7 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
           @toggle-bookshelf="onToggleBookshelf"
           @open-text-replace="onOpenTextReplace"
           @toggle-reader-edit="onToggleReaderEdit"
+          @toggle-reader-click-mode="toggleReaderClickMode"
           @save-reader-chapter="onSaveReaderChapter"
         />
       </div>
@@ -2176,6 +2184,7 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
             :stream-loading="readerBootLoading || showChapterLoadingUi"
             :voice-read-scroll-locked="isVoiceReadScrollLocked"
             :intercept-readonly-space-page-down="onFindBookSpacePageDown"
+            :intercept-readonly-page-step="tryAdvanceChapterFromOverscroll"
             :voice-read-paused="isVoiceReadActive && voiceRead.mode.value === 'paused'"
             :voice-read-blocks-find="isVoiceReadBlocksFind"
             @voice-read-resume="voiceRead.togglePlayPause"
@@ -2193,6 +2202,7 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
             :mouse-wheel-scroll-sensitivity="mouseWheelScrollSensitivity"
             :fast-scroll-sensitivity="fastScrollSensitivity"
             :sticky-chapter-title-enabled="stickyChapterTitleEnabled"
+            :reader-click-mode="readerClickMode"
             :selection-toolbar-buttons="selectionToolbarButtons"
             :dictionary-settings="dictionarySettings"
             :web-search-settings="webSearchSettings"

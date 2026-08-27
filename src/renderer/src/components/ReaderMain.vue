@@ -131,6 +131,7 @@ import {
   defaultMouseWheelScrollSensitivity,
   defaultFastScrollSensitivity,
   defaultStickyChapterTitleEnabled,
+  defaultReaderClickMode,
   defaultReaderEditShowLineNumbers,
   defaultReaderEditMinimap,
   defaultTxtrDelimitedMatchCrossLine,
@@ -456,6 +457,11 @@ const props = withDefaults(
     fastScrollSensitivity?: number;
     /** 阅读区顶部粘性章节标题 */
     stickyChapterTitleEnabled?: boolean;
+    /**
+     * 点击翻页模式：只读时正文不可选，左键下一屏、右键上一屏。
+     * 编辑模式始终可选。
+     */
+    readerClickMode?: boolean;
     /** 编辑模式下是否显示行号（只读模式始终关闭） */
     readerEditShowLineNumbers?: boolean;
     readerEditMinimap?: boolean;
@@ -503,6 +509,11 @@ const props = withDefaults(
      * 不再执行默认的 `scrollByPageStep`。
      */
     interceptReadonlySpacePageDown?: () => boolean;
+    /**
+     * 只读翻页前调用（点击模式左/右键，以及可与空格共用）。
+     * 返回 true 表示已处理（例如找书在章节边界切章）。
+     */
+    interceptReadonlyPageStep?: (direction: -1 | 1) => boolean;
     /** 语音朗读已暂停：显示视口中心开播指引线 */
     voiceReadPaused?: boolean;
     /** 编辑模式：Monaco 展示磁盘原文，不经阅读管线后处理 */
@@ -556,6 +567,7 @@ const props = withDefaults(
     mouseWheelScrollSensitivity: defaultMouseWheelScrollSensitivity,
     fastScrollSensitivity: defaultFastScrollSensitivity,
     stickyChapterTitleEnabled: defaultStickyChapterTitleEnabled,
+    readerClickMode: defaultReaderClickMode,
     selectionToolbarButtons: () => ({ ...defaultSelectionToolbarButtons }),
     dictionarySettings: () => mergeDictionarySettings(undefined),
     webSearchSettings: () => mergeWebSearchSettings(undefined),
@@ -581,6 +593,7 @@ const props = withDefaults(
     voiceReadBlocksFind: false,
     voiceReadScrollLocked: false,
     interceptReadonlySpacePageDown: undefined,
+    interceptReadonlyPageStep: undefined,
     voiceReadPaused: false,
     readerEditMode: false,
     readerEditRestoreAnchor: null,
@@ -641,6 +654,15 @@ const smartFormatRunning = ref(false);
 
 const smartFormatReviewActive = computed(
   () => props.smartFormatReviewSession != null,
+);
+
+/** 点击翻页：仅只读阅读；编辑 / 朗读锁滚动 / Diff 预览时不生效 */
+const readerClickTurnPageActive = computed(
+  () =>
+    props.readerClickMode &&
+    !props.readerEditMode &&
+    !props.voiceReadScrollLocked &&
+    !smartFormatReviewActive.value,
 );
 
 const horizontalInsetDesired = computed(
@@ -935,6 +957,7 @@ function applyReaderMonacoModeOptions(editMode: boolean) {
       props.readerFullscreen,
     ),
   );
+  applyReaderClickModeMouseStyle();
 }
 
 async function loadReaderEditFromDisk() {
@@ -2875,6 +2898,89 @@ function delegateEditorWheelFromBrowserEvent(ev: WheelEvent) {
  * 左右留白落在 `.editorShell` 的 padding 上，滚轮/点击不会进 Monaco；
  * 与全屏「阅读区外两侧空白」同样委托给正文滚动。
  */
+function isClickModeIgnoredTarget(
+  target: EventTarget | null,
+  clientX?: number,
+  clientY?: number,
+): boolean {
+  if (target instanceof Element) {
+    // Monaco 滚动条是 `.scrollbar` / `.slider`，不是 `.monaco-scrollbar`
+    if (
+      target.closest(
+        ".find-widget, .scrollbar, .slider, .minimap, .decorationsOverviewRuler",
+      )
+    ) {
+      return true;
+    }
+  }
+  const e = editor.value;
+  if (!e || clientX == null || clientY == null) return false;
+  const dom = e.getDomNode();
+  if (!dom) return false;
+  const r = dom.getBoundingClientRect();
+  const layout = e.getLayoutInfo();
+  const sbW = Math.max(0, layout.verticalScrollbarWidth);
+  const sbH = Math.max(0, layout.horizontalScrollbarHeight);
+  if (
+    sbW > 0 &&
+    clientX >= r.right - sbW - 1 &&
+    clientX <= r.right + 1 &&
+    clientY >= r.top &&
+    clientY <= r.bottom
+  ) {
+    return true;
+  }
+  if (
+    sbH > 0 &&
+    clientY >= r.bottom - sbH - 1 &&
+    clientY <= r.bottom + 1 &&
+    clientX >= r.left &&
+    clientX <= r.right
+  ) {
+    return true;
+  }
+  return false;
+}
+
+function runClickModePage(direction: -1 | 1) {
+  if (props.interceptReadonlyPageStep?.(direction)) return;
+  scrollByPageStep(direction);
+}
+
+function hasNonEmptyEditorSelection(): boolean {
+  const sel = editor.value?.getSelection();
+  return Boolean(sel && !sel.isEmpty());
+}
+
+/** 点击模式：有选区时只取消选中，不翻页 */
+function clearEditorSelectionKeepCursor() {
+  const e = editor.value;
+  if (!e) return;
+  const sel = e.getSelection();
+  if (sel && !sel.isEmpty()) {
+    e.setPosition(sel.getPosition());
+  }
+  closeHighlightFloatUi();
+  readerAnn.cancelSelectionPointerInteraction();
+  closeEditorEditContextMenu();
+}
+
+function runClickModePointerAction(direction: -1 | 1) {
+  if (hasNonEmptyEditorSelection()) {
+    clearEditorSelectionKeepCursor();
+    return;
+  }
+  runClickModePage(direction);
+}
+
+function applyReaderClickModeMouseStyle() {
+  const click = readerClickTurnPageActive.value;
+  editor.value?.updateOptions({
+    mouseStyle: click ? "default" : "text",
+  });
+  if (click) closeEditorEditContextMenu();
+}
+
 function eventOverHorizontalInsetGutter(ev: MouseEvent | WheelEvent): boolean {
   if (!horizontalInsetActive.value) return false;
   if (smartFormatReviewActive.value) return false;
@@ -2906,8 +3012,20 @@ function onHorizontalInsetGutterWheel(ev: WheelEvent) {
 function onHorizontalInsetGutterMouseDown(ev: MouseEvent) {
   if (ev.button !== 0) return;
   if (!eventOverHorizontalInsetGutter(ev)) return;
+  if (readerClickTurnPageActive.value) {
+    ev.preventDefault();
+    runClickModePointerAction(1);
+    return;
+  }
   ev.preventDefault();
   editor.value?.focus();
+}
+
+function onHorizontalInsetGutterContextMenu(ev: MouseEvent) {
+  if (!readerClickTurnPageActive.value) return;
+  if (!eventOverHorizontalInsetGutter(ev)) return;
+  ev.preventDefault();
+  runClickModePointerAction(-1);
 }
 
 function scrollByLineStep(direction: -1 | 1) {
@@ -3699,37 +3817,61 @@ onMounted(() => {
         ev.stopImmediatePropagation();
         return;
       }
-      readerAnn.beginSelectionPointerInteraction(ev.target);
-      if (imageViewZoneIds.value.length === 0) return;
-      const t = ev.target;
-      if (!(t instanceof Element)) return;
-      const zone = t.closest(".readerImageViewZone");
-      if (!zone || !(zone instanceof HTMLElement)) return;
-      if (!editorHost?.contains(zone)) return;
-      const url = zone.dataset.colortxtImgUrl?.trim();
-      if (!url) return;
-      const img = zone.querySelector("img");
-      if (!(img instanceof HTMLImageElement)) return;
-      const r = img.getBoundingClientRect();
-      const { clientX, clientY } = ev;
-      if (
-        clientX < r.left ||
-        clientX > r.right ||
-        clientY < r.top ||
-        clientY > r.bottom
-      ) {
+      if (imageViewZoneIds.value.length > 0) {
+        const t = ev.target;
+        if (t instanceof Element) {
+          const zone = t.closest(".readerImageViewZone");
+          if (zone instanceof HTMLElement && editorHost?.contains(zone)) {
+            const url = zone.dataset.colortxtImgUrl?.trim();
+            const img = url ? zone.querySelector("img") : null;
+            if (url && img instanceof HTMLImageElement) {
+              const r = img.getBoundingClientRect();
+              const { clientX, clientY } = ev;
+              if (
+                clientX >= r.left &&
+                clientX <= r.right &&
+                clientY >= r.top &&
+                clientY <= r.bottom
+              ) {
+                ev.preventDefault();
+                ev.stopImmediatePropagation();
+                imageLightboxSrc.value = url;
+                readerAnn.cancelSelectionPointerInteraction();
+                return;
+              }
+            }
+          }
+        }
+      }
+      if (readerClickTurnPageActive.value) {
+        if (
+          isClickModeIgnoredTarget(ev.target, ev.clientX, ev.clientY)
+        ) {
+          return;
+        }
+        ev.preventDefault();
+        ev.stopImmediatePropagation();
+        runClickModePointerAction(1);
         return;
       }
-      ev.preventDefault();
-      ev.stopImmediatePropagation();
-      imageLightboxSrc.value = url;
-      readerAnn.cancelSelectionPointerInteraction();
+      readerAnn.beginSelectionPointerInteraction(ev.target);
     };
     const onReaderMouseDownCapture = (ev: MouseEvent) => {
       if (ev.button !== 2) return;
       ev.stopImmediatePropagation();
     };
     const onReaderContextMenuCapture = (ev: MouseEvent) => {
+      if (readerClickTurnPageActive.value) {
+        if (isClickModeIgnoredTarget(ev.target, ev.clientX, ev.clientY)) {
+          ev.preventDefault();
+          ev.stopImmediatePropagation();
+          return;
+        }
+        ev.preventDefault();
+        ev.stopImmediatePropagation();
+        runClickModePointerAction(-1);
+        return;
+      }
       ev.preventDefault();
       ev.stopImmediatePropagation();
       openEditorEditContextMenu(ev.clientX, ev.clientY);
@@ -3873,6 +4015,10 @@ watch(
   },
 );
 
+watch(readerClickTurnPageActive, () => {
+  applyReaderClickModeMouseStyle();
+});
+
 watch(
   () => props.voiceReadScrollLocked,
   (locked) => {
@@ -3953,6 +4099,7 @@ watch(smartFormatReviewActive, (active) => {
     :class="{
       'content--readerEdit': readerEditMode,
       'content--readerEditMinimap': readerEditMode && readerEditMinimap,
+      'content--clickMode': readerClickTurnPageActive,
       'content--hInset': horizontalInsetActive,
       'content--hInsetWindowPin': horizontalInsetWindowPin,
     }"
@@ -3964,6 +4111,7 @@ watch(smartFormatReviewActive, (active) => {
       :class="{ 'editorShell--smartFormatReview': smartFormatReviewActive }"
       @wheel="onHorizontalInsetGutterWheel"
       @mousedown="onHorizontalInsetGutterMouseDown"
+      @contextmenu="onHorizontalInsetGutterContextMenu"
     >
       <SmartFormatReviewBar
         v-if="smartFormatReviewActive"
@@ -4196,6 +4344,26 @@ watch(smartFormatReviewActive, (active) => {
 :deep(.monaco-editor),
 :deep(.monaco-editor *) {
   user-select: text;
+}
+
+.content.content--clickMode:not(.content--readerEdit) .editorHost,
+.content.content--clickMode:not(.content--readerEdit) .editorShell,
+.content.content--clickMode:not(.content--readerEdit)
+  :deep(.monaco-editor .monaco-mouse-cursor-text),
+.content.content--clickMode:not(.content--readerEdit)
+  :deep(.monaco-editor .view-lines),
+.content.content--clickMode:not(.content--readerEdit)
+  :deep(.monaco-editor .view-lines *) {
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default !important;
+}
+
+.content.content--clickMode:not(.content--readerEdit)
+  :deep(.monaco-editor .view-lines .readerEbookInternalLink),
+.content.content--clickMode:not(.content--readerEdit)
+  :deep(.monaco-editor .view-lines .readerEbookExternalLink) {
+  cursor: pointer !important;
 }
 
 /* 查找栏计数/按钮不可拖选；搜索框仍可选中（须高于上一则 universal 选择器） */

@@ -6,6 +6,10 @@ import HeaderFontToolbar from "./HeaderFontToolbar.vue";
 import HeaderFormatToolbar from "./HeaderFormatToolbar.vue";
 import { useAppHeaderLayout } from "../composables/useAppHeaderLayout";
 import { icons } from "../icons";
+import {
+  readerClickModeButtonTitle,
+  readerSelectModeButtonTitle,
+} from "../constants/appUi";
 import type { ShortcutBindingMap } from "../services/shortcutRegistry";
 import type {
   TextConvertWidthMode,
@@ -60,6 +64,8 @@ const props = withDefaults(
     voiceReadHeaderLocked?: boolean;
     /** 阅读器是否处于可编辑模式 */
     readerEditMode: boolean;
+    /** 阅读器点击翻页模式（false = 可选模式） */
+    readerClickMode?: boolean;
     /** 是否允许进入编辑（有文件且加载完成等，由父组件计算） */
     canEnterReaderEditMode: boolean;
     /** 与快捷键面板、按键处理一致，用于「更多」菜单旁展示的快捷键 */
@@ -87,6 +93,7 @@ const props = withDefaults(
     canTimedScroll: true,
     voiceReadHeaderLocked: false,
     readerEditMode: false,
+    readerClickMode: false,
     canEnterReaderEditMode: false,
     chapterRulesDisabled: false,
     textReplaceActive: false,
@@ -145,6 +152,7 @@ const emit = defineEmits<{
   goBackFromPin: [];
   bookmarkClick: [];
   toggleReaderEdit: [];
+  toggleReaderClickMode: [];
   saveReaderFile: [];
   aiSmartFormatFull: [];
   voiceReadToggle: [];
@@ -152,6 +160,16 @@ const emit = defineEmits<{
 }>();
 
 const vrFormatLock = computed(() => props.voiceReadHeaderLocked);
+const readerClickModeTitle = computed(() =>
+  props.readerClickMode
+    ? readerClickModeButtonTitle
+    : readerSelectModeButtonTitle,
+);
+const readerClickModeAriaLabel = computed(() =>
+  props.readerClickMode
+    ? "当前为「点击模式」，点击切换「可选模式」"
+    : "当前为「可选模式」，点击切换「点击模式」",
+);
 
 const { compactFontToolbar, compactFormatToolbar } = useAppHeaderLayout();
 
@@ -182,6 +200,13 @@ const showFormatToolbarInMore = computed(() => compactFormatToolbar.value);
         (!readerEditMode && !canEnterReaderEditMode)
       "
       @click="emit('toggleReaderEdit')"
+    />
+    <IconButton
+      v-if="!readerEditMode"
+      :icon-html="readerClickMode ? icons.clickMode : icons.selectMode"
+      :title="readerClickModeTitle"
+      :aria-label="readerClickModeAriaLabel"
+      @click="emit('toggleReaderClickMode')"
     />
     <IconButton
       v-if="readerEditMode"
