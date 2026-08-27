@@ -28,7 +28,7 @@ function syncDarwinStealthPresentation(): void {
   }
 }
 
-function toggleAllWindowsVisibility(): void {
+export function toggleAllWindowsVisibility(): void {
   const windows = allMainWindows();
   if (windows.length === 0) return;
 
@@ -54,6 +54,22 @@ function toggleAllWindowsVisibility(): void {
     const toFocus = windows.find((w) => !w.isMinimized());
     toFocus?.focus();
   }
+}
+
+/** 仅进入隐身状态；供鼠标中键快速隐藏，重复触发不会意外重新显示。 */
+export function hideAllWindowsStealth(): void {
+  if (allWindowsStealthHidden) return;
+  toggleAllWindowsVisibility();
+}
+
+/** 鼠标中键使用普通系统隐藏，保留 Dock/任务栏入口，避免看起来像应用已退出。 */
+export function hideAppForMiddleMouse(win: BrowserWindow | null): void {
+  if (process.platform === "darwin") {
+    app.hide();
+    return;
+  }
+  if (!win || win.isDestroyed()) return;
+  win.minimize();
 }
 
 /** 注册主进程系统级全局快捷键；后续新增快捷键在此集中注册。 */

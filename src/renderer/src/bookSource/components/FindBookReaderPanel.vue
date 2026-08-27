@@ -51,9 +51,7 @@ import type {
 } from "@shared/bookSource/types";
 import { useBookSourceDownload } from "../composables/useBookSource";
 import { useFindBookBookshelf } from "../composables/useFindBookBookshelf";
-import {
-  updateFindBookBookshelfBookInfo,
-} from "../findBookBookshelf";
+import { updateFindBookBookshelfBookInfo } from "../findBookBookshelf";
 import { useFindBookReaderSettings } from "../composables/useFindBookReaderSettings";
 import { useFindBookSettings } from "../composables/useFindBookSettings";
 import { useFindBookReaderShortcuts } from "../composables/useFindBookReaderShortcuts";
@@ -67,7 +65,10 @@ import { useAppTimedScroll } from "../../composables/useAppTimedScroll";
 import { useAppVoiceRead } from "../../composables/useAppVoiceRead";
 import { hasEscBeforeModalLayers } from "../../utils/modalStack";
 import { applyTextDisplayConverts } from "../../services/textConvertApply";
-import { applyAppShellTheme, type AppShellTheme } from "../../utils/appShellThemeSync";
+import {
+  applyAppShellTheme,
+  type AppShellTheme,
+} from "../../utils/appShellThemeSync";
 import { appConfirm, appLog } from "../../services/appDialog";
 import { appToast } from "../../services/appToast";
 import type {
@@ -107,6 +108,11 @@ import {
 } from "@shared/findBookWindowTitle";
 
 import { ipcPlain } from "../ipcPlain";
+import {
+  loadPrivacyModeSettings,
+  privacyModeSettingsChangedEvent,
+  type PrivacyModeSettings,
+} from "../../constants/privacyMode";
 
 const props = withDefaults(
   defineProps<{
@@ -121,6 +127,44 @@ const props = withDefaults(
 );
 
 const modelValue = defineModel<boolean>({ default: false });
+const privacyMode = ref(false);
+const privacyOpacity = ref(loadPrivacyModeSettings().transparency);
+
+function enterPrivacyMode() {
+  privacyMode.value = true;
+  window.colorTxt.setPrivacyPresentation(true);
+}
+
+function exitPrivacyMode() {
+  privacyMode.value = false;
+  window.colorTxt.setPrivacyPresentation(false);
+}
+
+function onPrivacySettingsChanged(event: Event) {
+  privacyOpacity.value = (
+    event as CustomEvent<PrivacyModeSettings>
+  ).detail.transparency;
+}
+
+watch(
+  privacyOpacity,
+  (value) => {
+    const normalized = Math.max(0, Math.min(100, Math.round(value)));
+    document.documentElement.style.setProperty(
+      "--privacy-background-alpha",
+      String(1 - normalized / 100),
+    );
+  },
+  { immediate: true },
+);
+
+watch(
+  privacyMode,
+  (enabled) => {
+    document.documentElement.classList.toggle("privacy-mode", enabled);
+  },
+  { immediate: true },
+);
 
 const emit = defineEmits<{
   openSettings: [];
@@ -304,10 +348,15 @@ async function onTranslationSettingsUpdate(v: TranslationSettings) {
   }
   persistReaderUiPrefs();
 }
-const { isInBookshelf, toggle: toggleBookshelf, updateReadProgress } =
-  useFindBookBookshelf();
+const {
+  isInBookshelf,
+  toggle: toggleBookshelf,
+  updateReadProgress,
+} = useFindBookBookshelf();
 
-const contentChapters = computed(() => props.chapters.filter((ch) => !ch.isVolume));
+const contentChapters = computed(() =>
+  props.chapters.filter((ch) => !ch.isVolume),
+);
 
 const {
   refresh: refreshChapterCacheStatus,
@@ -474,7 +523,11 @@ function onFindBookSpacePageDown(): boolean {
 function onLayoutWheel(ev: WheelEvent) {
   onFullscreenLayoutWheel(ev);
   if (!readerPaneWrapRef.value || ev.deltaY === 0) return;
-  if (!(ev.target instanceof Node) || !readerPaneWrapRef.value.contains(ev.target)) return;
+  if (
+    !(ev.target instanceof Node) ||
+    !readerPaneWrapRef.value.contains(ev.target)
+  )
+    return;
   if (!findBookChapterAdvanceEnabled.value) return;
   if (
     chapterContentBusy.value ||
@@ -506,7 +559,8 @@ function onLayoutWheel(ev: WheelEvent) {
 }
 
 onBeforeUnmount(() => {
-  if (chapterAdvanceLockTimer !== null) window.clearTimeout(chapterAdvanceLockTimer);
+  if (chapterAdvanceLockTimer !== null)
+    window.clearTimeout(chapterAdvanceLockTimer);
   resetChapterAdvanceWheelAccumulation();
 });
 
@@ -568,7 +622,9 @@ function onLayoutMouseDown(ev: MouseEvent) {
   onFullscreenLayoutMouseDown(ev);
 }
 
-const breadcrumbSourceName = computed(() => props.item.originName?.trim() ?? "");
+const breadcrumbSourceName = computed(
+  () => props.item.originName?.trim() ?? "",
+);
 /** 顶栏/正文加载遮罩：目录拉取中（不含侧栏「重新获取目录」） */
 const readerBootLoading = computed(() => props.tocLoading);
 
@@ -591,11 +647,7 @@ watch(
 
 watch(
   () =>
-    [
-      props.detail.bookUrl,
-      props.chapters,
-      effectiveCacheDir.value,
-    ] as const,
+    [props.detail.bookUrl, props.chapters, effectiveCacheDir.value] as const,
   () => {
     void refreshChapterCacheStatus();
   },
@@ -632,8 +684,7 @@ function chapterDisplayTitle(index: number): string {
 }
 
 const chapterListRowStride = computed(() =>
-  showChapterTag.value &&
-  displayChapters.value.some((ch) => ch.tag?.trim())
+  showChapterTag.value && displayChapters.value.some((ch) => ch.tag?.trim())
     ? READER_SIDEBAR_ROW_STRIDE_WITH_TAG
     : READER_SIDEBAR_ROW_STRIDE,
 );
@@ -817,7 +868,9 @@ async function centerChapterListInSidebar(layoutRetry = 0): Promise<void> {
   const vl = chapterListRef.value;
   if (!vl) {
     if (layoutRetry < MAX_CHAPTER_LIST_LAYOUT_RETRIES) {
-      requestAnimationFrame(() => void centerChapterListInSidebar(layoutRetry + 1));
+      requestAnimationFrame(
+        () => void centerChapterListInSidebar(layoutRetry + 1),
+      );
     }
     return;
   }
@@ -849,7 +902,9 @@ function toggleChapterSort() {
   const current = displayChapters.value[currentDisplayIndex.value];
   chapterSortDesc.value = !chapterSortDesc.value;
   if (current) {
-    const nextIdx = displayChapters.value.findIndex((c) => c.url === current.url);
+    const nextIdx = displayChapters.value.findIndex(
+      (c) => c.url === current.url,
+    );
     if (nextIdx >= 0) currentDisplayIndex.value = nextIdx;
   }
   scrollChapterListToCurrent({ force: true, smooth: true });
@@ -947,7 +1002,11 @@ function onFindBookViewportEndLineChange(line: number) {
 
 function onChapterClick(index: number) {
   if (voiceRead.isVoiceReadNavigationBlocked.value) return;
-  if (index === currentDisplayIndex.value && !loading.value && !chapterLoading.value)
+  if (
+    index === currentDisplayIndex.value &&
+    !loading.value &&
+    !chapterLoading.value
+  )
     return;
   void loadChapterAtDisplayIndex(index);
 }
@@ -1282,7 +1341,8 @@ async function onLogin() {
       `登录 · ${source.bookSourceName}`,
     );
     if (r.ok) appToast("Cookie 已保存", { kind: "info" });
-    else if (!r.cancelled && r.message) appToast(r.message, { kind: "warning" });
+    else if (!r.cancelled && r.message)
+      appToast(r.message, { kind: "warning" });
     return;
   }
   loginSource.value = source;
@@ -1304,7 +1364,8 @@ async function onChapterPay() {
 
   payingChapter.value = true;
   try {
-    const bookUrl = props.detail.bookUrl?.trim() || props.item.bookUrl?.trim() || "";
+    const bookUrl =
+      props.detail.bookUrl?.trim() || props.item.bookUrl?.trim() || "";
     // IPC 只能传可结构化克隆的纯对象，需剥离 Vue 响应式代理
     const r = await window.colorTxt.bookSourcePayAction(
       JSON.parse(
@@ -1388,7 +1449,8 @@ async function refreshTocInternal(opts: { announce: boolean }) {
     appToast("书籍信息不完整，无法刷新目录", { kind: "warning" });
     return;
   }
-  const currentUrl = displayChapters.value[currentDisplayIndex.value]?.url ?? "";
+  const currentUrl =
+    displayChapters.value[currentDisplayIndex.value]?.url ?? "";
   refreshingToc.value = true;
   try {
     const bookPayload = ipcPlain({
@@ -1582,7 +1644,9 @@ function onToggleBookshelf() {
       });
     }
   }
-  appToast(added ? "已放入书架" : "已从书架移除", { kind: added ? "success" : "info" });
+  appToast(added ? "已放入书架" : "已从书架移除", {
+    kind: added ? "success" : "info",
+  });
 }
 
 function persistSharedTheme(theme: AppShellTheme) {
@@ -1609,6 +1673,12 @@ async function toggleFullscreen() {
 }
 
 function onDocumentKeydownEscape(ev: KeyboardEvent) {
+  if (privacyMode.value && ev.key === "Escape") {
+    ev.preventDefault();
+    ev.stopImmediatePropagation();
+    exitPrivacyMode();
+    return;
+  }
   if (!modelValue.value || !isFullscreenView.value) return;
   if (ev.key !== "Escape") return;
   if (hasEscBeforeModalLayers()) return;
@@ -1651,12 +1721,7 @@ function applyReaderAppearance() {
 }
 
 watch(
-  [
-    displayChapters,
-    textConvertZh,
-    textConvertLetter,
-    textConvertDigit,
-  ],
+  [displayChapters, textConvertZh, textConvertLetter, textConvertDigit],
   () => {
     void refreshConvertedChapterTitles();
   },
@@ -1696,7 +1761,9 @@ async function bootstrapReaderContent() {
   if (!modelValue.value || !displayChapters.value.length) return;
   await refreshReplaceRulesCache();
   await refreshChapterCacheStatus();
-  const startIndex = displayIndexForContentIndex(props.initialChapterIndex ?? 0);
+  const startIndex = displayIndexForContentIndex(
+    props.initialChapterIndex ?? 0,
+  );
   void loadChapterAtDisplayIndex(startIndex, { smoothScroll: false });
 }
 
@@ -1794,8 +1861,18 @@ onMounted(() => {
   window.addEventListener("mouseup", onWindowMouseUp);
   window.addEventListener("resize", clampSidebarWidthToViewport);
   window.addEventListener("storage", onStorageSync);
-  window.addEventListener(persistedSettingsChangedEvent, onPersistedSettingsChanged);
-  window.addEventListener(findBookReplaceRulesChangedEvent, onReplaceRulesChanged);
+  window.addEventListener(
+    persistedSettingsChangedEvent,
+    onPersistedSettingsChanged,
+  );
+  window.addEventListener(
+    findBookReplaceRulesChangedEvent,
+    onReplaceRulesChanged,
+  );
+  window.addEventListener(
+    privacyModeSettingsChangedEvent,
+    onPrivacySettingsChanged,
+  );
   document.addEventListener("keydown", onDocumentKeydownEscape, true);
   void refreshReplaceRulesCache();
 });
@@ -1815,7 +1892,15 @@ onBeforeUnmount(() => {
     findBookReplaceRulesChangedEvent,
     onReplaceRulesChanged,
   );
+  window.removeEventListener(
+    privacyModeSettingsChangedEvent,
+    onPrivacySettingsChanged,
+  );
   document.removeEventListener("keydown", onDocumentKeydownEscape, true);
+  if (privacyMode.value) {
+    window.colorTxt.setPrivacyPresentation(false);
+  }
+  document.documentElement.classList.remove("privacy-mode");
   voiceRead.exitVoiceRead();
   timedScroll.stopTimedScroll();
   cancelChapterLoad();
@@ -1858,6 +1943,7 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
       class="findBookReaderShell"
       :class="{
         fullscreen: isFullscreenView,
+        privacyMode,
         'fullscreen--cursorHidden': isFullscreenView && fullscreenCursorHidden,
       }"
     >
@@ -1875,14 +1961,17 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
             @click="onBack"
           />
           <nav class="findBookReaderBreadcrumb" aria-label="阅读">
-            <span v-if="breadcrumbSourceName" class="findBookReaderBreadcrumbSource">{{
-              breadcrumbSourceName
-            }}</span>
+            <span
+              v-if="breadcrumbSourceName"
+              class="findBookReaderBreadcrumbSource"
+              >{{ breadcrumbSourceName }}</span
+            >
             <span
               v-if="breadcrumbSourceName"
               class="findBookReaderBreadcrumbSep"
               aria-hidden="true"
-            >/</span>
+              >/</span
+            >
             <button
               type="button"
               class="findBookReaderBreadcrumbCurrent"
@@ -1921,7 +2010,9 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
               :icon-html="icons.buy"
               title="购买"
               aria-label="购买"
-              :disabled="payingChapter || readerBootLoading || chapterContentBusy"
+              :disabled="
+                payingChapter || readerBootLoading || chapterContentBusy
+              "
               :aria-busy="payingChapter || undefined"
               @click="onChapterPay"
             />
@@ -2016,6 +2107,7 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
           :text-replace-active="textReplaceActive"
           @change-theme="onChangeTheme"
           @toggle-sidebar="onToggleSidebar"
+          @enter-privacy-mode="enterPrivacyMode"
           @toggle-fullscreen="toggleFullscreen"
           @set-monaco-font="readerUi.setMonacoFontFamily"
           @toggle-pin-other-font="readerUi.togglePinnedOtherFont"
@@ -2033,7 +2125,9 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
           @apply-text-convert-zh-edit="onApplyTextConvertZhEdit"
           @apply-text-convert-letter-edit="onApplyTextConvertLetterEdit"
           @apply-text-convert-digit-edit="onApplyTextConvertDigitEdit"
-          @toggle-monaco-advanced-wrapping="readerUi.toggleMonacoAdvancedWrapping"
+          @toggle-monaco-advanced-wrapping="
+            readerUi.toggleMonacoAdvancedWrapping
+          "
           @toggle-monaco-custom-highlight="readerUi.toggleMonacoCustomHighlight"
           @voice-read-toggle="voiceRead.toggleVoiceReadToolbar"
           @timed-scroll-toggle="timedScroll.toggleTimedScroll"
@@ -2164,10 +2258,9 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
             class="findBookReaderError"
           >
             <span class="findBookReaderErrorMain">{{ chapterError }}</span>
-            <span
-              v-if="logs.length"
-              class="findBookReaderErrorLogs"
-            >{{ logs.join("\n\n") }}</span>
+            <span v-if="logs.length" class="findBookReaderErrorLogs">{{
+              logs.join("\n\n")
+            }}</span>
           </p>
           <ReaderMain
             ref="readerRef"
@@ -2175,7 +2268,9 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
             :stream-loading="readerBootLoading || showChapterLoadingUi"
             :voice-read-scroll-locked="isVoiceReadScrollLocked"
             :intercept-readonly-space-page-down="onFindBookSpacePageDown"
-            :voice-read-paused="isVoiceReadActive && voiceRead.mode.value === 'paused'"
+            :voice-read-paused="
+              isVoiceReadActive && voiceRead.mode.value === 'paused'
+            "
             :voice-read-blocks-find="isVoiceReadBlocksFind"
             @voice-read-resume="voiceRead.togglePlayPause"
             :monaco-custom-highlight="monacoCustomHighlight"
@@ -2204,7 +2299,9 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
             :reader-surface-dark="effectiveReaderSurfaceDark"
             :reader-palette-color-enabled="readerPaletteColorEnabledForReader"
             :highlight-colors="highlightColorsForReader"
-            :lineation-colors="currentTheme === 'vs' ? lineationColorsLight : lineationColorsDark"
+            :lineation-colors="
+              currentTheme === 'vs' ? lineationColorsLight : lineationColorsDark
+            "
             :highlight-words-by-index="highlightWordsByIndexGlobal"
             :reader-fullscreen="isFullscreenView"
             :reader-edit-mode="readerEditMode"
@@ -2218,7 +2315,9 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
             :monaco-font-family="monacoFontFamily"
             @viewport-top-line-change="readerUi.onViewportTopLineChange"
             @viewport-end-line-change="onFindBookViewportEndLineChange"
-            @viewport-visual-progress-change="readerUi.onViewportVisualProgressChange"
+            @viewport-visual-progress-change="
+              readerUi.onViewportVisualProgressChange
+            "
             @layout-viewport-restored="onFindBookLayoutViewportRestored"
             @reader-edit-dirty-change="onReaderEditDirtyChange"
             @reader-edit-save-request="onSaveReaderChapter"
@@ -2403,7 +2502,8 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
   animation: findBookReaderFullscreenHeaderIn 140ms ease-out;
 }
 
-.findBookReaderShell.fullscreen .findBookReaderSidebar.sidebarPaneWrap--fullscreen {
+.findBookReaderShell.fullscreen
+  .findBookReaderSidebar.sidebarPaneWrap--fullscreen {
   position: fixed;
   left: 0;
   top: 0;
@@ -2413,15 +2513,25 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
   animation: findBookReaderFullscreenSidebarIn 180ms ease-out;
 }
 
-.findBookReaderShell.fullscreen .readerPane.content--readerEditMinimap .monaco-editor .minimap {
+.findBookReaderShell.fullscreen
+  .readerPane.content--readerEditMinimap
+  .monaco-editor
+  .minimap {
   position: fixed !important;
   left: auto !important;
   right: var(--txtr-fullscreen-scrollbar-size) !important;
   z-index: 9;
 }
 
-.findBookReaderShell.fullscreen .readerPane .monaco-editor .decorationsOverviewRuler,
-.findBookReaderShell.fullscreen .readerPane .monaco-editor .monaco-scrollable-element > .scrollbar.vertical {
+.findBookReaderShell.fullscreen
+  .readerPane
+  .monaco-editor
+  .decorationsOverviewRuler,
+.findBookReaderShell.fullscreen
+  .readerPane
+  .monaco-editor
+  .monaco-scrollable-element
+  > .scrollbar.vertical {
   position: fixed !important;
   left: auto !important;
   right: 0 !important;
@@ -2469,7 +2579,6 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
     transform: translateY(0);
   }
 }
-
 </style>
 
 <style scoped>

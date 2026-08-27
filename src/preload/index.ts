@@ -138,8 +138,7 @@ export type StreamError = {
 };
 
 export type DirListTxtScanPayload =
-  | { phase: "start"; dirPath: string }
-  | { phase: "progress"; name: string };
+  { phase: "start"; dirPath: string } | { phase: "progress"; name: string };
 
 // Signal for quick runtime verification from renderer.
 try {
@@ -304,10 +303,9 @@ const api = {
         value: keysBlob,
       }) as Promise<{ ok: true }>,
     setVoiceReadSecrets: (payload: { profileKeys: string }) =>
-      ipcRenderer.invoke(
-        "secrets:setVoiceReadSecrets",
-        payload,
-      ) as Promise<{ ok: true } | { ok: false; error: string }>,
+      ipcRenderer.invoke("secrets:setVoiceReadSecrets", payload) as Promise<
+        { ok: true } | { ok: false; error: string }
+      >,
     getWebDavPassword: () =>
       ipcRenderer.invoke("secrets:get", SECRET_SLOT_WEBDAV_PASSWORD).then(
         (res: { ok: boolean; value?: string }) =>
@@ -317,10 +315,9 @@ const api = {
           }) as const,
       ),
     setWebDavPassword: (password: string) =>
-      ipcRenderer.invoke(
-        "secrets:setWebDavPassword",
-        password,
-      ) as Promise<{ ok: true }>,
+      ipcRenderer.invoke("secrets:setWebDavPassword", password) as Promise<{
+        ok: true;
+      }>,
     getTranslationProviderKeys: () =>
       ipcRenderer
         .invoke("secrets:get", SECRET_SLOT_TRANSLATION_PROVIDER_KEYS)
@@ -332,10 +329,9 @@ const api = {
             }) as const,
         ),
     setTranslationSecrets: (payload: { providerKeys: string }) =>
-      ipcRenderer.invoke(
-        "secrets:setTranslationSecrets",
-        payload,
-      ) as Promise<{ ok: true } | { ok: false; error: string }>,
+      ipcRenderer.invoke("secrets:setTranslationSecrets", payload) as Promise<
+        { ok: true } | { ok: false; error: string }
+      >,
   },
   webdav: {
     test: (auth: WebDavAuthPayload) =>
@@ -577,6 +573,9 @@ const api = {
   },
   toggleDevTools: () =>
     ipcRenderer.invoke("window:toggleDevTools") as Promise<void>,
+  hideAllWindowsStealth: () => ipcRenderer.send("window:hideAllStealth"),
+  setPrivacyPresentation: (enabled: boolean) =>
+    ipcRenderer.send("window:setPrivacyPresentation", enabled),
   getGlobalShortcut: () =>
     ipcRenderer.invoke("shortcut:getGlobalToggle") as Promise<string>,
   validateGlobalShortcut: (accelerator: string) =>
@@ -823,7 +822,10 @@ const api = {
         { ok: true } | { ok: false; error: string }
       >,
     openAiDataCacheDir: (dir?: string) =>
-      ipcRenderer.invoke("ai:paths:openDataCacheDir", dir ?? "") as Promise<void>,
+      ipcRenderer.invoke(
+        "ai:paths:openDataCacheDir",
+        dir ?? "",
+      ) as Promise<void>,
     openBuiltinModelCacheDir: (dir: string, config: AIConfig) =>
       ipcRenderer.invoke(
         "ai:paths:openModelCacheDir",
@@ -852,9 +854,7 @@ const api = {
       ipcRenderer.invoke(
         "ai:embedding:builtin:load",
         JSON.parse(JSON.stringify(payload)) as BuiltinEmbeddingIpcPayload,
-      ) as Promise<
-        { ok: true } | { ok: false; error: string; code?: string }
-      >,
+      ) as Promise<{ ok: true } | { ok: false; error: string; code?: string }>,
     embeddingBuiltinClearCache: (payload: BuiltinEmbeddingIpcPayload) =>
       ipcRenderer.invoke(
         "ai:embedding:builtin:clearCache",
@@ -863,10 +863,8 @@ const api = {
     onEmbeddingLoadProgress: (
       cb: (payload: { modelId: string; progress: number }) => void,
     ) => {
-      const fn = (
-        _: unknown,
-        payload: { modelId: string; progress: number },
-      ) => cb(payload);
+      const fn = (_: unknown, payload: { modelId: string; progress: number }) =>
+        cb(payload);
       ipcRenderer.on("ai:embedding:loadProgress", fn);
       return () => ipcRenderer.off("ai:embedding:loadProgress", fn);
     },
@@ -1129,7 +1127,10 @@ const api = {
     ipcRenderer.invoke(BOOK_SOURCE_IPC.readFile, filePath) as ReturnType<
       BookSourceIpcApi["bookSourceReadFile"]
     >,
-  bookSourceSearch: (key: string, options?: { sourceUrls?: string[]; precisionSearch?: boolean }) =>
+  bookSourceSearch: (
+    key: string,
+    options?: { sourceUrls?: string[]; precisionSearch?: boolean },
+  ) =>
     ipcRenderer.invoke(BOOK_SOURCE_IPC.search, key, options) as ReturnType<
       BookSourceIpcApi["bookSourceSearch"]
     >,
@@ -1139,9 +1140,13 @@ const api = {
     ipcRenderer.invoke(BOOK_SOURCE_IPC.searchLoadMore, searchId) as ReturnType<
       BookSourceIpcApi["bookSourceSearchLoadMore"]
     >,
-  onBookSourceSearchEvent: (cb: (ev: import("@shared/bookSource/types").BookSourceSearchEvent) => void) => {
-    const fn = (_: unknown, payload: import("@shared/bookSource/types").BookSourceSearchEvent) =>
-      cb(payload);
+  onBookSourceSearchEvent: (
+    cb: (ev: import("@shared/bookSource/types").BookSourceSearchEvent) => void,
+  ) => {
+    const fn = (
+      _: unknown,
+      payload: import("@shared/bookSource/types").BookSourceSearchEvent,
+    ) => cb(payload);
     ipcRenderer.on(BOOK_SOURCE_IPC.searchEvent, fn);
     return () => ipcRenderer.off(BOOK_SOURCE_IPC.searchEvent, fn);
   },
@@ -1153,9 +1158,15 @@ const api = {
     >,
   bookSourceDownloadCancel: (downloadId: string) =>
     ipcRenderer.invoke(BOOK_SOURCE_IPC.downloadCancel, downloadId),
-  onBookSourceDownloadEvent: (cb: (ev: import("@shared/bookSource/types").BookSourceDownloadEvent) => void) => {
-    const fn = (_: unknown, payload: import("@shared/bookSource/types").BookSourceDownloadEvent) =>
-      cb(payload);
+  onBookSourceDownloadEvent: (
+    cb: (
+      ev: import("@shared/bookSource/types").BookSourceDownloadEvent,
+    ) => void,
+  ) => {
+    const fn = (
+      _: unknown,
+      payload: import("@shared/bookSource/types").BookSourceDownloadEvent,
+    ) => cb(payload);
     ipcRenderer.on(BOOK_SOURCE_IPC.downloadEvent, fn);
     return () => ipcRenderer.off(BOOK_SOURCE_IPC.downloadEvent, fn);
   },
@@ -1172,17 +1183,22 @@ const api = {
       BookSourceIpcApi["bookSourceGetLoginUi"]
     >,
   bookSourceBrowserLogin: (sourceUrl: string, title?: string) =>
-    ipcRenderer.invoke(BOOK_SOURCE_IPC.browserLogin, sourceUrl, title) as ReturnType<
-      BookSourceIpcApi["bookSourceBrowserLogin"]
-    >,
+    ipcRenderer.invoke(
+      BOOK_SOURCE_IPC.browserLogin,
+      sourceUrl,
+      title,
+    ) as ReturnType<BookSourceIpcApi["bookSourceBrowserLogin"]>,
   bookSourceLogin: (
     sourceUrl: string,
     loginData: Record<string, string>,
     options?: import("@shared/bookSource/ipc").BookSourceLoginOptions,
   ) =>
-    ipcRenderer.invoke(BOOK_SOURCE_IPC.login, sourceUrl, loginData, options) as ReturnType<
-      BookSourceIpcApi["bookSourceLogin"]
-    >,
+    ipcRenderer.invoke(
+      BOOK_SOURCE_IPC.login,
+      sourceUrl,
+      loginData,
+      options,
+    ) as ReturnType<BookSourceIpcApi["bookSourceLogin"]>,
   bookSourcePayAction: (
     payload: Parameters<BookSourceIpcApi["bookSourcePayAction"]>[0],
   ) =>
@@ -1194,9 +1210,10 @@ const api = {
       BookSourceIpcApi["bookSourceGetLoginHeader"]
     >,
   bookSourceRemoveLoginHeader: (sourceUrl: string) =>
-    ipcRenderer.invoke(BOOK_SOURCE_IPC.removeLoginHeader, sourceUrl) as ReturnType<
-      BookSourceIpcApi["bookSourceRemoveLoginHeader"]
-    >,
+    ipcRenderer.invoke(
+      BOOK_SOURCE_IPC.removeLoginHeader,
+      sourceUrl,
+    ) as ReturnType<BookSourceIpcApi["bookSourceRemoveLoginHeader"]>,
   bookSourceClearCookie: (sourceUrl: string) =>
     ipcRenderer.invoke(BOOK_SOURCE_IPC.clearCookie, sourceUrl) as ReturnType<
       BookSourceIpcApi["bookSourceClearCookie"]
@@ -1236,9 +1253,10 @@ const api = {
   bookSourceResolveCoverDisplay: (
     payload: Parameters<BookSourceIpcApi["bookSourceResolveCoverDisplay"]>[0],
   ) =>
-    ipcRenderer.invoke(BOOK_SOURCE_IPC.resolveCoverDisplay, payload) as ReturnType<
-      BookSourceIpcApi["bookSourceResolveCoverDisplay"]
-    >,
+    ipcRenderer.invoke(
+      BOOK_SOURCE_IPC.resolveCoverDisplay,
+      payload,
+    ) as ReturnType<BookSourceIpcApi["bookSourceResolveCoverDisplay"]>,
   bookSourceGetChapterList: (
     payload: Parameters<BookSourceIpcApi["bookSourceGetChapterList"]>[0],
   ) =>
@@ -1248,9 +1266,10 @@ const api = {
   bookSourceGetChapterContent: (
     payload: Parameters<BookSourceIpcApi["bookSourceGetChapterContent"]>[0],
   ) =>
-    ipcRenderer.invoke(BOOK_SOURCE_IPC.getChapterContent, payload) as ReturnType<
-      BookSourceIpcApi["bookSourceGetChapterContent"]
-    >,
+    ipcRenderer.invoke(
+      BOOK_SOURCE_IPC.getChapterContent,
+      payload,
+    ) as ReturnType<BookSourceIpcApi["bookSourceGetChapterContent"]>,
   bookSourceChapterCacheStatus: (payload: {
     name: string;
     bookUrl: string;
@@ -1268,10 +1287,9 @@ const api = {
     content: string;
     cacheDir?: string;
   }) =>
-    ipcRenderer.invoke(
-      BOOK_SOURCE_IPC.saveChapterCache,
-      payload,
-    ) as ReturnType<BookSourceIpcApi["bookSourceSaveChapterCache"]>,
+    ipcRenderer.invoke(BOOK_SOURCE_IPC.saveChapterCache, payload) as ReturnType<
+      BookSourceIpcApi["bookSourceSaveChapterCache"]
+    >,
   bookSourceClearChapterCache: (payload: {
     name: string;
     bookUrl: string;
@@ -1287,13 +1305,11 @@ const api = {
       payload,
     ) as ReturnType<BookSourceIpcApi["bookSourceClearAllChapterCache"]>,
   bookSourceGetSourceVariable: (sourceUrl: string) =>
-    ipcRenderer.invoke(BOOK_SOURCE_IPC.getSourceVariable, sourceUrl) as ReturnType<
-      BookSourceIpcApi["bookSourceGetSourceVariable"]
-    >,
-  bookSourceSetSourceVariable: (
-    sourceUrl: string,
-    variable: string,
-  ) =>
+    ipcRenderer.invoke(
+      BOOK_SOURCE_IPC.getSourceVariable,
+      sourceUrl,
+    ) as ReturnType<BookSourceIpcApi["bookSourceGetSourceVariable"]>,
+  bookSourceSetSourceVariable: (sourceUrl: string, variable: string) =>
     ipcRenderer.invoke(BOOK_SOURCE_IPC.setSourceVariable, {
       sourceUrl,
       variable,
@@ -1308,7 +1324,9 @@ const api = {
       variable,
     }) as ReturnType<BookSourceIpcApi["bookSourceSetBookVariable"]>,
   onBookSourceCaptchaRequest: (
-    cb: (payload: import("@shared/bookSource/ipc").BookSourceCaptchaRequest) => void,
+    cb: (
+      payload: import("@shared/bookSource/ipc").BookSourceCaptchaRequest,
+    ) => void,
   ) => {
     const fn = (
       _: unknown,
@@ -1317,7 +1335,9 @@ const api = {
     ipcRenderer.on(BOOK_SOURCE_IPC.captchaRequest, fn);
     return () => ipcRenderer.off(BOOK_SOURCE_IPC.captchaRequest, fn);
   },
-  onBookSourceCaptchaDismiss: (cb: (payload: { requestId: string }) => void) => {
+  onBookSourceCaptchaDismiss: (
+    cb: (payload: { requestId: string }) => void,
+  ) => {
     const fn = (_: unknown, payload: { requestId: string }) => cb(payload);
     ipcRenderer.on(BOOK_SOURCE_IPC.captchaDismiss, fn);
     return () => ipcRenderer.off(BOOK_SOURCE_IPC.captchaDismiss, fn);

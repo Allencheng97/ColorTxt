@@ -9,14 +9,8 @@
 :root {
   color-scheme: light;
   --font-family:
-    system-ui,
-    -apple-system,
-    Segoe UI,
-    Roboto,
-    Helvetica,
-    Arial,
-    "Apple Color Emoji",
-    "Segoe UI Emoji";
+    system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
+    "Apple Color Emoji", "Segoe UI Emoji";
   --bg: #f8f8f8;
   --panel: #f3f3f3;
   --border: #d4d4d4;
@@ -200,6 +194,122 @@ body,
   color: var(--fg);
   font-family: var(--font-family);
   overflow: hidden;
+}
+
+html.privacy-mode,
+html.privacy-mode body,
+html.privacy-mode #app,
+html.privacy-mode .findBookWindowRoot,
+html.privacy-mode .appModalBackdrop--fullscreen,
+html.privacy-mode .appModalPanel.findBookReaderPanel,
+html.privacy-mode .appModalPanel.findBookReaderPanel .appModalBody {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+html.privacy-mode .monaco-editor,
+html.privacy-mode .monaco-editor .overflow-guard,
+html.privacy-mode .monaco-editor .monaco-scrollable-element,
+html.privacy-mode .monaco-editor .monaco-editor-background,
+html.privacy-mode .monaco-editor .margin,
+html.privacy-mode .monaco-editor .lines-content,
+html.privacy-mode .monaco-editor .view-lines {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+html.privacy-mode .monaco-editor .scrollbar.vertical,
+html.privacy-mode .monaco-editor .decorationsOverviewRuler,
+html.privacy-mode .monaco-editor .minimap,
+html.privacy-mode .monaco-editor .minimap-shadow-visible,
+html.privacy-mode .monaco-editor .shadow.top,
+html.privacy-mode .monaco-editor .shadow.left {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+html.privacy-mode .monaco-editor .scrollbar.vertical > .slider {
+  background: rgba(0, 0, 0, 0.18) !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+html.privacy-mode
+  .app.privacyMode
+  .readerPane
+  .monaco-editor
+  .monaco-scrollable-element
+  > .scrollbar.vertical,
+html.privacy-mode
+  .app.privacyMode
+  .readerPane
+  .monaco-editor
+  .monaco-scrollable-element
+  > .scrollbar.vertical.visible {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+html.privacy-mode .findBookReaderShell.privacyMode,
+html.privacy-mode .findBookReaderShell.privacyMode .findBookReaderBody,
+html.privacy-mode .findBookReaderShell.privacyMode .readerPaneWrap,
+html.privacy-mode .findBookReaderShell.privacyMode .readerPane {
+  background: transparent !important;
+  background-color: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+html.privacy-mode .findBookReaderShell.privacyMode .findBookReaderBody {
+  background: rgba(
+    255,
+    255,
+    255,
+    var(--privacy-background-alpha, 0.3)
+  ) !important;
+}
+
+html.privacy-mode .findBookReaderShell.privacyMode .view-line,
+html.privacy-mode .findBookReaderShell.privacyMode .view-line span {
+  color: #111111 !important;
+}
+
+html.privacy-mode .findBookReaderShell.privacyMode .findBookReaderHeaderWrap,
+html.privacy-mode .findBookReaderShell.privacyMode .findBookReaderFooterWrap,
+html.privacy-mode .findBookReaderShell.privacyMode .findBookReaderSidebar,
+html.privacy-mode .findBookReaderShell.privacyMode .findBookReaderResizer,
+html.privacy-mode .findBookReaderShell.privacyMode .readerChapterNavBar {
+  display: none !important;
+}
+
+html.privacy-mode
+  .findBookReaderShell.privacyMode
+  .readerPane
+  .monaco-editor
+  .monaco-scrollable-element
+  > .scrollbar.vertical,
+html.privacy-mode
+  .findBookReaderShell.privacyMode
+  .readerPane
+  .monaco-editor
+  .monaco-scrollable-element
+  > .scrollbar.vertical.visible {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+html.privacy-mode
+  .app.privacyMode
+  .monaco-editor
+  .lines-content
+  .cslr.monaco-editor-background {
+  background-color: transparent !important;
 }
 
 /* 滚动条样式 */
@@ -1137,7 +1247,8 @@ html.dark .appShellMenuItemTag[data-tone="capability"] {
 .appShellMenuIconSlot:not(.appShellMenuIconSlot--github):not(
     .appShellMenuIconSlot--colorful
   )
-  svg>path {
+  svg
+  > path {
   fill: currentColor;
 }
 

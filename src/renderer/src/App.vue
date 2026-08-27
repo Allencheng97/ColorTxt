@@ -43,18 +43,17 @@ import {
   mergeSelectionToolbarButtons,
   type SelectionToolbarButtons,
 } from "./constants/selectionToolbar";
-import {
-  mergeDictionarySettings,
-} from "./constants/dictionarySettings";
-import {
-  mergeWebSearchSettings,
-} from "./constants/webSearchSettings";
-import {
-  mergeTranslationSettings,
-} from "./constants/translationSettings";
+import { mergeDictionarySettings } from "./constants/dictionarySettings";
+import { mergeWebSearchSettings } from "./constants/webSearchSettings";
+import { mergeTranslationSettings } from "./constants/translationSettings";
 import type { DictionarySettings } from "@shared/dictionaryTypes";
 import type { WebSearchSettings } from "@shared/webSearchTypes";
 import type { TranslationSettings } from "@shared/translationTypes";
+import {
+  loadPrivacyModeSettings,
+  privacyModeSettingsChangedEvent,
+  type PrivacyModeSettings,
+} from "./constants/privacyMode";
 import type { AiCustomSkill, AiSkillUserOverride } from "@shared/aiSkills";
 import type { ColorTxtShowMessageBoxOptions } from "@shared/colorTxtShowMessageBox";
 import type {
@@ -105,7 +104,11 @@ import { useAppSidebarSearch } from "./composables/useAppSidebarSearch";
 import { useAppSyncCurrentFileWatch } from "./composables/useAppSyncCurrentFileWatch";
 import { useAppWindowBindings } from "./composables/useAppWindowBindings";
 import { useAiChapterPlainTextBridge } from "./composables/useAiChapterPlainTextBridge";
-import { isEbookFilePath, isMarkdownFilePath, isPlainTextBookPath } from "./ebook/ebookFormat";
+import {
+  isEbookFilePath,
+  isMarkdownFilePath,
+  isPlainTextBookPath,
+} from "./ebook/ebookFormat";
 import { useAppVoiceRead } from "./composables/useAppVoiceRead";
 import { useAppTimedScroll } from "./composables/useAppTimedScroll";
 import { useTxtStreamPipeline } from "./composables/useTxtStreamPipeline";
@@ -200,12 +203,18 @@ import {
   type TextConvertWidthMode,
   type TextConvertZhMode,
 } from "@shared/textConvertTypes";
-import { mergeVoiceReadSettings, type VoiceReadSettings } from "./constants/voiceRead";
+import {
+  mergeVoiceReadSettings,
+  type VoiceReadSettings,
+} from "./constants/voiceRead";
 import {
   mergeTimedScrollSettings,
   type TimedScrollSettings,
 } from "./constants/timedScroll";
-import { migrateVoiceReadFromPersisted, cloneVoiceReadProfiles } from "./services/voiceRead/voiceReadProfileState";
+import {
+  migrateVoiceReadFromPersisted,
+  cloneVoiceReadProfiles,
+} from "./services/voiceRead/voiceReadProfileState";
 import {
   voiceReadAiSpeakerTokenUsage,
   voiceReadAiSpeakerTokenUsageAvailable,
@@ -392,11 +401,10 @@ function refreshReplaceRulesCache() {
 /** 按当前展示设置（替换/转换/压缩空行/缩进等）从物理行重跑管线，并尽量保持视口 */
 function reformatReaderDisplayPreservingViewport() {
   if (!currentFile.value || readerEditMode.value || loading.value) return;
-  const anchor =
-    captureViewportRestoreAnchor() ?? {
-      physicalLine: captureViewportAnchorPhysicalLine(),
-      wrappedLineIndex: 0,
-    };
+  const anchor = captureViewportRestoreAnchor() ?? {
+    physicalLine: captureViewportAnchorPhysicalLine(),
+    wrappedLineIndex: 0,
+  };
   void withChapterListScrollSuppressed(async () => {
     const ok = await stream.applyReaderDisplayFromPhysicalLines(anchor);
     if (!ok) return;
@@ -468,8 +476,12 @@ const formatChapterCharCount = computed(
 const aiAssistantDeepThinking = ref(false);
 const aiAssistantSpoilerSafe = ref(false);
 const wordcloudFontFamily = ref(WORDCLOUD_DEFAULT_FONT_FAMILY);
-const wordcloudAngleMode = ref<WordcloudAngleMode>(WORDCLOUD_DEFAULT_ANGLE_MODE);
-const wordcloudPaletteId = ref<WordcloudPaletteId>(WORDCLOUD_DEFAULT_PALETTE_ID);
+const wordcloudAngleMode = ref<WordcloudAngleMode>(
+  WORDCLOUD_DEFAULT_ANGLE_MODE,
+);
+const wordcloudPaletteId = ref<WordcloudPaletteId>(
+  WORDCLOUD_DEFAULT_PALETTE_ID,
+);
 const voiceReadSettings = ref<VoiceReadSettings>(
   mergeVoiceReadSettings(undefined),
 );
@@ -519,7 +531,10 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  window.removeEventListener(appReplaceRulesChangedEvent, onReplaceRulesChanged);
+  window.removeEventListener(
+    appReplaceRulesChangedEvent,
+    onReplaceRulesChanged,
+  );
   endWebDavBookPackProgress();
 });
 
@@ -602,7 +617,9 @@ const txtrDelimitedMatchCrossLine = ref(defaultTxtrDelimitedMatchCrossLine);
 /** 为 true 时正文行统一行首两个全角空格（章节标题行与空行除外） */
 const leadIndentFullWidth = ref(defaultLeadIndentFullWidth);
 const textConvertZh = ref<TextConvertZhMode>(defaultTextConvertZhMode);
-const textConvertLetter = ref<TextConvertWidthMode>(defaultTextConvertLetterMode);
+const textConvertLetter = ref<TextConvertWidthMode>(
+  defaultTextConvertLetterMode,
+);
 const textConvertDigit = ref<TextConvertWidthMode>(defaultTextConvertDigitMode);
 const readerFontSize = ref(defaultReaderFontSize);
 const readerLineHeightMultiple = ref(defaultReaderLineHeightMultiple);
@@ -621,6 +638,74 @@ const shortcutBindings = ref<ShortcutBindingMap>({
 
 /** 启动时是否恢复上次会话快照（localStorage）；关闭时不写入会话 */
 const restoreSessionOnStartup = ref(defaultRestoreSessionOnStartup);
+const privacyMode = ref(false);
+const initialPrivacySettings = loadPrivacyModeSettings();
+const privacyOpacity = ref(initialPrivacySettings.transparency);
+const privacyMiddleMouseHide = ref(initialPrivacySettings.middleMouseHide);
+
+function enterPrivacyMode() {
+  privacyMode.value = true;
+  window.colorTxt.setPrivacyPresentation(true);
+}
+
+function onPrivacyModeKeydown(event: KeyboardEvent) {
+  if (!privacyMode.value || event.key !== "Escape") return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  privacyMode.value = false;
+  window.colorTxt.setPrivacyPresentation(false);
+}
+
+function onPrivacyMiddleMouse(event: MouseEvent) {
+  if (event.button !== 1 || !privacyMiddleMouseHide.value) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  window.colorTxt.hideAllWindowsStealth();
+}
+
+function onPrivacySettingsChanged(event: Event) {
+  const detail = (event as CustomEvent<PrivacyModeSettings>).detail;
+  privacyOpacity.value = detail.transparency;
+  privacyMiddleMouseHide.value = detail.middleMouseHide;
+}
+
+watch(
+  privacyOpacity,
+  (value) => {
+    const normalized = Math.max(0, Math.min(100, Math.round(value)));
+    document.documentElement.style.setProperty(
+      "--privacy-background-alpha",
+      String(1 - normalized / 100),
+    );
+  },
+  { immediate: true },
+);
+
+watch(
+  privacyMode,
+  (enabled) => {
+    document.documentElement.classList.toggle("privacy-mode", enabled);
+  },
+  { immediate: true },
+);
+
+onMounted(() => {
+  window.addEventListener("keydown", onPrivacyModeKeydown, true);
+  window.addEventListener("mousedown", onPrivacyMiddleMouse, true);
+  window.addEventListener(
+    privacyModeSettingsChangedEvent,
+    onPrivacySettingsChanged,
+  );
+});
+onBeforeUnmount(() => {
+  window.removeEventListener("keydown", onPrivacyModeKeydown, true);
+  window.removeEventListener("mousedown", onPrivacyMiddleMouse, true);
+  window.removeEventListener(
+    privacyModeSettingsChangedEvent,
+    onPrivacySettingsChanged,
+  );
+  document.documentElement.classList.remove("privacy-mode");
+});
 /** 磁盘上当前正文变更后是否自动重新加载（设置项） */
 const syncCurrentFile = ref(defaultSyncCurrentFile);
 /** 最近打开文件条数上限，0 表示不记录 */
@@ -654,7 +739,9 @@ const fullscreenShowSystemTime = ref(defaultFullscreenShowSystemTime);
 const timedScrollSettings = ref<TimedScrollSettings>(
   mergeTimedScrollSettings(undefined),
 );
-const pomodoroSettings = ref<PomodoroSettings>(mergePomodoroSettings(undefined));
+const pomodoroSettings = ref<PomodoroSettings>(
+  mergePomodoroSettings(undefined),
+);
 const selectionToolbarButtons = ref<SelectionToolbarButtons>(
   mergeSelectionToolbarButtons(undefined),
 );
@@ -929,43 +1016,37 @@ function onReaderEditCursorChange(payload: ReaderEditCursorStatus) {
   readerEditCursorStatus.value = payload;
 }
 
-const footerEncodingActionsEnabled = computed(
-  () =>
-    Boolean(
-      physicalReaderPath.value &&
-        currentFile.value &&
-        !loading.value &&
-        !ebookParsing.value &&
-        typeof window.colorTxt?.writeTextFile === "function",
-    ),
+const footerEncodingActionsEnabled = computed(() =>
+  Boolean(
+    physicalReaderPath.value &&
+    currentFile.value &&
+    !loading.value &&
+    !ebookParsing.value &&
+    typeof window.colorTxt?.writeTextFile === "function",
+  ),
 );
 
 /** 底栏路径菜单条目可用性（条目仍展示不可用时置灰） */
-const footerPathMenuRevealEnabled = computed(
-  () =>
-    Boolean(
-      physicalReaderPath.value ??
-        currentFile.value ??
-        ebookConversionSourcePath.value,
-    ),
+const footerPathMenuRevealEnabled = computed(() =>
+  Boolean(
+    physicalReaderPath.value ??
+    currentFile.value ??
+    ebookConversionSourcePath.value,
+  ),
 );
-const footerPathMenuReloadEnabled = computed(
-  () =>
-    Boolean(currentFile.value && !loading.value && !ebookParsing.value),
+const footerPathMenuReloadEnabled = computed(() =>
+  Boolean(currentFile.value && !loading.value && !ebookParsing.value),
 );
 /** 原始会话路径为电子书（非 txt/md）时展示「重新转换」 */
-const footerPathMenuReconvertEnabled = computed(
-  () =>
-    Boolean(
-      currentFile.value &&
-        isEbookFilePath(currentFile.value) &&
-        !loading.value &&
-        !ebookParsing.value,
-    ),
+const footerPathMenuReconvertEnabled = computed(() =>
+  Boolean(
+    currentFile.value &&
+    isEbookFilePath(currentFile.value) &&
+    !loading.value &&
+    !ebookParsing.value,
+  ),
 );
-const footerPathMenuCloseEnabled = computed(() =>
-  Boolean(currentFile.value),
-);
+const footerPathMenuCloseEnabled = computed(() => Boolean(currentFile.value));
 
 /** 主进程 `iconv.encode` 使用的编码名 */
 function normalizeIpcEncoding(raw: string): string {
@@ -1220,42 +1301,14 @@ watch(wordcloudAngleMode, () => persistSettings());
 watch(wordcloudPaletteId, () => persistSettings());
 watch(wordcloudFontFamily, () => persistSettings());
 watch(characterCardTextureEffect, () => persistSettings());
-watch(
-  voiceReadSettings,
-  () => persistSettings(),
-  { deep: true },
-);
-watch(
-  timedScrollSettings,
-  () => persistSettings(),
-  { deep: true },
-);
-watch(
-  dictionarySettings,
-  () => persistSettings(),
-  { deep: true },
-);
-watch(
-  webSearchSettings,
-  () => persistSettings(),
-  { deep: true },
-);
-watch(
-  translationSettings,
-  () => persistSettings(),
-  { deep: true },
-);
-watch(
-  voiceReadProfiles,
-  () => persistSettings(),
-  { deep: true },
-);
+watch(voiceReadSettings, () => persistSettings(), { deep: true });
+watch(timedScrollSettings, () => persistSettings(), { deep: true });
+watch(dictionarySettings, () => persistSettings(), { deep: true });
+watch(webSearchSettings, () => persistSettings(), { deep: true });
+watch(translationSettings, () => persistSettings(), { deep: true });
+watch(voiceReadProfiles, () => persistSettings(), { deep: true });
 watch(activeVoiceReadProfileId, () => persistSettings());
-watch(
-  voiceReadAiSpeakerTokenUsage,
-  () => persistSettings(),
-  { deep: true },
-);
+watch(voiceReadAiSpeakerTokenUsage, () => persistSettings(), { deep: true });
 watch(voiceReadAiSpeakerTokenUsageAvailable, () => persistSettings());
 
 /** 加载期底栏/侧栏：当前文件的存档进度仅来自 file.meta */
@@ -1464,8 +1517,7 @@ async function migratePortraitBookDirIfNeeded(
   try {
     const rootRaw = characterPortraitCacheDir.value.trim();
     const root =
-      rootRaw ||
-      (await window.colorTxt.getDefaultCharacterPortraitCacheDir());
+      rootRaw || (await window.colorTxt.getDefaultCharacterPortraitCacheDir());
     if (!root?.trim()) return;
     const from = characterPortraitBookDirAbs(root.trim(), oldSeg);
     const to = characterPortraitBookDirAbs(root.trim(), newSeg);
@@ -1535,8 +1587,7 @@ async function onReplaceFilePath(oldPathRaw: string) {
   }
 
   const wasOpen =
-    Boolean(currentFile.value) &&
-    fileHistoryKey(currentFile.value!) === oldKey;
+    Boolean(currentFile.value) && fileHistoryKey(currentFile.value!) === oldKey;
 
   txtFiles.value = txtFiles.value
     .filter((f) => {
@@ -1655,7 +1706,10 @@ function onClearFileMeta(path: string) {
 function metaHasClearableReadingData(rec: FileMetaRecord | undefined): boolean {
   if (!rec) return false;
   if ((rec.bookmarks?.length ?? 0) > 0) return true;
-  if (rec.highlightWordsByIndex && Object.keys(rec.highlightWordsByIndex).length)
+  if (
+    rec.highlightWordsByIndex &&
+    Object.keys(rec.highlightWordsByIndex).length
+  )
     return true;
   if ((rec.readerAnnotations?.length ?? 0) > 0) return true;
   if ((rec.characterRoster?.length ?? 0) > 0) return true;
@@ -1680,7 +1734,10 @@ const readingDataItems = computed(() => {
       let progress: number | undefined;
       if (curKey && k === curKey && typeof live === "number") {
         progress = live;
-      } else if (typeof m.progress === "number" && Number.isFinite(m.progress)) {
+      } else if (
+        typeof m.progress === "number" &&
+        Number.isFinite(m.progress)
+      ) {
         progress = m.progress;
       } else {
         progress = progressMap.get(k);
@@ -1703,8 +1760,7 @@ async function removePortraitCacheForBook(bookPath: string) {
   try {
     const rootRaw = characterPortraitCacheDir.value.trim();
     const root =
-      rootRaw ||
-      (await window.colorTxt.getDefaultCharacterPortraitCacheDir());
+      rootRaw || (await window.colorTxt.getDefaultCharacterPortraitCacheDir());
     if (root?.trim()) {
       const bookDir = characterPortraitBookDirAbs(
         root.trim(),
@@ -1860,8 +1916,7 @@ async function onClearAllReadingData() {
     defaultId: 1,
     cancelId: 0,
     message: "是否清空全部阅读数据？",
-    detail:
-      "将清除全部文件的阅读数据；不会删除文件本身。",
+    detail: "将清除全部文件的阅读数据；不会删除文件本身。",
     noLink: true,
   });
   if (r.response !== 1) return;
@@ -2301,19 +2356,16 @@ afterStreamFullTextInstalled = async () => {
   readerRef.value?.refreshReaderAnnotationDecorations?.();
 };
 
-const {
-  isTimedScrollActive,
-  canStartTimedScroll,
-  toggleTimedScroll,
-} = useAppTimedScroll({
-  readerRef,
-  timedScrollSettings,
-  currentFile,
-  loading,
-  readerEditMode,
-  viewportAtBottom,
-  isVoiceReadActive,
-});
+const { isTimedScrollActive, canStartTimedScroll, toggleTimedScroll } =
+  useAppTimedScroll({
+    readerRef,
+    timedScrollSettings,
+    currentFile,
+    loading,
+    readerEditMode,
+    viewportAtBottom,
+    isVoiceReadActive,
+  });
 
 function onVoiceReadToggle() {
   if (!isVoiceReadActive.value && isTimedScrollActive.value) return;
@@ -2431,7 +2483,11 @@ async function onApplyPartialPhysicalEdit(payload: {
   try {
     await appLoading.with("保存中", async () => {
       const normalized = normalizeIpcEncoding(readerSaveEncoding.value);
-      const written = await window.colorTxt.writeTextFile(p, nextText, normalized);
+      const written = await window.colorTxt.writeTextFile(
+        p,
+        nextText,
+        normalized,
+      );
       if (!written.ok) {
         void appAlert(written.message ?? "保存失败");
         return;
@@ -2439,11 +2495,10 @@ async function onApplyPartialPhysicalEdit(payload: {
       readerSaveEncoding.value = normalized;
       fileEncoding.value = formatTextEncodingLabel(normalized);
       stream.commitPhysicalLinesFromPlainText(nextText);
-      const anchor =
-        captureViewportRestoreAnchor() ?? {
-          physicalLine: payload.range.startPhysicalLine,
-          wrappedLineIndex: 0,
-        };
+      const anchor = captureViewportRestoreAnchor() ?? {
+        physicalLine: payload.range.startPhysicalLine,
+        wrappedLineIndex: 0,
+      };
       await withChapterListScrollSuppressed(async () => {
         const ok = await stream.applyReaderDisplayFromPhysicalLines(anchor);
         if (!ok) {
@@ -2506,11 +2561,10 @@ async function onToggleReaderEdit() {
       appToast("请等待当前文件加载完成后再进入编辑模式。", { kind: "info" });
       return;
     }
-    pendingReaderEditRestoreAnchor.value =
-      captureViewportRestoreAnchor() ?? {
-        physicalLine: captureViewportAnchorPhysicalLine(),
-        wrappedLineIndex: 0,
-      };
+    pendingReaderEditRestoreAnchor.value = captureViewportRestoreAnchor() ?? {
+      physicalLine: captureViewportAnchorPhysicalLine(),
+      wrappedLineIndex: 0,
+    };
     suppressChapterListAutoScroll.value = true;
     readerEditMode.value = true;
   }
@@ -2814,8 +2868,7 @@ async function reconvertCurrentEbookFromDisk() {
 
 async function exportCurrentReaderBookPack(includeReadingProgress: boolean) {
   const sessionPath = currentFile.value?.trim();
-  const physicalPath =
-    physicalReaderPath.value?.trim() || sessionPath || "";
+  const physicalPath = physicalReaderPath.value?.trim() || sessionPath || "";
   if (!sessionPath || !physicalPath) {
     await appAlert("请先打开文件");
     return;
@@ -2877,8 +2930,7 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
 async function uploadCurrentReaderBookPackToWebDav() {
   if (webDavBookPackProgress.value) return;
   const sessionPath = currentFile.value?.trim();
-  const physicalPath =
-    physicalReaderPath.value?.trim() || sessionPath || "";
+  const physicalPath = physicalReaderPath.value?.trim() || sessionPath || "";
   if (!sessionPath || !physicalPath) {
     await appAlert("请先打开文件");
     return;
@@ -2894,10 +2946,8 @@ async function uploadCurrentReaderBookPackToWebDav() {
     return;
   }
   const requestId = beginWebDavBookPackProgress("upload");
-  const {
-    buildReaderBookPackDefaultName,
-    buildReaderBookPackZip,
-  } = await import("./utils/readerBookPack");
+  const { buildReaderBookPackDefaultName, buildReaderBookPackZip } =
+    await import("./utils/readerBookPack");
   let viewportTopPhysicalLine: number | undefined;
   const top = readerRef.value?.getViewportTopLine?.();
   if (typeof top === "number" && Number.isFinite(top)) {
@@ -2979,9 +3029,8 @@ async function updateCurrentReaderBookPackFromWebDav() {
     return;
   }
   const requestId = beginWebDavBookPackProgress("sync");
-  const { buildReaderBookPackDefaultName } = await import(
-    "./utils/readerBookPack"
-  );
+  const { buildReaderBookPackDefaultName } =
+    await import("./utils/readerBookPack");
   const encrypted = Boolean(bookPackPassword.value.trim());
   const preferred = buildReaderBookPackDefaultName(
     fileNameKey(sessionPath),
@@ -3174,11 +3223,7 @@ async function onExportBookmarksJson() {
     saveBookmarkExportFile,
   } = await import("./utils/readerBookmarkExport");
   const name = buildBookmarkExportDefaultName(fileNameKey(path));
-  const data = buildReaderBookmarksExportJson(
-    path,
-    fileNameKey(path),
-    list,
-  );
+  const data = buildReaderBookmarksExportJson(path, fileNameKey(path), list);
   const r = await saveBookmarkExportFile(name, data);
   if (!r.ok && "error" in r) await appAlert(r.error);
 }
@@ -3313,8 +3358,7 @@ async function applySettings(payload: SettingsApplyPayload) {
   webDavEnabled.value = payload.webDavEnabled === true;
   webDavUrl.value = payload.webDavUrl ?? "";
   webDavUsername.value = payload.webDavUsername ?? "";
-  webDavRemoteDir.value =
-    (payload.webDavRemoteDir ?? "").trim() || "ColorTxt";
+  webDavRemoteDir.value = (payload.webDavRemoteDir ?? "").trim() || "ColorTxt";
   const prevPortraitCache = characterPortraitCacheDir.value.trim();
   const nextPortraitCache = payload.characterPortraitCacheDir.trim();
   if (
@@ -3395,11 +3439,10 @@ async function applySettings(payload: SettingsApplyPayload) {
     currentFile.value &&
     !readerEditMode.value
   ) {
-    const anchor =
-      captureViewportRestoreAnchor() ?? {
-        physicalLine: captureViewportAnchorPhysicalLine(),
-        wrappedLineIndex: 0,
-      };
+    const anchor = captureViewportRestoreAnchor() ?? {
+      physicalLine: captureViewportAnchorPhysicalLine(),
+      wrappedLineIndex: 0,
+    };
     void withChapterListScrollSuppressed(async () => {
       const ok = await stream.applyReaderDisplayFromPhysicalLines(anchor);
       if (!ok) {
@@ -3420,11 +3463,10 @@ async function applySettings(payload: SettingsApplyPayload) {
     currentFile.value &&
     !readerEditMode.value
   ) {
-    const anchor =
-      captureViewportRestoreAnchor() ?? {
-        physicalLine: captureViewportAnchorPhysicalLine(),
-        wrappedLineIndex: 0,
-      };
+    const anchor = captureViewportRestoreAnchor() ?? {
+      physicalLine: captureViewportAnchorPhysicalLine(),
+      wrappedLineIndex: 0,
+    };
     void withChapterListScrollSuppressed(async () => {
       const ok = await stream.applyReaderDisplayFromPhysicalLines(anchor);
       if (!ok) {
@@ -3556,6 +3598,7 @@ useAppShellThemeWatch({
     class="app"
     :class="{
       fullscreen: isFullscreenView,
+      privacyMode: privacyMode,
       'fullscreen--cursorHidden': isFullscreenView && fullscreenCursorHidden,
     }"
   >
@@ -3638,6 +3681,7 @@ useAppShellThemeWatch({
         @open-shortcuts="showShortcutPanel = true"
         @open-settings="showSettingsPanel = true"
         @open-color-scheme="showColorSchemePanel = true"
+        @enter-privacy-mode="enterPrivacyMode"
         @open-find-book="openFindBookWindow"
         @open-new-window="openNewWindow"
         @open-recent-file="openRecentFileFromHistory"
@@ -3659,7 +3703,7 @@ useAppShellThemeWatch({
 
     <div
       class="layout"
-      @mousedown="onLayoutMouseDown"
+      @mousedown.capture="onLayoutMouseDown"
       @wheel.capture="onLayoutWheel"
     >
       <div
@@ -3810,7 +3854,7 @@ useAppShellThemeWatch({
           :web-dav-enabled="webDavEnabled"
           @open-web-dav="showWebDavPanel = true"
           @open-color-scheme="showColorSchemePanel = true"
-        @open-find-book="openFindBookWindow"
+          @open-find-book="openFindBookWindow"
           @open-settings="showSettingsPanel = true"
         />
         <!-- 放在侧栏容器内，避免移到拖条时触发 @mouseleave 导致全屏侧栏收起 -->
@@ -3825,7 +3869,9 @@ useAppShellThemeWatch({
         v-show="showSidebar && !isFullscreenView"
         class="resizer"
         :class="{ 'resizer--active': resizingSidebar }"
-        :style="{ left: `calc(${sidebarWidthForLayout}px - var(--app-sash-size, 4px) / 2)` }"
+        :style="{
+          left: `calc(${sidebarWidthForLayout}px - var(--app-sash-size, 4px) / 2)`,
+        }"
         @mousedown="startResizeSidebar"
       ></div>
       <div
@@ -3877,7 +3923,9 @@ useAppShellThemeWatch({
           :highlight-colors="highlightColorsForReader"
           :lineation-colors="lineationColorsForReader"
           :highlight-words-by-index="readerDisplayHighlightWordsByIndex"
-          :highlight-words-by-index-book-only="readerDisplayHighlightWordsBookOnly"
+          :highlight-words-by-index-book-only="
+            readerDisplayHighlightWordsBookOnly
+          "
           :reader-annotations="currentFileAnnotations"
           :lineation-last-colors="lineationLastColors"
           :reader-file-path="currentFile"

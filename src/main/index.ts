@@ -2,7 +2,10 @@ import { app, BrowserWindow, protocol } from "electron";
 import { registerColortxtLocalProtocol } from "./colortxtLocalProtocol";
 import { registerMainIpcHandlers } from "./ipcHandlers";
 import { setupLaunchTxtHandlers } from "./launchTxtHandlers";
-import { registerGlobalShortcuts, unregisterGlobalShortcuts } from "./globalShortcuts";
+import {
+  registerGlobalShortcuts,
+  unregisterGlobalShortcuts,
+} from "./globalShortcuts";
 import { registerUpdaterIpc, setupAutoUpdater } from "./updater";
 import { markAppQuittingForClose } from "./windowCloseGuard";
 import { createMainWindowFactory } from "./windowFactory";
@@ -84,7 +87,9 @@ app.whenReady().then(async () => {
   if (argvHasFindBookFlag(process.argv)) {
     openFindBookLaunchWindow(createWindow, "bookshelf");
   } else {
-    const launchTxt = launchTxtHandlers.resolveLaunchTxtForStartup(process.argv);
+    const launchTxt = launchTxtHandlers.resolveLaunchTxtForStartup(
+      process.argv,
+    );
     createWindow({ openTxtPath: launchTxt });
     launchTxtHandlers.openRemainingMacPendingTxtPaths();
   }
@@ -94,7 +99,13 @@ app.whenReady().then(async () => {
     const userWindows = BrowserWindow.getAllWindows().filter(
       (w) => !w.isDestroyed() && !isBackstageWebViewWindow(w),
     );
-    if (userWindows.length === 0) createWindow({});
+    if (userWindows.length === 0) {
+      createWindow({});
+      return;
+    }
+    const hiddenWindows = userWindows.filter((w) => !w.isVisible());
+    for (const win of hiddenWindows) win.show();
+    (hiddenWindows[0] ?? userWindows[0])?.focus();
   });
 });
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted } from "vue";
+import { onBeforeUnmount, onMounted, ref } from "vue";
 import FindBookPanel from "./bookSource/components/FindBookPanel.vue";
 import AppCaptchaHost from "./components/AppCaptchaHost.vue";
 import AppDialogHost from "./components/AppDialogHost.vue";
@@ -10,9 +10,28 @@ import {
   listenPersistedSettingsSync,
   readPersistedAppShellTheme,
 } from "./utils/appShellThemeSync";
+import {
+  loadPrivacyModeSettings,
+  privacyModeSettingsChangedEvent,
+  type PrivacyModeSettings,
+} from "./constants/privacyMode";
 
 let offWindowRequestClose: (() => void) | null = null;
 let offThemeSync: (() => void) | null = null;
+const privacyMiddleMouseHide = ref(loadPrivacyModeSettings().middleMouseHide);
+
+function onPrivacyMiddleMouse(event: MouseEvent) {
+  if (event.button !== 1 || !privacyMiddleMouseHide.value) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  window.colorTxt.hideAllWindowsStealth();
+}
+
+function onPrivacySettingsChanged(event: Event) {
+  privacyMiddleMouseHide.value = (
+    event as CustomEvent<PrivacyModeSettings>
+  ).detail.middleMouseHide;
+}
 
 function syncThemeFromStorage() {
   applyAppShellTheme(readPersistedAppShellTheme());
@@ -32,6 +51,11 @@ onMounted(() => {
   offWindowRequestClose = window.colorTxt.onWindowRequestClose(() => {
     closeWindow();
   });
+  window.addEventListener("mousedown", onPrivacyMiddleMouse, true);
+  window.addEventListener(
+    privacyModeSettingsChangedEvent,
+    onPrivacySettingsChanged,
+  );
 });
 
 onBeforeUnmount(() => {
@@ -39,6 +63,11 @@ onBeforeUnmount(() => {
   offThemeSync = null;
   offWindowRequestClose?.();
   offWindowRequestClose = null;
+  window.removeEventListener("mousedown", onPrivacyMiddleMouse, true);
+  window.removeEventListener(
+    privacyModeSettingsChangedEvent,
+    onPrivacySettingsChanged,
+  );
 });
 </script>
 

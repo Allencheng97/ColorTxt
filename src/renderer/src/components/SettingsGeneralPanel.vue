@@ -2,6 +2,12 @@
 import { computed } from "vue";
 import NumericInput from "./NumericInput.vue";
 import SwitchToggle from "./SwitchToggle.vue";
+import RangeSlider from "./RangeSlider.vue";
+import { ref } from "vue";
+import {
+  loadPrivacyModeSettings,
+  savePrivacyModeSettings,
+} from "../constants/privacyMode";
 import PathPickerInput from "./PathPickerInput.vue";
 import {
   maxChapterMinCharCount,
@@ -42,6 +48,26 @@ const bookPackUnpackDirPlaceholder = computed(() => {
   const p = resolveDefaultUnpackedBooksDirSync().trim();
   return p || "";
 });
+
+const initialPrivacySettings = loadPrivacyModeSettings();
+const privacyTransparency = ref(initialPrivacySettings.transparency);
+const privacyMiddleMouseHide = ref(initialPrivacySettings.middleMouseHide);
+
+function updatePrivacyTransparency(value: number) {
+  privacyTransparency.value = value;
+  savePrivacyModeSettings({
+    transparency: value,
+    middleMouseHide: privacyMiddleMouseHide.value,
+  });
+}
+
+function updatePrivacyMiddleMouseHide(value: boolean) {
+  privacyMiddleMouseHide.value = value;
+  savePrivacyModeSettings({
+    transparency: privacyTransparency.value,
+    middleMouseHide: value,
+  });
+}
 </script>
 
 <template>
@@ -131,8 +157,44 @@ const bookPackUnpackDirPlaceholder = computed(() => {
       </div>
     </div>
 
+    <div class="settingsBody settingsBody--privacy">
+      <h3 class="settingsSectionTitle">摸鱼模式</h3>
+      <div class="settingsRow">
+        <div class="settingsRowMain">
+          <span class="settingsLabel short"
+            >背景透明度（{{ privacyTransparency }}%）</span
+          >
+          <RangeSlider
+            :model-value="privacyTransparency"
+            :min="0"
+            :max="100"
+            :step="1"
+            :show-percent="false"
+            aria-label="摸鱼模式背景透明度"
+            @update:model-value="updatePrivacyTransparency"
+          />
+        </div>
+        <p class="settingsHint">0% 为不透明，100% 为完全透明。</p>
+      </div>
+      <div class="settingsRow">
+        <div class="settingsRowMain">
+          <span class="settingsLabel">鼠标中键隐藏应用</span>
+          <SwitchToggle
+            :model-value="privacyMiddleMouseHide"
+            aria-label="鼠标中键隐藏应用"
+            @update:model-value="updatePrivacyMiddleMouseHide"
+          />
+        </div>
+        <p class="settingsHint">
+          在应用任意区域按下鼠标中键，立即隐藏全部窗口。
+        </p>
+      </div>
+    </div>
+
     <div class="settingsBody settingsBody--ebook">
-      <h3 class="settingsSectionTitle settingsSectionTitle--ebook">电子书转换</h3>
+      <h3 class="settingsSectionTitle settingsSectionTitle--ebook">
+        电子书转换
+      </h3>
 
       <div class="settingsRow">
         <div class="settingsRowMain settingsRowMain--baseline">
@@ -151,7 +213,9 @@ const bookPackUnpackDirPlaceholder = computed(() => {
           </div>
         </div>
         <p class="settingsHint">
-          打开其他格式的电子书时，会自动转换为 <code>.md</code> 格式并缓存到该目录下；如果放空，将缓存到源文件同目录下。
+          打开其他格式的电子书时，会自动转换为
+          <code>.md</code>
+          格式并缓存到该目录下；如果放空，将缓存到源文件同目录下。
         </p>
       </div>
     </div>
@@ -216,7 +280,8 @@ const bookPackUnpackDirPlaceholder = computed(() => {
           </div>
         </div>
         <p class="settingsHint">
-          填写密码后，导出的书包将加密为 <code>.ctzx</code>，导入加密书包时需使用相同密码；留空则导出普通
+          填写密码后，导出的书包将加密为
+          <code>.ctzx</code>，导入加密书包时需使用相同密码；留空则导出普通
           <code>.ctz</code>。
         </p>
       </div>
@@ -287,6 +352,7 @@ const bookPackUnpackDirPlaceholder = computed(() => {
 
 .settingsBody--ebook,
 .settingsBody--chapter,
+.settingsBody--privacy,
 .settingsBody--bookPack {
   gap: 10px;
 }
