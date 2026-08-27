@@ -264,9 +264,9 @@ export const defaultStickyChapterTitleEnabled = true;
  */
 export const defaultReaderClickMode = false;
 export const readerSelectModeButtonTitle =
-  "当前为「可选模式」，点击切换「点击模式」\n\n可选模式：可选中文本进行标记、记笔记等操作\n点击模式：左键下一屏，右键上一屏，按下可拖动";
+  "当前为「可选模式」，点击切换「点击模式」\n\n可选模式：可选中文本进行标记、记笔记等操作\n点击模式：左键下一屏，右键上一屏，按下可拖动\n\n按住 Alt 可临时切换模式";
 export const readerClickModeButtonTitle =
-  "当前为「点击模式」，点击切换「可选模式」\n\n可选模式：可选中文本进行标记、记笔记等操作\n点击模式：左键下一屏，右键上一屏，按下可拖动";
+  "当前为「点击模式」，点击切换「可选模式」\n\n可选模式：可选中文本进行标记、记笔记等操作\n点击模式：左键下一屏，右键上一屏，按下可拖动\n\n按住 Alt 可临时切换模式";
 /** 主界面阅读区底部「上一章 / 下一章」工具栏（默认关闭） */
 export const defaultChapterNavToolbarEnabled = false;
 /** 编辑模式下 Monaco 是否显示行号（只读模式始终关闭） */

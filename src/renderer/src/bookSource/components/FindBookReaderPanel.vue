@@ -65,6 +65,7 @@ import { useAppReaderChrome } from "../../composables/useAppReaderChrome";
 import { useAppFullscreenReaderLayout } from "../../composables/useAppFullscreenReaderLayout";
 import { useAppTimedScroll } from "../../composables/useAppTimedScroll";
 import { useAppVoiceRead } from "../../composables/useAppVoiceRead";
+import { useReaderClickModeAltHold } from "../../composables/useReaderClickModeAltHold";
 import { hasEscBeforeModalLayers } from "../../utils/modalStack";
 import { applyTextDisplayConverts } from "../../services/textConvertApply";
 import { applyAppShellTheme, type AppShellTheme } from "../../utils/appShellThemeSync";
@@ -1155,6 +1156,11 @@ function toggleReaderClickMode() {
   persistReaderUiPrefs();
 }
 
+const { effectiveClickMode, clickModeAltHeld } = useReaderClickModeAltHold({
+  persistedClickMode: readerClickMode,
+  readerEditMode,
+});
+
 async function toggleCompressBlankLines() {
   if (readerEditMode.value) {
     void readerRef.value?.applyEditFormatCompressBlankLines?.(
@@ -2019,7 +2025,8 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
           :color-scheme-shortcut-label="colorSchemeShortcutLabel"
           :find-shortcut-label="findShortcutLabel"
           :reader-edit-mode="readerEditMode"
-          :reader-click-mode="readerClickMode"
+          :reader-click-mode="effectiveClickMode"
+          :reader-click-mode-alt-held="clickModeAltHeld"
           :can-enter-reader-edit-mode="canEnterReaderEditMode"
           :reader-chapter-saving="readerChapterSaving"
           :text-replace-active="textReplaceActive"
@@ -2204,7 +2211,7 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
             :mouse-wheel-scroll-sensitivity="mouseWheelScrollSensitivity"
             :fast-scroll-sensitivity="fastScrollSensitivity"
             :sticky-chapter-title-enabled="stickyChapterTitleEnabled"
-            :reader-click-mode="readerClickMode"
+            :reader-click-mode="effectiveClickMode"
             :selection-toolbar-buttons="selectionToolbarButtons"
             :dictionary-settings="dictionarySettings"
             :web-search-settings="webSearchSettings"

@@ -108,6 +108,7 @@ import { useAiChapterPlainTextBridge } from "./composables/useAiChapterPlainText
 import { isEbookFilePath, isMarkdownFilePath, isPlainTextBookPath } from "./ebook/ebookFormat";
 import { useAppVoiceRead } from "./composables/useAppVoiceRead";
 import { useAppTimedScroll } from "./composables/useAppTimedScroll";
+import { useReaderClickModeAltHold } from "./composables/useReaderClickModeAltHold";
 import { useTxtStreamPipeline } from "./composables/useTxtStreamPipeline";
 import { basenameFromPath } from "./services/fileListService";
 import { bookTitleForExport } from "./utils/readerAnnotationExport";
@@ -910,6 +911,11 @@ const readingProgressSynced = ref(true);
 
 const readerEditMode = ref(false);
 const readerEditorDirty = ref(false);
+
+const { effectiveClickMode, clickModeAltHeld } = useReaderClickModeAltHold({
+  persistedClickMode: readerClickMode,
+  readerEditMode,
+});
 
 const readerSaveEncoding = ref("utf8");
 /** 编辑态 / 编码另存：整文件写盘中（禁用保存按钮，防重复点） */
@@ -3616,7 +3622,8 @@ useAppShellThemeWatch({
         :text-convert-letter="textConvertLetter"
         :text-convert-digit="textConvertDigit"
         :reader-edit-mode="readerEditMode"
-        :reader-click-mode="readerClickMode"
+        :reader-click-mode="effectiveClickMode"
+        :reader-click-mode-alt-held="clickModeAltHeld"
         :can-enter-reader-edit-mode="canEnterReaderEditMode"
         :shortcut-bindings="shortcutBindings"
         @open-file="openFileViaDialog"
@@ -3884,7 +3891,7 @@ useAppShellThemeWatch({
           :mouse-wheel-scroll-sensitivity="mouseWheelScrollSensitivity"
           :fast-scroll-sensitivity="fastScrollSensitivity"
           :sticky-chapter-title-enabled="stickyChapterTitleEnabled"
-          :reader-click-mode="readerClickMode"
+          :reader-click-mode="effectiveClickMode"
           :selection-toolbar-buttons="selectionToolbarButtons"
           :dictionary-settings="dictionarySettings"
           :web-search-settings="webSearchSettings"

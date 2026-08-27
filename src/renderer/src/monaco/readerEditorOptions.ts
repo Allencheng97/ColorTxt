@@ -221,6 +221,8 @@ export function buildReaderEditorReadOnlyModeChromeOptions(): ReaderMonacoConfig
     wordWrap: "on",
     contextmenu: false,
     links: true,
+    /** 只读下 Alt 用于临时切换可选/点击模式，勿占用为多光标修饰键 */
+    multiCursorModifier: "ctrlCmd",
     padding: {
       top: READER_EDITOR_PADDING.top,
       bottom: READER_EDITOR_PADDING.bottom,
