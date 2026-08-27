@@ -349,7 +349,7 @@ cardShellWrap（悬停抬高 z-index）
 
 ### `localStorage` 与 `file.meta` 中的 AI 相关键
 
-- **`colorTxt.ui.settings`**：**`aiSkillsEnabled`**、**`aiSkillOverrides`**、**`aiCustomSkills`**、**`aiAssistantDeepThinking`**、**`aiAssistantSpoilerSafe`**；**`voiceRead`**（引擎、朗读方案、单/多音色、**emotionEnabled** 等，见 **「语音朗读」**）；**`timedScroll`**（定时滚动，见 [基础功能.md](./基础功能.md) → **「定时滚动」**）；**`aiSmartFormat`**（编辑模式智能排版开关组，见 **「AI 智能排版」**）；**`textConvertZh`**、**`textConvertLetter`**、**`textConvertDigit`**（顶栏「转换」阅读模式展示层，见 [基础功能.md](./基础功能.md) → **「简繁与全半角转换」**）；**`characterPortraitCacheDir`**（空串表示使用默认 `userData/CharacterPortrait`）；**`characterCardTextureEffect`**（角色卡闪卡纹理 id，默认 **`soft`**，见 **「角色卡 3D 倾斜与闪卡纹理」**）；**`wordcloudFontFamily`**、**`wordcloudAngleMode`**、**`wordcloudPaletteId`**（词云全屏 UI 偏好，见 **「词云图」**）。其余界面与阅读字段仍见 [基础功能.md](./基础功能.md) → **「数据存储说明」**中的 `PersistedSettingsData` / `cacheStore.ts`。
+- **`colorTxt.ui.settings`**：**`aiSkillsEnabled`**、**`aiSkillOverrides`**、**`aiCustomSkills`**、**`aiAssistantDeepThinking`**、**`aiAssistantSpoilerSafe`**；**`voiceRead`**（引擎、朗读方案、单/多音色、**emotionEnabled** 等，见 **「语音朗读」**）；**`timedScroll`**（定时滚动，见 [基础功能.md](./基础功能.md) → **「定时滚动」**）；**`aiSmartFormat`**（编辑模式智能排版开关组，见 **「AI 智能排版」**）；**`textConvertZh`**、**`textConvertLetter`**、**`textConvertDigit`**（顶栏「转换」阅读模式展示层，见 [基础功能.md](./基础功能.md) → **「简繁与全半角转换」**）；**`characterPortraitCacheDir`**（空串表示使用默认 `userData/CharacterPortrait`）；**`characterCardTextureEffect`**（角色卡闪卡纹理 id，默认 **`soft`**，见 **「角色卡 3D 倾斜与闪卡纹理」**）；**`wordcloudFontFamily`**、**`wordcloudAngleMode`**、**`wordcloudPaletteId`**（词云全屏 UI 偏好，见 **「词云图」**）。朗读过滤 / 自动暂停另存 **`colortxt:voiceReadSpeak`**（见 [语音朗读](./语音朗读.md)）。其余界面与阅读字段仍见 [基础功能.md](./基础功能.md) → **「数据存储说明」**中的 `PersistedSettingsData` / `cacheStore.ts`。
 - **`colorTxt.file.meta`**：**`characterRoster`**、**`characterBookStyle`**、角色 **`voiceReadVoiceId`** / **`voiceReadLanguage`** / **`voiceReadDialect`** 等（类型见 `@shared/characterTypes`），与书签、阅读进度、电子书转换路径等字段并列，详见 `FileMetaRecord` / `fileMetaStore.ts`。
 
 ### 主要 Vue 组件（AI / 角色与相关设置）
@@ -371,9 +371,9 @@ cardShellWrap（悬停抬高 z-index）
 | `SettingsTxt2ImgPanel.vue` | 「角色卡」：服务商 + 地址（含 **MiniMax** `minimax_images`）；云端 Key/**测试连接**/模型建议；**固定尺寸**或 **自由宽高**；OpenAI 画质；A1111/Comfy 参数；**立绘缓存目录** |
 | `AppConnectionTestButton.vue` | 设置页共用测试连接按钮（`useConnectionTest`） |
 | `SettingsSkillsPanel.vue` | 「技能」：内置技能开关与覆盖、自定义技能列表；footer「添加技能」打开 **`SettingsSkillEditModal`** |
-| `SettingsVoiceReadPanel.vue` | 「语音朗读」：朗读方案、引擎（含 **MiMo**、**火山引擎 `volcengine`**）、单/多音色、AI 识别、**情绪标注**、通义/MiniMax/MiMo/火山密钥与测试连接；火山接入豆包语音合成大模型 2.0、444 个官方音色与默认可改的 24 kHz PCM，各槽位可选手动语种/方言，连接测试会合成一个汉字并产生极少量用量；见 **「语音朗读」** |
+| `SettingsVoiceReadPanel.vue` | 「语音朗读」：朗读方案、引擎（含 **MiMo**、**火山引擎 `volcengine`**）、单/多音色、AI 识别、**情绪标注**、通义/MiniMax/MiMo/火山密钥与测试连接；火山接入豆包语音合成大模型 2.0、444 个官方音色与默认可改的 24 kHz PCM，各槽位可选手动语种/方言，连接测试会合成一个汉字并产生极少量用量；页底 **朗读设置**（过滤 / 自动暂停，见 [语音朗读](./语音朗读.md)） |
 | `SettingsVolcengineVoiceSpeechMode.vue` | 火山语种/方言下拉（设置页槽位 / 角色卡抽屉共用） |
-| `VoiceReadToolbar.vue` | 顶栏朗读控制条（含 **音量** 滑块；设置内 **音调** 为合成参数）；与 **定时滚动** 互斥 |
+| `VoiceReadToolbar.vue` | 顶栏朗读控制条（含 **音量** 滑块与左侧 **朗读设置** 齿轮；设置内 **音调** 为合成参数）；与 **定时滚动** 互斥 |
 | `SettingsSkillEditModal.vue` | 自定义技能新建/编辑弹窗 |
 | `AppPullFlashButton.vue` | 设置面板内刷新模型/采样器列表等，完成态闪光反馈 |
 | `PathPickerInput.vue` | 目录选择（含 **角色立绘缓存根目录** 等） |
