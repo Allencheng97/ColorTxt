@@ -8,6 +8,10 @@ function isAltOnlyModifier(ev: KeyboardEvent): boolean {
   return ev.altKey && !ev.ctrlKey && !ev.metaKey;
 }
 
+function isAltKey(ev: KeyboardEvent): boolean {
+  return ev.key === "Alt" || ev.code === "AltLeft" || ev.code === "AltRight";
+}
+
 function isNonReaderTextInput(ev: Event): boolean {
   const t = ev.target;
   if (!(t instanceof HTMLElement)) return false;
@@ -21,12 +25,16 @@ function isNonReaderTextInput(ev: Event): boolean {
 /**
  * 按住 Alt 时临时反转可选/点击模式（不改持久化偏好）。
  * 编辑模式、模态层打开、或焦点在阅读器以外的输入框时不启用。
+ * 左键已按下后再按 Alt：本轮不切模式（可选模式下仍可走 Monaco 列选）。
  */
 export function useReaderClickModeAltHold(deps: {
   persistedClickMode: Ref<boolean>;
   readerEditMode: Ref<boolean>;
 }) {
   const altHold = ref(false);
+  let primaryButtonDown = false;
+  /** 左键按住期间按下的 Alt：直到松开 Alt 都不切模式 */
+  let suppressAltHoldUntilRelease = false;
 
   const effectiveClickMode = computed(() => {
     if (deps.readerEditMode.value) return deps.persistedClickMode.value;
@@ -41,15 +49,39 @@ export function useReaderClickModeAltHold(deps: {
 
   function clearAltHold() {
     altHold.value = false;
+    suppressAltHoldUntilRelease = false;
+  }
+
+  function onPrimaryPointerDown(ev: PointerEvent) {
+    if (ev.pointerType === "touch") return;
+    if (ev.button === 0) primaryButtonDown = true;
+  }
+
+  function onPrimaryPointerUp(ev: PointerEvent) {
+    if (ev.pointerType === "touch") return;
+    if (ev.button === 0) primaryButtonDown = false;
+  }
+
+  function onPrimaryPointerCancel(ev: PointerEvent) {
+    if (ev.pointerType === "touch") return;
+    if (ev.isPrimary) primaryButtonDown = false;
   }
 
   function syncFromEvent(ev: KeyboardEvent) {
     if (deps.readerEditMode.value || hasModalOrEscBeforeModalLayer()) {
-      altHold.value = false;
+      clearAltHold();
       return;
     }
     if (!isAltOnlyModifier(ev)) {
       altHold.value = false;
+      if (!ev.altKey || (ev.type === "keyup" && isAltKey(ev))) {
+        suppressAltHoldUntilRelease = false;
+      }
+      return;
+    }
+    if (suppressAltHoldUntilRelease) return;
+    if (primaryButtonDown && !altHold.value) {
+      suppressAltHoldUntilRelease = true;
       return;
     }
     if (isNonReaderTextInput(ev) && !altHold.value) return;
@@ -57,7 +89,15 @@ export function useReaderClickModeAltHold(deps: {
   }
 
   function onVisibilityChange() {
-    if (document.visibilityState !== "visible") clearAltHold();
+    if (document.visibilityState !== "visible") {
+      primaryButtonDown = false;
+      clearAltHold();
+    }
+  }
+
+  function onWindowBlur() {
+    primaryButtonDown = false;
+    clearAltHold();
   }
 
   let unsubModal: (() => void) | null = null;
@@ -65,7 +105,10 @@ export function useReaderClickModeAltHold(deps: {
   onMounted(() => {
     window.addEventListener("keydown", syncFromEvent, true);
     window.addEventListener("keyup", syncFromEvent, true);
-    window.addEventListener("blur", clearAltHold);
+    window.addEventListener("pointerdown", onPrimaryPointerDown, true);
+    window.addEventListener("pointerup", onPrimaryPointerUp, true);
+    window.addEventListener("pointercancel", onPrimaryPointerCancel, true);
+    window.addEventListener("blur", onWindowBlur);
     document.addEventListener("visibilitychange", onVisibilityChange);
     unsubModal = subscribeModalStackChange(() => {
       if (hasModalOrEscBeforeModalLayer()) clearAltHold();
@@ -75,10 +118,14 @@ export function useReaderClickModeAltHold(deps: {
   onBeforeUnmount(() => {
     window.removeEventListener("keydown", syncFromEvent, true);
     window.removeEventListener("keyup", syncFromEvent, true);
-    window.removeEventListener("blur", clearAltHold);
+    window.removeEventListener("pointerdown", onPrimaryPointerDown, true);
+    window.removeEventListener("pointerup", onPrimaryPointerUp, true);
+    window.removeEventListener("pointercancel", onPrimaryPointerCancel, true);
+    window.removeEventListener("blur", onWindowBlur);
     document.removeEventListener("visibilitychange", onVisibilityChange);
     unsubModal?.();
     unsubModal = null;
+    primaryButtonDown = false;
     clearAltHold();
   });
 

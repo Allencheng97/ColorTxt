@@ -459,9 +459,11 @@ const props = withDefaults(
     stickyChapterTitleEnabled?: boolean;
     /**
      * 点击翻页模式：只读时正文不可选，左键下一屏、右键上一屏。
-     * 编辑模式始终可选。
+     * 编辑模式始终可选。传入生效值（含按住 Alt 的临时反转）。
      */
     readerClickMode?: boolean;
+    /** 按住 Alt 临时切换交互模式（此时拖选须当普通连续选区，不能走 Monaco 列选） */
+    readerClickModeAltHeld?: boolean;
     /** 编辑模式下是否显示行号（只读模式始终关闭） */
     readerEditShowLineNumbers?: boolean;
     readerEditMinimap?: boolean;
@@ -568,6 +570,7 @@ const props = withDefaults(
     fastScrollSensitivity: defaultFastScrollSensitivity,
     stickyChapterTitleEnabled: defaultStickyChapterTitleEnabled,
     readerClickMode: defaultReaderClickMode,
+    readerClickModeAltHeld: false,
     selectionToolbarButtons: () => ({ ...defaultSelectionToolbarButtons }),
     dictionarySettings: () => mergeDictionarySettings(undefined),
     webSearchSettings: () => mergeWebSearchSettings(undefined),
@@ -3113,6 +3116,60 @@ function beginClickModePointerGesture(ev: MouseEvent): boolean {
 function shouldSuppressClickModeContextMenu(): boolean {
   return readerClickTurnPageActive.value;
 }
+
+/**
+ * 按住 Alt 临时切到可选模式时，Monaco 会把 Alt+拖动当成列选。
+ * 在捕获阶段把本次指针/鼠标事件的 alt 抹掉，使拖选与普通可选模式相同。
+ */
+function maskMouseEventAltKey(ev: MouseEvent) {
+  try {
+    Object.defineProperty(ev, "altKey", {
+      configurable: true,
+      enumerable: true,
+      get: () => false,
+    });
+  } catch {
+    /* ignore */
+  }
+  try {
+    const orig = ev.getModifierState.bind(ev);
+    Object.defineProperty(ev, "getModifierState", {
+      configurable: true,
+      value: (key: string) => {
+        if (key === "Alt" || key === "AltGraph") return false;
+        return orig(key);
+      },
+    });
+  } catch {
+    /* ignore */
+  }
+}
+
+const TEMP_SELECT_STRIP_ALT_EVENTS = [
+  "pointerdown",
+  "pointermove",
+  "pointerup",
+  "mousedown",
+  "mousemove",
+  "mouseup",
+] as const;
+
+function onTempSelectStripAltMouse(ev: Event) {
+  if (!props.readerClickModeAltHeld || props.readerEditMode) return;
+  if (!(ev instanceof MouseEvent) || !ev.altKey) return;
+  maskMouseEventAltKey(ev);
+}
+
+onMounted(() => {
+  for (const type of TEMP_SELECT_STRIP_ALT_EVENTS) {
+    window.addEventListener(type, onTempSelectStripAltMouse, true);
+  }
+});
+onBeforeUnmount(() => {
+  for (const type of TEMP_SELECT_STRIP_ALT_EVENTS) {
+    window.removeEventListener(type, onTempSelectStripAltMouse, true);
+  }
+});
 
 function applyReaderClickModeMouseStyle() {
   const click = readerClickTurnPageActive.value;

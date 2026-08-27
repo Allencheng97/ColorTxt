@@ -2212,6 +2212,7 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
             :fast-scroll-sensitivity="fastScrollSensitivity"
             :sticky-chapter-title-enabled="stickyChapterTitleEnabled"
             :reader-click-mode="effectiveClickMode"
+            :reader-click-mode-alt-held="clickModeAltHeld"
             :selection-toolbar-buttons="selectionToolbarButtons"
             :dictionary-settings="dictionarySettings"
             :web-search-settings="webSearchSettings"
