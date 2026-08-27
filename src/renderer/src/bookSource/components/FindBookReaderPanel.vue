@@ -406,6 +406,7 @@ const readerPaneWrapRef = useTemplateRef<HTMLElement>("readerPaneWrapRef");
 const {
   fullscreenReaderPaneStyle,
   onLayoutMouseDown: onFullscreenLayoutMouseDown,
+  onLayoutContextMenu: onFullscreenLayoutContextMenu,
   onLayoutWheel: onFullscreenLayoutWheel,
 } = useAppFullscreenReaderLayout({
   isFullscreenView,
@@ -2058,7 +2059,8 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
 
       <div
         class="findBookReaderBody"
-        @mousedown="onLayoutMouseDown"
+        @pointerdown="onLayoutMouseDown"
+        @contextmenu="onFullscreenLayoutContextMenu"
         @wheel.capture="onLayoutWheel"
       >
         <aside

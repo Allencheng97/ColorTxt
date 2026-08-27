@@ -852,6 +852,7 @@ const readerPaneWrapRef = useTemplateRef<HTMLElement>("readerPaneWrapRef");
 const {
   fullscreenReaderPaneStyle,
   onLayoutMouseDown: onFullscreenLayoutMouseDown,
+  onLayoutContextMenu: onFullscreenLayoutContextMenu,
   onLayoutWheel,
 } = useAppFullscreenReaderLayout({
   isFullscreenView,
@@ -864,6 +865,10 @@ const {
 function onLayoutMouseDown(ev: MouseEvent) {
   dismissFullscreenPanelsOnLayoutPointerDown(ev);
   onFullscreenLayoutMouseDown(ev);
+}
+
+function onLayoutContextMenu(ev: MouseEvent) {
+  onFullscreenLayoutContextMenu(ev);
 }
 
 const recentFiles = ref<RecentFileItem[]>([]);
@@ -3673,7 +3678,8 @@ useAppShellThemeWatch({
 
     <div
       class="layout"
-      @mousedown="onLayoutMouseDown"
+      @pointerdown="onLayoutMouseDown"
+      @contextmenu="onLayoutContextMenu"
       @wheel.capture="onLayoutWheel"
     >
       <div

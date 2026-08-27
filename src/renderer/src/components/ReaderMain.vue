@@ -2973,6 +2973,147 @@ function runClickModePointerAction(direction: -1 | 1) {
   runClickModePage(direction);
 }
 
+/** 超过此位移视为拖动滚动，松开时不再翻页 */
+const CLICK_MODE_DRAG_THRESHOLD_PX = 5;
+
+type ClickModePointerGesture = {
+  pointerId: number;
+  button: number;
+  startX: number;
+  startY: number;
+  startScrollTop: number;
+  dragged: boolean;
+  captureEl: Element | null;
+};
+
+let clickModeGesture: ClickModePointerGesture | null = null;
+
+function clickModeGesturePointerId(ev: MouseEvent): number {
+  return "pointerId" in ev &&
+    typeof (ev as PointerEvent).pointerId === "number"
+    ? (ev as PointerEvent).pointerId
+    : -1;
+}
+
+function setClickModeDraggingClass(on: boolean) {
+  document.documentElement.classList.toggle("colortxtClickModeDragging", on);
+}
+
+function unbindClickModeGestureListeners() {
+  window.removeEventListener("pointermove", onClickModePointerMove, true);
+  window.removeEventListener("pointerup", onClickModePointerUp, true);
+  window.removeEventListener("pointercancel", onClickModePointerCancel, true);
+  window.removeEventListener("blur", onClickModeWindowBlur);
+}
+
+function releaseClickModePointerCapture(g: ClickModePointerGesture) {
+  if (!g.captureEl || g.pointerId < 0) return;
+  try {
+    g.captureEl.releasePointerCapture(g.pointerId);
+  } catch {
+    /* 已释放或元素卸载 */
+  }
+}
+
+function endClickModePointerGesture(commitClick: boolean) {
+  const g = clickModeGesture;
+  clickModeGesture = null;
+  unbindClickModeGestureListeners();
+  setClickModeDraggingClass(false);
+  if (g) releaseClickModePointerCapture(g);
+  if (!g || !commitClick || g.dragged) return;
+  if (!readerClickTurnPageActive.value) return;
+  runClickModePointerAction(g.button === 2 ? -1 : 1);
+}
+
+function applyClickModeGrabScroll(g: ClickModePointerGesture, clientY: number) {
+  const e = editor.value;
+  if (!e) return;
+  const maxTop = Math.max(0, e.getScrollHeight() - e.getLayoutInfo().height);
+  const nextTop = Math.max(
+    0,
+    Math.min(maxTop, g.startScrollTop - (clientY - g.startY)),
+  );
+  e.setScrollTop(nextTop, monaco.editor.ScrollType.Immediate);
+}
+
+function onClickModePointerMove(ev: PointerEvent) {
+  const g = clickModeGesture;
+  if (!g) return;
+  if (g.pointerId >= 0 && ev.pointerId !== g.pointerId) return;
+  if (!g.dragged) {
+    const dx = ev.clientX - g.startX;
+    const dy = ev.clientY - g.startY;
+    if (
+      dx * dx + dy * dy <
+      CLICK_MODE_DRAG_THRESHOLD_PX * CLICK_MODE_DRAG_THRESHOLD_PX
+    ) {
+      return;
+    }
+    g.dragged = true;
+    setClickModeDraggingClass(true);
+    cancelPageTurnStickyAlign();
+  }
+  applyClickModeGrabScroll(g, ev.clientY);
+}
+
+function onClickModePointerUp(ev: PointerEvent) {
+  const g = clickModeGesture;
+  if (!g) return;
+  if (g.pointerId >= 0 && ev.pointerId !== g.pointerId) return;
+  if (ev.button !== g.button) return;
+  ev.preventDefault();
+  ev.stopImmediatePropagation();
+  endClickModePointerGesture(true);
+}
+
+function onClickModePointerCancel(ev: PointerEvent) {
+  const g = clickModeGesture;
+  if (!g) return;
+  if (g.pointerId >= 0 && ev.pointerId !== g.pointerId) return;
+  endClickModePointerGesture(false);
+}
+
+function onClickModeWindowBlur() {
+  endClickModePointerGesture(false);
+}
+
+/** 按下开始手势；松开且未拖动才翻页。正文与全屏两侧空白共用。 */
+function beginClickModePointerGesture(ev: MouseEvent): boolean {
+  if (!readerClickTurnPageActive.value) return false;
+  if (ev.button !== 0 && ev.button !== 2) return false;
+  if (clickModeGesture) return true;
+  const pointerId = clickModeGesturePointerId(ev);
+  let captureEl: Element | null = null;
+  const el = ev.currentTarget;
+  if (pointerId >= 0 && el instanceof Element) {
+    try {
+      el.setPointerCapture(pointerId);
+      captureEl = el;
+    } catch {
+      captureEl = null;
+    }
+  }
+  clickModeGesture = {
+    pointerId,
+    button: ev.button,
+    startX: ev.clientX,
+    startY: ev.clientY,
+    startScrollTop: editor.value?.getScrollTop() ?? 0,
+    dragged: false,
+    captureEl,
+  };
+  window.addEventListener("pointermove", onClickModePointerMove, true);
+  window.addEventListener("pointerup", onClickModePointerUp, true);
+  window.addEventListener("pointercancel", onClickModePointerCancel, true);
+  window.addEventListener("blur", onClickModeWindowBlur);
+  return true;
+}
+
+function shouldSuppressClickModeContextMenu(): boolean {
+  return readerClickTurnPageActive.value;
+}
+
 function applyReaderClickModeMouseStyle() {
   const click = readerClickTurnPageActive.value;
   editor.value?.updateOptions({
@@ -3010,13 +3151,16 @@ function onHorizontalInsetGutterWheel(ev: WheelEvent) {
 }
 
 function onHorizontalInsetGutterMouseDown(ev: MouseEvent) {
-  if (ev.button !== 0) return;
   if (!eventOverHorizontalInsetGutter(ev)) return;
-  if (readerClickTurnPageActive.value) {
+  if (
+    readerClickTurnPageActive.value &&
+    (ev.button === 0 || ev.button === 2)
+  ) {
     ev.preventDefault();
-    runClickModePointerAction(1);
+    beginClickModePointerGesture(ev);
     return;
   }
+  if (ev.button !== 0) return;
   ev.preventDefault();
   editor.value?.focus();
 }
@@ -3025,7 +3169,6 @@ function onHorizontalInsetGutterContextMenu(ev: MouseEvent) {
   if (!readerClickTurnPageActive.value) return;
   if (!eventOverHorizontalInsetGutter(ev)) return;
   ev.preventDefault();
-  runClickModePointerAction(-1);
 }
 
 function scrollByLineStep(direction: -1 | 1) {
@@ -3571,6 +3714,8 @@ defineExpose({
   focusEditor,
   scrollByDeltaY,
   delegateEditorWheelFromBrowserEvent,
+  beginClickModePointerGesture,
+  shouldSuppressClickModeContextMenu,
   scrollByLineStep,
   scrollByPageStep,
   scrollToBottom,
@@ -3806,6 +3951,12 @@ onMounted(() => {
       if (ev.button === 2) {
         // 只截断冒泡到 Monaco，勿 preventDefault（否则可能不再触发 contextmenu）
         ev.stopImmediatePropagation();
+        if (
+          readerClickTurnPageActive.value &&
+          !isClickModeIgnoredTarget(ev.target, ev.clientX, ev.clientY)
+        ) {
+          beginClickModePointerGesture(ev);
+        }
         return;
       }
       if (ev.button !== 0) return;
@@ -3851,7 +4002,7 @@ onMounted(() => {
         }
         ev.preventDefault();
         ev.stopImmediatePropagation();
-        runClickModePointerAction(1);
+        beginClickModePointerGesture(ev);
         return;
       }
       readerAnn.beginSelectionPointerInteraction(ev.target);
@@ -3862,14 +4013,8 @@ onMounted(() => {
     };
     const onReaderContextMenuCapture = (ev: MouseEvent) => {
       if (readerClickTurnPageActive.value) {
-        if (isClickModeIgnoredTarget(ev.target, ev.clientX, ev.clientY)) {
-          ev.preventDefault();
-          ev.stopImmediatePropagation();
-          return;
-        }
         ev.preventDefault();
         ev.stopImmediatePropagation();
-        runClickModePointerAction(-1);
         return;
       }
       ev.preventDefault();
@@ -3948,6 +4093,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  endClickModePointerGesture(false);
   teardownHorizontalInsetLayout();
   if (stickyChapterScrollRefreshRaf != null) {
     cancelAnimationFrame(stickyChapterScrollRefreshRaf);
@@ -4015,7 +4161,8 @@ watch(
   },
 );
 
-watch(readerClickTurnPageActive, () => {
+watch(readerClickTurnPageActive, (active) => {
+  if (!active) endClickModePointerGesture(false);
   applyReaderClickModeMouseStyle();
 });
 
@@ -4110,7 +4257,7 @@ watch(smartFormatReviewActive, (active) => {
       class="editorShell"
       :class="{ 'editorShell--smartFormatReview': smartFormatReviewActive }"
       @wheel="onHorizontalInsetGutterWheel"
-      @mousedown="onHorizontalInsetGutterMouseDown"
+      @pointerdown="onHorizontalInsetGutterMouseDown"
       @contextmenu="onHorizontalInsetGutterContextMenu"
     >
       <SmartFormatReviewBar
@@ -4356,14 +4503,14 @@ watch(smartFormatReviewActive, (active) => {
   :deep(.monaco-editor .view-lines *) {
   user-select: none;
   -webkit-user-select: none;
-  cursor: default !important;
+  cursor: default;
 }
 
 .content.content--clickMode:not(.content--readerEdit)
   :deep(.monaco-editor .view-lines .readerEbookInternalLink),
 .content.content--clickMode:not(.content--readerEdit)
   :deep(.monaco-editor .view-lines .readerEbookExternalLink) {
-  cursor: pointer !important;
+  cursor: pointer;
 }
 
 /* 查找栏计数/按钮不可拖选；搜索框仍可选中（须高于上一则 universal 选择器） */
@@ -4427,5 +4574,12 @@ watch(smartFormatReviewActive, (active) => {
 :deep(.monaco-editor .chapterTitleLine.readerEbookExternalLink:hover),
 :deep(.monaco-editor .readerEbookExternalLink.chapterTitleLine:hover) {
   color: var(--reader-ebook-link-color) !important;
+}
+</style>
+
+<style>
+html.colortxtClickModeDragging,
+html.colortxtClickModeDragging * {
+  cursor: grabbing !important;
 }
 </style>

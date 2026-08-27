@@ -14,7 +14,7 @@
   - 开启「自动暂停」并进入朗读时，底栏「阅读进度」左侧显示倒计时（章节 `M/N` 或剩余时长）
 - 阅读器顶栏「编辑模式」右侧可切换 **可选模式** / **点击模式** [#4](https://github.com/ssnangua/ColorTxt/issues/4)
   - 可选模式：与原先一样，可选中文本做标记、记笔记等
-  - 点击模式：正文不可选；左键下一屏（同 `PageDown`），右键上一屏（同 `PageUp`）
+  - 点击模式：正文不可选；松开左键下一屏（同 `PageDown`），松开右键上一屏（同 `PageUp`）；按下后可拖动正文
 
 改进：
 
@@ -31,7 +31,7 @@
 修复：
 
 - 阅读器多行选区在列上重叠时背景不再连成一块（圆角内角抠图改用阅读底色） [#78](https://github.com/ssnangua/ColorTxt/issues/78)
-- 内嵌京華老宋体纯英文行选区错位问题（关闭 Monaco 等宽行渲染优化） [#22](https://github.com/ssnangua/ColorTxt/issues/22)
+- 内嵌京華老宋体纯英文行选区错位问题（关闭 Monaco 等宽渲染优化） [#22](https://github.com/ssnangua/ColorTxt/issues/22)
 - 中文换行优化补上 `♡` `※` `☆` 等网文常用符号，避免右侧溢出 [#65](https://github.com/ssnangua/ColorTxt/issues/65)
 - 笔记跨行时不再重复原文、也不再叠出多个悬停框；原文保留选区内的行首缩进（不再 trim）
 - EPUB / MOBI 转换时 `<br>` 被收成空格，整章并成一段；现按换行拆成独立行
