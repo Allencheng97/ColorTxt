@@ -132,6 +132,7 @@ const emit = defineEmits<{
   openTextReplace: [];
   /** 限定该书源搜索 */
   searchSource: [item: { bookSourceUrl: string; bookSourceName: string }];
+  openSpeakSettings: [];
 }>();
 
 const readerRef = ref<InstanceType<typeof ReaderMain> | null>(null);
@@ -2244,6 +2245,7 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
             @next-line="voiceRead.playNextLine"
             @regenerate="voiceRead.regenerateCurrentLine"
             @stop="voiceRead.exitVoiceRead"
+            @open-speak-settings="emit('openSpeakSettings')"
           />
           <ReaderChapterNavBar
             v-if="chapterNavUiVisible && !isFullscreenView"
@@ -2279,6 +2281,7 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
           :reading-progress-detail-part="footerReadingProgress.detailPart"
           :reading-progress-placeholder="footerReadingProgress.placeholder"
           :reading-progress-complete="footerReadingProgress.complete"
+          :voice-read-footer-status="voiceRead.voiceReadFooterStatus.value"
           :chapter-char-count-text="footerChapterCharCountText"
           :pomodoro-enabled="pomodoroEnabled"
           :pomodoro-phase="pomodoroPhase"

@@ -78,6 +78,11 @@ import { appAlert } from "../services/appDialog";
 import type { ColorTxtOpenDialogOptions } from "@shared/colorTxtOpenSaveDialog";
 import { buildLineSpeakChunks } from "../services/voiceRead/voiceReadLineBuild";
 import {
+  applyVoiceReadFilterRules,
+  filterVoiceReadSpeakChunks,
+} from "../services/voiceRead/voiceReadFilterApply";
+import { getVoiceReadSpeakSettings } from "../services/voiceRead/voiceReadSpeakStore";
+import {
   buildDialogueAiPreviewSpeakChunks,
   buildMultiVoicePreviewSpeakChunks,
   VOICE_READ_DIALOGUE_GENDER_PREVIEW_DEFAULT,
@@ -112,6 +117,10 @@ const activeProfileId = defineModel<string>("activeProfileId", { required: true 
 const props = defineProps<{
   aiEnabled?: boolean;
   characterRoster?: readonly CharacterRosterEntry[];
+}>();
+
+const emit = defineEmits<{
+  openSpeakSettings: [];
 }>();
 
 const voiceReadProfileDraft = useVoiceReadProfileDraft(
@@ -705,6 +714,15 @@ function cancelPreview() {
   previewError.value = "";
 }
 
+function applySavedSpeakFilters(
+  chunks: VoiceReadSpeakChunk[],
+): VoiceReadSpeakChunk[] {
+  return filterVoiceReadSpeakChunks(
+    chunks,
+    getVoiceReadSpeakSettings().filterRules,
+  );
+}
+
 function buildPreviewSpeakChunks(
   settings: VoiceReadSettings,
   text: string,
@@ -715,7 +733,9 @@ function buildPreviewSpeakChunks(
     scheme: "single",
     single: { ...settings.single, voiceId },
   };
-  return buildLineSpeakChunks(previewSettings, text, []).chunks;
+  return applySavedSpeakFilters(
+    buildLineSpeakChunks(previewSettings, text, []).chunks,
+  );
 }
 
 function schedulePreviewDownload(
@@ -785,6 +805,7 @@ async function onPreview() {
     } else {
       speakChunks = buildPreviewSpeakChunks(settings, text, voiceId);
     }
+    speakChunks = applySavedSpeakFilters(speakChunks);
 
     if (runId !== previewRunId) return;
     if (needsAi) {
@@ -801,7 +822,11 @@ async function onPreview() {
         scheme: "single",
         single: { ...settings.single, voiceId },
       };
-      await previewPlayer.speakLine(previewSettings, text);
+      const filteredText = applyVoiceReadFilterRules(
+        text,
+        getVoiceReadSpeakSettings().filterRules,
+      );
+      await previewPlayer.speakLine(previewSettings, filteredText || text);
     }
     if (runId !== previewRunId) return;
   } catch (e) {
@@ -1570,6 +1595,7 @@ onUnmounted(() => {
         <button
           type="button"
           class="btn voiceReadPreviewRestoreBtn"
+          size="large"
           @click="restoreDefaultPreviewText"
         >
           恢复默认试听内容
@@ -1586,12 +1612,14 @@ onUnmounted(() => {
             v-if="previewDownload"
             class="voiceReadPreviewDownloadBtn"
             :icon-html="icons.download"
+            large
             title="保存试听音频"
             aria-label="保存试听音频"
             @click="onPreviewDownload"
           />
           <button
             type="button"
+            size="large"
             class="btn voiceReadPreviewBtn"
             :class="[previewButtonClass]"
             :disabled="previewDisabled"
@@ -1601,6 +1629,23 @@ onUnmounted(() => {
             {{ previewButtonLabel }}
           </button>
         </div>
+      </div>
+    </section>
+
+    <section class="aiSection aiSection--compact">
+      <div class="settingsRow">
+        <div class="settingsRowMain">
+          <span class="settingsLabel short settingsLabel--strong">朗读设置</span>
+          <button
+            class="btn"
+            type="button"
+            size="large"
+            @click="emit('openSpeakSettings')"
+          >
+            设置
+          </button>
+        </div>
+        <p class="settingsHint">朗读过滤与自动暂停</p>
       </div>
     </section>
   </div>
@@ -1670,6 +1715,13 @@ onUnmounted(() => {
 
 .settingsLabel--strong {
   font-weight: 600;
+}
+
+.settingsHint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--muted);
 }
 
 .settingsHintWarn {

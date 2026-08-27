@@ -363,6 +363,7 @@ watch(
 );
 const showChapterRulePanel = ref(false);
 const showReplaceRulePanel = ref(false);
+const showVoiceReadSpeakSettingsPanel = ref(false);
 const chapterRuleErrorText = ref("");
 const chapterRuleState = ref(getChapterMatchRules());
 /** 主窗口文本替换规则（localStorage，与找书分键） */
@@ -1214,6 +1215,7 @@ watch(fileListEditing, (editing, wasEditing) => {
   }
 });
 
+watch(showSidebar, () => persistSettings());
 watch(aiAssistantDeepThinking, () => persistSettings());
 watch(aiAssistantSpoilerSafe, () => persistSettings());
 watch(wordcloudAngleMode, () => persistSettings());
@@ -2140,6 +2142,7 @@ const {
   isVoiceReadBlocksFind,
   isVoiceReadHeaderLocked,
   isVoiceReadNavigationBlocked,
+  voiceReadFooterStatus,
   toggleVoiceReadToolbar,
   togglePlayPause: voiceReadTogglePlayPause,
   exitVoiceRead,
@@ -2159,6 +2162,7 @@ const {
   monacoSmoothScrolling,
   aiFeaturesEnabled,
   characterRoster: currentFileCharacterRoster,
+  chapters,
 });
 
 const {
@@ -3945,6 +3949,7 @@ useAppShellThemeWatch({
           @next-line="voiceReadPlayNextLine"
           @regenerate="voiceReadRegenerateCurrentLine"
           @stop="exitVoiceRead"
+          @open-speak-settings="showVoiceReadSpeakSettingsPanel = true"
         />
         <ReaderChapterNavBar
           v-if="readerChapterNavUiVisible && !isFullscreenView"
@@ -4021,6 +4026,7 @@ useAppShellThemeWatch({
         :reading-progress-detail-part="readingProgressParts.detailPart"
         :reading-progress-placeholder="readingProgressParts.placeholder"
         :reading-progress-complete="readingProgressParts.complete"
+        :voice-read-footer-status="voiceReadFooterStatus"
         :total-char-count-text="
           formatCharCount(totalCharCount, chapterCharCountExact)
         "
@@ -4103,6 +4109,7 @@ useAppShellThemeWatch({
       v-model:show-web-search-manage-panel="showWebSearchManagePanel"
       v-model:show-translate-manage-panel="showTranslateManagePanel"
       v-model:show-replace-rule-panel="showReplaceRulePanel"
+      v-model:show-voice-read-speak-settings-panel="showVoiceReadSpeakSettingsPanel"
       v-model:add-bookmark-open="addBookmarkOpen"
       v-model:remove-bookmark-open="removeBookmarkOpen"
       v-model:bookmark-note-input="bookmarkNoteInput"

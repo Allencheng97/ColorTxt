@@ -62,6 +62,7 @@ export const WINDOW_LOCAL_MAIN_SETTING_KEYS: ReadonlySet<string> = new Set([
   "translationSettings",
   "voiceRead",
   "sidebarWidth",
+  "showSidebar",
 ]);
 
 export function readPersistedMainSettingsObject(): Record<string, unknown> {
