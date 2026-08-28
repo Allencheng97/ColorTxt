@@ -1,4 +1,4 @@
-import { app, BrowserWindow, nativeTheme } from "electron";
+import { app, BrowserWindow } from "electron";
 import { stat } from "node:fs/promises";
 import path from "node:path";
 import { isSupportedShellOpenPath } from "@shared/ebookExtensions";
@@ -79,9 +79,7 @@ export function createMainWindowFactory(
       minWidth: WINDOW_MIN_WIDTH,
       minHeight: WINDOW_MIN_HEIGHT,
       transparent: true,
-      // 窗口必须以 transparent 创建，才能在运行中进入摸鱼模式；
-      // 普通模式仍使用不透明主题底色，避免 macOS 原生标题栏常态透明。
-      backgroundColor: nativeTheme.shouldUseDarkColors ? "#1e1e1e" : "#ffffff",
+      backgroundColor: "#00000000",
       icon: iconPath,
       webPreferences: {
         preload: path.join(__dirname, "../preload/index.js"),
