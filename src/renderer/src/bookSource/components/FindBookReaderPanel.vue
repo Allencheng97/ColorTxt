@@ -449,6 +449,14 @@ const {
   sidebarWidth: chromeSidebarWidth,
 } = chrome;
 
+watch(
+  isFullscreenView,
+  (enabled) => {
+    document.documentElement.classList.toggle("native-fullscreen", enabled);
+  },
+  { immediate: true },
+);
+
 const readerPaneWrapRef = useTemplateRef<HTMLElement>("readerPaneWrapRef");
 const {
   fullscreenReaderPaneStyle,
@@ -1901,6 +1909,7 @@ onBeforeUnmount(() => {
     window.colorTxt.setPrivacyPresentation(false);
   }
   document.documentElement.classList.remove("privacy-mode");
+  document.documentElement.classList.remove("native-fullscreen");
   voiceRead.exitVoiceRead();
   timedScroll.stopTimedScroll();
   cancelChapterLoad();

@@ -207,6 +207,37 @@ html.privacy-mode .appModalPanel.findBookReaderPanel .appModalBody {
   background-color: transparent !important;
 }
 
+/*
+ * macOS 透明 BrowserWindow 的原生标题栏即使在普通模式也会透出桌面。
+ * hiddenInset 让网页延伸到标题栏区域；普通模式绘制主题实色背景，
+ * 摸鱼模式和原生全屏时再移除占位与背景。
+ */
+html.platform-mac:not(.privacy-mode):not(.native-fullscreen)
+  .app:not(.fullscreen) {
+  padding-top: 30px;
+}
+
+html.platform-mac:not(.privacy-mode):not(.native-fullscreen)
+  .app:not(.fullscreen)::before,
+html.platform-mac:not(.privacy-mode):not(.native-fullscreen)
+  .findBookWindowRoot::before {
+  content: "";
+  position: fixed;
+  z-index: 100000;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 30px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  -webkit-app-region: drag;
+}
+
+html.platform-mac:not(.privacy-mode):not(.native-fullscreen)
+  .appModalBackdrop--fullscreen {
+  top: 30px;
+}
+
 html.privacy-mode .monaco-editor,
 html.privacy-mode .monaco-editor .overflow-guard,
 html.privacy-mode .monaco-editor .monaco-scrollable-element,
