@@ -237,6 +237,7 @@ const emit = defineEmits<{
   openDictionaryManage: [];
   openWebSearchManage: [];
   openTranslateManage: [];
+  openSpeakSettings: [];
 }>();
 
 const activeTab = ref<SettingsTabId>("general");
@@ -1030,6 +1031,7 @@ async function onClearCache() {
               v-model:active-profile-id="draftActiveVoiceReadProfileId"
               :ai-enabled="draftAi.aiEnabled"
               :character-roster="characterRoster"
+              @open-speak-settings="emit('openSpeakSettings')"
             />
 
             <SettingsAIPanel

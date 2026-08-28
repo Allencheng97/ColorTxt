@@ -44,6 +44,8 @@ const props = withDefaults(
     } | null;
     /** 编辑态底栏光标/选区文案（空串不展示） */
     editCursorLabel?: string;
+    /** 自动暂停开启且正在朗读：底栏「阅读进度」左侧倒计时 */
+    voiceReadFooterStatus?: string;
     /** 番茄时钟：是否在底栏左侧显示 */
     pomodoroEnabled?: boolean;
     pomodoroPhase?: PomodoroPhase;
@@ -65,6 +67,7 @@ const props = withDefaults(
     webDavMenuEnabled: false,
     webDavBookPackProgress: null,
     editCursorLabel: "",
+    voiceReadFooterStatus: "",
     pomodoroEnabled: false,
     pomodoroPhase: "idle",
     pomodoroDisplayMode: "pie",
@@ -318,6 +321,7 @@ function onPathMenuSelect(id: string) {
         <span v-if="editCursorLabel" class="footerEditCursor">{{
           editCursorLabel
         }}</span>
+        <span v-if="voiceReadFooterStatus">{{ voiceReadFooterStatus }}</span>
         <span>
           阅读进度：<span
             class="footer-reading-progress-pct"

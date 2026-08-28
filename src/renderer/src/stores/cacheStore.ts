@@ -128,6 +128,8 @@ export type PersistedSettingsData = {
   fastScrollSensitivity?: number;
   /** 阅读区顶部粘性章节标题（Monaco stickyScroll） */
   stickyChapterTitleEnabled?: boolean;
+  /** 阅读器点击翻页模式（false = 可选模式） */
+  readerClickMode?: boolean;
   /** 阅读区底部「上一章 / 下一章」工具栏 */
   chapterNavToolbarEnabled?: boolean;
   /** 找书阅读器边界滚动切章 */
@@ -444,6 +446,9 @@ export function loadPersistedSettingsData(
   }
   if (typeof obj.stickyChapterTitleEnabled === "boolean") {
     data.stickyChapterTitleEnabled = obj.stickyChapterTitleEnabled;
+  }
+  if (typeof obj.readerClickMode === "boolean") {
+    data.readerClickMode = obj.readerClickMode;
   }
   if (typeof obj.chapterNavToolbarEnabled === "boolean") {
     data.chapterNavToolbarEnabled = obj.chapterNavToolbarEnabled;

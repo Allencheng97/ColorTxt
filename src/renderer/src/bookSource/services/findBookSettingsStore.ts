@@ -27,6 +27,7 @@ import {
   defaultReaderHorizontalInsetPx,
   clampReaderHorizontalInsetPx,
   defaultStickyChapterTitleEnabled,
+  defaultReaderClickMode,
   defaultTxtrDelimitedMatchCrossLine,
   FIND_BOOK_SIDEBAR_MIN_WIDTH,
   normalizeLineHeightMultiple,
@@ -203,6 +204,7 @@ export type SharedReaderSettingsSnapshot = {
   mouseWheelScrollSensitivity: number;
   fastScrollSensitivity: number;
   stickyChapterTitleEnabled: boolean;
+  readerClickMode: boolean;
   chapterNavToolbarEnabled: boolean;
   findBookChapterAdvanceEnabled: boolean;
   readerEditShowLineNumbers: boolean;
@@ -302,6 +304,10 @@ export function sharedReaderSettingsFromMainData(
       typeof data.stickyChapterTitleEnabled === "boolean"
         ? data.stickyChapterTitleEnabled
         : defaultStickyChapterTitleEnabled,
+    readerClickMode:
+      typeof data.readerClickMode === "boolean"
+        ? data.readerClickMode
+        : defaultReaderClickMode,
     chapterNavToolbarEnabled:
       typeof data.chapterNavToolbarEnabled === "boolean"
         ? data.chapterNavToolbarEnabled
@@ -365,6 +371,7 @@ export function snapshotSharedReaderSettingsForMain(
     mouseWheelScrollSensitivity: state.mouseWheelScrollSensitivity,
     fastScrollSensitivity: state.fastScrollSensitivity,
     stickyChapterTitleEnabled: state.stickyChapterTitleEnabled,
+    readerClickMode: state.readerClickMode,
     chapterNavToolbarEnabled: state.chapterNavToolbarEnabled,
     findBookChapterAdvanceEnabled: state.findBookChapterAdvanceEnabled,
     readerEditShowLineNumbers: state.readerEditShowLineNumbers,

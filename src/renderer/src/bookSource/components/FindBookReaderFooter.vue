@@ -16,6 +16,8 @@ withDefaults(
     readingProgressPlaceholder: boolean;
     readingProgressComplete: boolean;
     chapterCharCountText: string;
+    /** 自动暂停开启且正在朗读：底栏「阅读进度」左侧倒计时 */
+    voiceReadFooterStatus?: string;
     pomodoroEnabled?: boolean;
     pomodoroPhase?: PomodoroPhase;
     pomodoroDisplayMode?: PomodoroDisplayMode;
@@ -27,6 +29,7 @@ withDefaults(
   {
     loading: false,
     hasContent: false,
+    voiceReadFooterStatus: "",
     pomodoroEnabled: false,
     pomodoroPhase: "idle",
     pomodoroDisplayMode: "pie",
@@ -67,6 +70,7 @@ defineEmits<{
         加载中<LoadingDotsBounce />
       </span>
       <template v-else-if="hasContent">
+        <span v-if="voiceReadFooterStatus">{{ voiceReadFooterStatus }}</span>
         <span>
           阅读进度：<span
             class="findBookReaderFooterProgressPct"

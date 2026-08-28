@@ -135,6 +135,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   chapterCacheCleared: [];
+  openSpeakSettings: [];
 }>();
 
 const fb = useFindBookSettings();
@@ -820,6 +821,7 @@ watch(draftFontSize, (size) => {
               v-model:active-profile-id="draftActiveVoiceReadProfileId"
               :ai-enabled="draftAiEnabled"
               :character-roster="emptyCharacterRoster"
+              @open-speak-settings="emit('openSpeakSettings')"
             />
 
             <FindBookSettingsProxyPanel

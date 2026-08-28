@@ -63,6 +63,7 @@ import { useAppReaderChrome } from "../../composables/useAppReaderChrome";
 import { useAppFullscreenReaderLayout } from "../../composables/useAppFullscreenReaderLayout";
 import { useAppTimedScroll } from "../../composables/useAppTimedScroll";
 import { useAppVoiceRead } from "../../composables/useAppVoiceRead";
+import { useReaderClickModeAltHold } from "../../composables/useReaderClickModeAltHold";
 import { hasEscBeforeModalLayers } from "../../utils/modalStack";
 import { applyTextDisplayConverts } from "../../services/textConvertApply";
 import {
@@ -176,6 +177,7 @@ const emit = defineEmits<{
   openTextReplace: [];
   /** 限定该书源搜索 */
   searchSource: [item: { bookSourceUrl: string; bookSourceName: string }];
+  openSpeakSettings: [];
 }>();
 
 const readerRef = ref<InstanceType<typeof ReaderMain> | null>(null);
@@ -274,6 +276,7 @@ const {
   mouseWheelScrollSensitivity,
   fastScrollSensitivity,
   stickyChapterTitleEnabled,
+  readerClickMode,
   chapterNavToolbarEnabled,
   findBookChapterAdvanceEnabled,
   selectionToolbarButtons,
@@ -461,6 +464,7 @@ const readerPaneWrapRef = useTemplateRef<HTMLElement>("readerPaneWrapRef");
 const {
   fullscreenReaderPaneStyle,
   onLayoutMouseDown: onFullscreenLayoutMouseDown,
+  onLayoutContextMenu: onFullscreenLayoutContextMenu,
   onLayoutWheel: onFullscreenLayoutWheel,
 } = useAppFullscreenReaderLayout({
   isFullscreenView,
@@ -1213,6 +1217,17 @@ stopTimedScroll = () => timedScroll.stopTimedScroll();
 
 const isTimedScrollActive = timedScroll.isTimedScrollActive;
 const canStartTimedScroll = timedScroll.canStartTimedScroll;
+
+function toggleReaderClickMode() {
+  readerClickMode.value = !readerClickMode.value;
+  persistReaderUiPrefs();
+}
+
+const { effectiveClickMode, clickModeAltHeld } = useReaderClickModeAltHold({
+  persistedClickMode: readerClickMode,
+  readerEditMode,
+  enabled: modelValue,
+});
 
 async function toggleCompressBlankLines() {
   if (readerEditMode.value) {
@@ -2111,6 +2126,8 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
           :color-scheme-shortcut-label="colorSchemeShortcutLabel"
           :find-shortcut-label="findShortcutLabel"
           :reader-edit-mode="readerEditMode"
+          :reader-click-mode="effectiveClickMode"
+          :reader-click-mode-alt-held="clickModeAltHeld"
           :can-enter-reader-edit-mode="canEnterReaderEditMode"
           :reader-chapter-saving="readerChapterSaving"
           :text-replace-active="textReplaceActive"
@@ -2146,13 +2163,15 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
           @toggle-bookshelf="onToggleBookshelf"
           @open-text-replace="onOpenTextReplace"
           @toggle-reader-edit="onToggleReaderEdit"
+          @toggle-reader-click-mode="toggleReaderClickMode"
           @save-reader-chapter="onSaveReaderChapter"
         />
       </div>
 
       <div
         class="findBookReaderBody"
-        @mousedown="onLayoutMouseDown"
+        @pointerdown="onLayoutMouseDown"
+        @contextmenu="onFullscreenLayoutContextMenu"
         @wheel.capture="onLayoutWheel"
       >
         <aside
@@ -2280,6 +2299,7 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
             :voice-read-paused="
               isVoiceReadActive && voiceRead.mode.value === 'paused'
             "
+            :intercept-readonly-page-step="tryAdvanceChapterFromOverscroll"
             :voice-read-blocks-find="isVoiceReadBlocksFind"
             @voice-read-resume="voiceRead.togglePlayPause"
             :monaco-custom-highlight="monacoCustomHighlight"
@@ -2296,6 +2316,8 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
             :mouse-wheel-scroll-sensitivity="mouseWheelScrollSensitivity"
             :fast-scroll-sensitivity="fastScrollSensitivity"
             :sticky-chapter-title-enabled="stickyChapterTitleEnabled"
+            :reader-click-mode="effectiveClickMode"
+            :reader-click-mode-alt-held="clickModeAltHeld"
             :selection-toolbar-buttons="selectionToolbarButtons"
             :dictionary-settings="dictionarySettings"
             :web-search-settings="webSearchSettings"
@@ -2352,6 +2374,7 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
             @next-line="voiceRead.playNextLine"
             @regenerate="voiceRead.regenerateCurrentLine"
             @stop="voiceRead.exitVoiceRead"
+            @open-speak-settings="emit('openSpeakSettings')"
           />
           <ReaderChapterNavBar
             v-if="chapterNavUiVisible && !isFullscreenView"
@@ -2387,6 +2410,7 @@ const modalRef = ref<InstanceType<typeof AppModal> | null>(null);
           :reading-progress-detail-part="footerReadingProgress.detailPart"
           :reading-progress-placeholder="footerReadingProgress.placeholder"
           :reading-progress-complete="footerReadingProgress.complete"
+          :voice-read-footer-status="voiceRead.voiceReadFooterStatus.value"
           :chapter-char-count-text="footerChapterCharCountText"
           :pomodoro-enabled="pomodoroEnabled"
           :pomodoro-phase="pomodoroPhase"

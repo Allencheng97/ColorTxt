@@ -221,6 +221,11 @@ export function buildReaderEditorReadOnlyModeChromeOptions(): ReaderMonacoConfig
     wordWrap: "on",
     contextmenu: false,
     links: true,
+    /**
+     * 默认 `alt` 会把 Alt 占成多光标。只读下改为 `ctrlCmd`，
+     * 这样「先按住左键再按 Alt 拖」才是列选；先按 Alt 仍用于临时切点击模式。
+     */
+    multiCursorModifier: "ctrlCmd",
     padding: {
       top: READER_EDITOR_PADDING.top,
       bottom: READER_EDITOR_PADDING.bottom,

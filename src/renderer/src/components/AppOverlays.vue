@@ -29,6 +29,7 @@ import SettingsPanel, { type SettingsApplyPayload } from "./SettingsPanel.vue";
 import DictionaryManageModal from "./DictionaryManageModal.vue";
 import WebSearchManageModal from "./WebSearchManageModal.vue";
 import TranslateManageModal from "./TranslateManageModal.vue";
+import VoiceReadSpeakSettingsPanel from "./VoiceReadSpeakSettingsPanel.vue";
 import type { DictionarySettings } from "@shared/dictionaryTypes";
 import type { WebSearchSettings } from "@shared/webSearchTypes";
 import type { TranslationSettings } from "@shared/translationTypes";
@@ -187,6 +188,12 @@ const showTranslateManagePanel = defineModel<boolean>(
     default: false,
   },
 );
+const showVoiceReadSpeakSettingsPanel = defineModel<boolean>(
+  "showVoiceReadSpeakSettingsPanel",
+  {
+    default: false,
+  },
+);
 const showReplaceRulePanel = defineModel<boolean>("showReplaceRulePanel", {
   default: false,
 });
@@ -304,7 +311,9 @@ const busyOverlayText = computed(() => {
     @open-dictionary-manage="emit('openDictionaryManage')"
     @open-web-search-manage="emit('openWebSearchManage')"
     @open-translate-manage="emit('openTranslateManage')"
+    @open-speak-settings="showVoiceReadSpeakSettingsPanel = true"
   />
+  <VoiceReadSpeakSettingsPanel v-model="showVoiceReadSpeakSettingsPanel" />
   <DictionaryManageModal
     v-model="showDictionaryManagePanel"
     :settings="dictionarySettings"
