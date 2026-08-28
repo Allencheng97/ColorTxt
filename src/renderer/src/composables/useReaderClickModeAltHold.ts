@@ -1,6 +1,14 @@
-import { computed, onBeforeUnmount, onMounted, ref, type Ref } from "vue";
 import {
-  hasModalOrEscBeforeModalLayer,
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+  type Ref,
+} from "vue";
+import {
+  getModalStackDepth,
+  hasEscBeforeModalLayers,
   subscribeModalStackChange,
 } from "../utils/modalStack";
 
@@ -24,17 +32,22 @@ function isNonReaderTextInput(ev: Event): boolean {
 
 /**
  * 按住 Alt 时临时反转可选/点击模式（不改持久化偏好）。
- * 编辑模式、模态层打开、或焦点在阅读器以外的输入框时不启用。
+ * 编辑模式、更上层模态、灯箱、或焦点在阅读器以外的输入框时不启用。
+ * 找书阅读器本身是 AppModal：只把「比挂载时更深」的模态当阻断，避免整窗失效。
  * 左键已按下后再按 Alt：本轮不切模式（可选模式下仍可走 Monaco 列选）。
  */
 export function useReaderClickModeAltHold(deps: {
   persistedClickMode: Ref<boolean>;
   readerEditMode: Ref<boolean>;
+  /** 阅读器未展示时不启用（找书关闭阅读器后组件可能仍挂着） */
+  enabled?: Ref<boolean>;
 }) {
   const altHold = ref(false);
   let primaryButtonDown = false;
   /** 左键按住期间按下的 Alt：直到松开 Alt 都不切模式 */
   let suppressAltHoldUntilRelease = false;
+  /** 挂载/阅读器打开时的模态深度；仅更深的层（设置、词典等）才屏蔽 */
+  let overlayBaselineDepth = 0;
 
   const effectiveClickMode = computed(() => {
     if (deps.readerEditMode.value) return deps.persistedClickMode.value;
@@ -44,12 +57,25 @@ export function useReaderClickModeAltHold(deps: {
   });
 
   const clickModeAltHeld = computed(
-    () => altHold.value && !deps.readerEditMode.value,
+    () =>
+      altHold.value &&
+      !deps.readerEditMode.value &&
+      (deps.enabled?.value ?? true),
   );
 
   function clearAltHold() {
     altHold.value = false;
     suppressAltHoldUntilRelease = false;
+  }
+
+  function captureOverlayBaseline() {
+    overlayBaselineDepth = getModalStackDepth();
+  }
+
+  function isBlockedByOverlay(): boolean {
+    if (deps.enabled && !deps.enabled.value) return true;
+    if (hasEscBeforeModalLayers()) return true;
+    return getModalStackDepth() > overlayBaselineDepth;
   }
 
   function onPrimaryPointerDown(ev: PointerEvent) {
@@ -68,7 +94,7 @@ export function useReaderClickModeAltHold(deps: {
   }
 
   function syncFromEvent(ev: KeyboardEvent) {
-    if (deps.readerEditMode.value || hasModalOrEscBeforeModalLayer()) {
+    if (deps.readerEditMode.value || isBlockedByOverlay()) {
       clearAltHold();
       return;
     }
@@ -102,7 +128,16 @@ export function useReaderClickModeAltHold(deps: {
 
   let unsubModal: (() => void) | null = null;
 
+  watch(
+    () => deps.enabled?.value ?? true,
+    (on) => {
+      if (on) captureOverlayBaseline();
+      else clearAltHold();
+    },
+  );
+
   onMounted(() => {
+    captureOverlayBaseline();
     window.addEventListener("keydown", syncFromEvent, true);
     window.addEventListener("keyup", syncFromEvent, true);
     window.addEventListener("pointerdown", onPrimaryPointerDown, true);
@@ -111,7 +146,7 @@ export function useReaderClickModeAltHold(deps: {
     window.addEventListener("blur", onWindowBlur);
     document.addEventListener("visibilitychange", onVisibilityChange);
     unsubModal = subscribeModalStackChange(() => {
-      if (hasModalOrEscBeforeModalLayer()) clearAltHold();
+      if (isBlockedByOverlay()) clearAltHold();
     });
   });
 

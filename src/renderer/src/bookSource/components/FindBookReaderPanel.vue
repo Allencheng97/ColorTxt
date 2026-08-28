@@ -1159,6 +1159,7 @@ function toggleReaderClickMode() {
 const { effectiveClickMode, clickModeAltHeld } = useReaderClickModeAltHold({
   persistedClickMode: readerClickMode,
   readerEditMode,
+  enabled: modelValue,
 });
 
 async function toggleCompressBlankLines() {
