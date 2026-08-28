@@ -639,6 +639,7 @@ const shortcutBindings = ref<ShortcutBindingMap>({
 /** 启动时是否恢复上次会话快照（localStorage）；关闭时不写入会话 */
 const restoreSessionOnStartup = ref(defaultRestoreSessionOnStartup);
 const privacyMode = ref(false);
+const isMacWindow = /mac|iphone|ipad|ipod/i.test(navigator.platform || "");
 const initialPrivacySettings = loadPrivacyModeSettings();
 const privacyOpacity = ref(initialPrivacySettings.transparency);
 const privacyMiddleMouseHide = ref(initialPrivacySettings.middleMouseHide);
@@ -689,7 +690,16 @@ watch(
   { immediate: true },
 );
 
+watch(
+  isFullscreenView,
+  (enabled) => {
+    document.documentElement.classList.toggle("native-fullscreen", enabled);
+  },
+  { immediate: true },
+);
+
 onMounted(() => {
+  document.documentElement.classList.toggle("platform-mac", isMacWindow);
   window.addEventListener("keydown", onPrivacyModeKeydown, true);
   window.addEventListener("mousedown", onPrivacyMiddleMouse, true);
   window.addEventListener(
@@ -705,6 +715,8 @@ onBeforeUnmount(() => {
     onPrivacySettingsChanged,
   );
   document.documentElement.classList.remove("privacy-mode");
+  document.documentElement.classList.remove("platform-mac");
+  document.documentElement.classList.remove("native-fullscreen");
 });
 /** 磁盘上当前正文变更后是否自动重新加载（设置项） */
 const syncCurrentFile = ref(defaultSyncCurrentFile);

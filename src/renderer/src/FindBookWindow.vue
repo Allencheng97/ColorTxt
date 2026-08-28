@@ -19,6 +19,7 @@ import {
 let offWindowRequestClose: (() => void) | null = null;
 let offThemeSync: (() => void) | null = null;
 const privacyMiddleMouseHide = ref(loadPrivacyModeSettings().middleMouseHide);
+const isMacWindow = /mac|iphone|ipad|ipod/i.test(navigator.platform || "");
 
 function onPrivacyMiddleMouse(event: MouseEvent) {
   if (event.button !== 1 || !privacyMiddleMouseHide.value) return;
@@ -46,6 +47,7 @@ function onGoMain() {
 }
 
 onMounted(() => {
+  document.documentElement.classList.toggle("platform-mac", isMacWindow);
   syncThemeFromStorage();
   offThemeSync = listenPersistedSettingsSync(syncThemeFromStorage);
   offWindowRequestClose = window.colorTxt.onWindowRequestClose(() => {
@@ -68,6 +70,7 @@ onBeforeUnmount(() => {
     privacyModeSettingsChangedEvent,
     onPrivacySettingsChanged,
   );
+  document.documentElement.classList.remove("platform-mac");
 });
 </script>
 

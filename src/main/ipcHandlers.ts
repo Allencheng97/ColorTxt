@@ -205,6 +205,11 @@ export function registerMainIpcHandlers(
     ReturnType<typeof createReadStream>
   >();
   const streamRequestSeqBySenderId = new Map<number, number>();
+  const privacyPresentationWindowIds = new Set<number>();
+
+  function currentThemeBackgroundColor(): string {
+    return nativeTheme.shouldUseDarkColors ? "#1e1e1e" : "#ffffff";
+  }
 
   type CurrentFileWatchEntry = {
     watcher: FSWatcher;
@@ -406,10 +411,18 @@ export function registerMainIpcHandlers(
   ipcMain.on("window:setPrivacyPresentation", (evt, enabled: unknown) => {
     const win = BrowserWindow.fromWebContents(evt.sender);
     if (!win || win.isDestroyed()) return;
-    win.setBackgroundColor("#00000000");
-    win.setHasShadow(enabled !== true);
+    const privacyEnabled = enabled === true;
+    if (privacyEnabled) {
+      privacyPresentationWindowIds.add(win.id);
+    } else {
+      privacyPresentationWindowIds.delete(win.id);
+    }
+    win.setBackgroundColor(
+      privacyEnabled ? "#00000000" : currentThemeBackgroundColor(),
+    );
+    win.setHasShadow(!privacyEnabled);
     if (process.platform === "darwin") {
-      win.setWindowButtonVisibility(enabled !== true);
+      win.setWindowButtonVisibility(!privacyEnabled);
     }
   });
 
@@ -827,7 +840,9 @@ export function registerMainIpcHandlers(
     nativeTheme.themeSource = isLight ? "light" : "dark";
     const bg = isLight ? "#ffffff" : "#1e1e1e";
     for (const win of BrowserWindow.getAllWindows()) {
-      win.setBackgroundColor(bg);
+      win.setBackgroundColor(
+        privacyPresentationWindowIds.has(win.id) ? "#00000000" : bg,
+      );
       win.webContents.send("theme:sync", theme);
     }
   });
